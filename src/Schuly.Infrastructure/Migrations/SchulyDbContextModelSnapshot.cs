@@ -387,6 +387,74 @@ namespace Schuly.Infrastructure.Migrations
                     b.ToTable("Grades");
                 });
 
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyConversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("Session")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Title")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Transcript")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("ApplicationUserId", "LastActivityAt");
+
+                    b.ToTable("HelplyConversations");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplySettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Permissions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId")
+                        .IsUnique();
+
+                    b.ToTable("HelplySettings");
+                });
+
             modelBuilder.Entity("Schuly.Domain.LinkedAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2353,6 +2421,28 @@ namespace Schuly.Infrastructure.Migrations
                     b.Navigation("Exam");
 
                     b.Navigation("SchoolUser");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyConversation", b =>
+                {
+                    b.HasOne("Schuly.Domain.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplySettings", b =>
+                {
+                    b.HasOne("Schuly.Domain.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
                 });
 
             modelBuilder.Entity("Schuly.Domain.LinkedAccount", b =>

@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Schuly.Domain;
+using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure.Mcp;
 
@@ -35,6 +36,8 @@ namespace Schuly.Infrastructure
         public DbSet<McpToken> McpTokens { get; set; }
         public DbSet<McpApiKey> McpApiKeys { get; set; }
         public DbSet<McpActivity> McpActivities { get; set; }
+        public DbSet<HelplyConversation> HelplyConversations { get; set; }
+        public DbSet<HelplySettings> HelplySettings { get; set; }
 
         public SchulyDbContext(DbContextOptions<SchulyDbContext> options) : base(options) { }
 
@@ -478,6 +481,32 @@ namespace Schuly.Infrastructure
                 entity.HasOne(a => a.ApplicationUser)
                     .WithMany()
                     .HasForeignKey(a => a.ApplicationUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<HelplyConversation>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Title).IsRequired();
+                entity.Property(c => c.Transcript).IsRequired();
+                entity.HasIndex(c => new { c.ApplicationUserId, c.LastActivityAt });
+                entity.HasIndex(c => c.ExpiresAt);
+
+                entity.HasOne(c => c.ApplicationUser)
+                    .WithMany()
+                    .HasForeignKey(c => c.ApplicationUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<HelplySettings>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+                entity.Property(s => s.Permissions).HasConversion(McpPermissionJson.Converter, McpPermissionJson.Comparer).IsRequired();
+                entity.HasIndex(s => s.ApplicationUserId).IsUnique();
+
+                entity.HasOne(s => s.ApplicationUser)
+                    .WithMany()
+                    .HasForeignKey(s => s.ApplicationUserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

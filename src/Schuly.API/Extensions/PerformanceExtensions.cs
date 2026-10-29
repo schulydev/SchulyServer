@@ -22,9 +22,12 @@ namespace Schuly.API.Extensions
             return services;
         }
 
-        /// <summary>Compresses everything except <c>/auth</c>: those responses carry tokens, and compressing secrets next to request-influenced content over TLS invites BREACH.</summary>
+        /// <summary>
+        /// Compresses everything except <c>/auth</c>, whose responses carry tokens (compressing secrets next to request-influenced content over TLS invites BREACH), and the
+        /// POSTs under <c>/api/helply</c>, which are server-sent event streams that a compressor would buffer until they end.
+        /// </summary>
         public static IApplicationBuilder UseSchulyResponseCompression(this IApplicationBuilder app) =>
-            app.UseWhen(context => !context.Request.Path.StartsWithSegments("/auth"), branch => branch.UseResponseCompression());
+            app.UseWhen(context => !context.Request.Path.StartsWithSegments("/auth") && !(HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments("/api/helply")), branch => branch.UseResponseCompression());
     }
 
     /// <summary>Cache headers for the web app's files: hashed build output is immutable, index.html is always revalidated so a release shows up at once.</summary>
