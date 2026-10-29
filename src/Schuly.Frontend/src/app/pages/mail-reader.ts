@@ -195,7 +195,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
         </div>
       }
     </div>
-    <app-file-viewer [file]="viewing()" (closed)="viewing.set(null)" />
+    <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
   `,
   host: { class: '@container flex min-h-0 min-w-0 flex-1 flex-col' },
 })
@@ -223,6 +223,17 @@ export class MailReader {
   protected readonly flagged = computed(() => this.detail()?.flagged ?? this.summary().flagged);
   protected readonly read = computed(() => this.detail()?.read ?? !this.summary().unread);
   protected readonly files = computed(() => this.client.attachments().filter((a) => !a.inline));
+
+  /** The message's attachments as viewer files; Office formats also get the server-side PDF rendering. */
+  protected readonly viewerFiles = computed<ViewerFile[]>(() => {
+    const id = this.summary().id;
+    return this.files().map((file) => ({
+      name: file.name,
+      key: this.client.attachmentKey(id, file),
+      load: () => this.client.fetchAttachment(id, file),
+      pdf: () => this.client.fetchAttachmentPdf(id, file),
+    }));
+  });
   protected readonly targets = computed(() => this.client.folders().filter((f) => f.key !== this.mail.folder()));
   private readonly lastMain = computed(() => this.targets().filter((f) => f.group === 'main').at(-1)?.key ?? null);
   protected readonly moreTargets = computed(() => this.targets().some((f) => f.group === 'more'));
@@ -291,7 +302,7 @@ export class MailReader {
   }
 
   protected preview(file: MailAttachment): void {
-    const id = this.summary().id;
-    this.viewing.set({ name: file.name, load: () => this.client.fetchAttachment(id, file) });
+    const key = this.client.attachmentKey(this.summary().id, file);
+    this.viewing.set(this.viewerFiles().find((f) => f.key === key) ?? null);
   }
 }

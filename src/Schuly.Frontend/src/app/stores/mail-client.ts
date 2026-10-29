@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { swrCache } from '../core/swr-cache';
 import { LinkedAccountsStore } from './linked-accounts.store';
+import { viewerSupports } from '../shared/file-viewer/file-types';
 
 export type FolderKind = 'inbox' | 'sent' | 'drafts' | 'archive' | 'deleted' | 'junk' | 'outbox' | 'history' | 'rss' | 'sync' | 'system' | 'other';
 
@@ -469,7 +470,19 @@ export class MailClient {
 
   /** Images and PDFs can be viewed in the app; the viewer re-checks the bytes before rendering anything. */
   isPreviewable(attachment: MailAttachment): boolean {
-    return PREVIEWABLE_IMAGES.has(attachment.contentType) || attachment.contentType === 'application/pdf';
+    return viewerSupports(attachment.name) || PREVIEWABLE_IMAGES.has(attachment.contentType) || attachment.contentType === 'application/pdf';
+  }
+
+  /** The attachment converted to PDF by the server (Office formats). */
+  fetchAttachmentPdf(messageId: string, attachment: MailAttachment): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(`${this.base()}/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachment.id)}/pdf`, { responseType: 'blob' }),
+    );
+  }
+
+  /** Stable identity of an attachment, used to cache its converted PDF. */
+  attachmentKey(messageId: string, attachment: MailAttachment): string {
+    return `mail:${this.accounts.selectedId('mail')}:${messageId}:${attachment.id}`;
   }
 
   /** The attachment's bytes, fetched with the signed-in session; the server URL is never navigated to. */

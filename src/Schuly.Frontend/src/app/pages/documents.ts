@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDownload, lucideEye, lucideFileText } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -117,15 +117,23 @@ import { DocumentsStore } from '../stores/documents.store';
         />
       }
     </div>
-    <app-file-viewer [file]="viewing()" (closed)="viewing.set(null)" />
+    <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
   `,
 })
 export class Documents {
   protected readonly documents = inject(DocumentsStore);
   protected readonly viewing = signal<ViewerFile | null>(null);
 
+  /** The listed documents that have a file, in list order. */
+  protected readonly viewerFiles = computed<ViewerFile[]>(() =>
+    this.documents
+      .sorted()
+      .filter((d) => !!d.fileName)
+      .map((d) => ({ name: d.fileName ?? d.title ?? 'document', key: `document:${d.id}`, load: () => this.documents.fetchBlob(d) })),
+  );
+
   protected view(document: StudentDocumentDto): void {
     if (!document.fileName) return;
-    this.viewing.set({ name: document.fileName ?? document.title ?? 'document', load: () => this.documents.fetchBlob(document) });
+    this.viewing.set(this.viewerFiles().find((f) => f.key === `document:${document.id}`) ?? null);
   }
 }
