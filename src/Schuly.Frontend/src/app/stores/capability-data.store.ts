@@ -18,14 +18,6 @@ export interface MailMessage {
   from?: { emailAddress?: { name?: string | null; address?: string | null } | null } | null;
 }
 
-/** A notebook as the notes capability returns it from `<basePath>/{id}/notebooks`. */
-export interface Notebook {
-  id: string;
-  displayName?: string | null;
-  lastModifiedDateTime?: string | null;
-  isShared?: boolean | null;
-  links?: { oneNoteWebUrl?: { href?: string | null } | null } | null;
-}
 
 /**
  * A drive item as the drive capability returns it from `<basePath>/{id}/files`. Folders carry `folder`, files carry `file`;
@@ -74,23 +66,6 @@ export const MailStore = signalStore(
   })),
 );
 
-export const NotebooksStore = signalStore(
-  withAccountResource<Notebook>('notes', 'notebooks'),
-  withComputed((store) => ({
-    notebooks: computed(() =>
-      store
-        .items()
-        .map((n) => ({
-          id: n.id,
-          name: n.displayName || 'Untitled notebook',
-          shared: n.isShared === true,
-          modified: n.lastModifiedDateTime ?? null,
-          link: n.links?.oneNoteWebUrl?.href ?? null,
-        }))
-        .sort((a, b) => (b.modified ?? '').localeCompare(a.modified ?? '')),
-    ),
-  })),
-);
 
 export type DriveKind = 'folder' | 'document' | 'spreadsheet' | 'presentation' | 'pdf' | 'image' | 'archive' | 'file';
 

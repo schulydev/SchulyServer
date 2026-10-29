@@ -14,7 +14,7 @@ namespace Schuly.Infrastructure.Mcp
         public const string Destructive = "schuly.destructive";
 
         /// <summary>Areas that have write tools. The others only ever read, so offering them write access would mean nothing.</summary>
-        public static readonly IReadOnlySet<McpArea> WritableAreas = new HashSet<McpArea> { McpArea.Absences, McpArea.Mail, McpArea.Teams };
+        public static readonly IReadOnlySet<McpArea> WritableAreas = new HashSet<McpArea> { McpArea.Absences, McpArea.Mail, McpArea.Teams, McpArea.OneNote };
 
         public static string Prefix(McpArea area) => area switch
         {
