@@ -17,13 +17,17 @@ import {
 import { HlmBreadcrumbImports } from '@spartan-ng/helm/breadcrumb';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
+import { formatSize } from '../core/drive-explorer';
+import { persistedChoice } from '../core/persisted';
 import { EmptyState } from '../shared/empty-state';
 import { FileViewer, ViewerFile } from '../shared/file-viewer';
 import { LoadMore } from '../shared/load-more';
 import { AccountPicker } from '../shared/account-picker';
 import { AccountProblem } from '../shared/account-problem';
 import { SearchField } from '../shared/search-field';
-import { DriveKind, DriveStore } from '../stores/capability-data.store';
+import { DriveEntry, DriveKind, DriveStore } from '../stores/capability-data.store';
+import { DriveExplorer } from './drive-explorer';
 
 const kindIcons: Record<DriveKind, string> = {
   folder: 'lucideFolder',
@@ -36,21 +40,11 @@ const kindIcons: Record<DriveKind, string> = {
   file: 'lucideFile',
 };
 
-const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-function formatSize(bytes: number): string {
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return `${unit === 0 || value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
-}
+type DriveLayout = 'schuly' | 'explorer';
 
 @Component({
   selector: 'app-drive',
-  imports: [HlmBreadcrumbImports, HlmButton, HlmSkeletonImports, NgIcon, EmptyState, FileViewer, LoadMore, AccountPicker, AccountProblem, SearchField],
+  imports: [HlmBreadcrumbImports, HlmButton, HlmSkeletonImports, HlmToggleGroupImports, NgIcon, DriveExplorer, EmptyState, FileViewer, LoadMore, AccountPicker, AccountProblem, SearchField],
   providers: [
     provideIcons({
       lucideDownload,
@@ -95,6 +89,7 @@ function formatSize(bytes: number): string {
               }
             </ol>
           </nav>
+          @if (layout.value() === 'schuly') {
           <div class="flex items-center gap-2">
             <div class="flex items-center gap-1" role="toolbar" aria-label="File actions">
               <button hlmBtn variant="ghost" size="sm" [disabled]="!current()" (click)="open()">
@@ -121,13 +116,28 @@ function formatSize(bytes: number): string {
             </div>
             <app-search-field [(value)]="query" label="Search files" placeholder="Search files" />
           </div>
+          }
+          <hlm-toggle-group
+            type="single"
+            variant="outline"
+            size="sm"
+            [nullable]="false"
+            [value]="layout.value()"
+            (valueChange)="setLayout($event)"
+            aria-label="Drive view"
+          >
+            <button hlmToggleGroupItem value="schuly" class="px-3">Schuly</button>
+            <button hlmToggleGroupItem value="explorer" class="px-3">Explorer</button>
+          </hlm-toggle-group>
         </div>
-        @if (query().trim() && store.hasMore()) {
+        @if (layout.value() === 'schuly' && query().trim() && store.hasMore()) {
           <p class="text-muted-foreground -mt-2 text-xs">Searching loaded items only. Scroll to load more.</p>
         }
       }
 
-      @if (store.waiting() || store.loading()) {
+      @if (layout.value() === 'explorer' && !store.problem()) {
+        <app-drive-explorer [trail]="trail()" (navigate)="go(null, $event)" (view)="view($event)" />
+      } @else if (store.waiting() || store.loading()) {
         <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-4">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
             <hlm-skeleton class="aspect-4/3 w-full" />
@@ -190,6 +200,9 @@ function formatSize(bytes: number): string {
 export class Drive {
   protected readonly store = inject(DriveStore);
 
+  /** Which Drive layout is shown; remembered per browser. */
+  protected readonly layout = persistedChoice<DriveLayout>('schuly.drive.layout', ['schuly', 'explorer'], 'schuly');
+
   protected readonly viewing = signal<ViewerFile | null>(null);
   protected readonly query = signal('');
   protected readonly trail = signal<string[]>([]);
@@ -229,8 +242,7 @@ export class Drive {
   }
 
   /** Fetches the pre-authenticated download link as a blob; the viewer shows PDFs, images and text and offers a download for the rest. */
-  protected view(): void {
-    const entry = this.current();
+  protected view(entry: DriveEntry | null = this.current()): void {
     const url = entry?.download;
     if (!entry || !url) return;
     this.viewing.set({
@@ -241,6 +253,10 @@ export class Drive {
         return response.blob();
       },
     });
+  }
+
+  protected setLayout(value: unknown): void {
+    if (value === 'schuly' || value === 'explorer') this.layout.set(value);
   }
 
   protected select(id: string): void {
