@@ -314,6 +314,8 @@ export class MailClient {
   readonly unreadTotal = computed(() => this.folders().find((f) => f.kind === 'inbox')?.unread ?? null);
 
   private openSeq = 0;
+  /** The message on screen; attachment and inline-image loads only land when it is still the one they were started for. */
+  private openId: string | null = null;
 
   private base(): string | null {
     const base = this.accounts.endpoint('mail');
@@ -371,6 +373,7 @@ export class MailClient {
     const base = this.base();
     if (!base) return;
     const seq = ++this.openSeq;
+    this.openId = id;
     const key = this.key(`msg|${id}`);
     const hit = swrCache.get<MailDetail>(key);
     this.detailProblem.set(null);
@@ -402,6 +405,7 @@ export class MailClient {
 
   close(): void {
     this.openSeq++;
+    this.openId = null;
     this.detail.set(null);
     this.detailLoading.set(false);
     this.detailProblem.set(null);
@@ -427,7 +431,7 @@ export class MailClient {
     if (!base) return;
     try {
       const items = await firstValueFrom(this.http.get<GraphAttachment[]>(`${base}/${encodeURIComponent(id)}/attachments`));
-      if (seq !== this.openSeq || !Array.isArray(items)) return;
+      if (this.openId !== id || !Array.isArray(items)) return;
       const attachments = items
         .filter((a) => a.id)
         .map((a) => ({
@@ -465,7 +469,7 @@ export class MailClient {
         }
       }),
     );
-    if (seq === this.openSeq && Object.keys(images).length) this.inlineImages.set(images);
+    if (this.openId === id && Object.keys(images).length) this.inlineImages.set(images);
   }
 
   /** Images and PDFs can be viewed in the app; the viewer re-checks the bytes before rendering anything. */
