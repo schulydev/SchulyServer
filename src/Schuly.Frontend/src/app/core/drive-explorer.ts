@@ -1,4 +1,4 @@
-import { FileKind, KIND_STYLES, fileKindOf } from './file-kind';
+import { FileKind, fileKindOf, fileTypeLabel } from './file-kind';
 
 /** What the explorer needs of a drive entry; `DriveStore.entries()` items satisfy it. */
 export interface ExplorerEntry {
@@ -25,8 +25,7 @@ export function explorerKind(entry: Pick<ExplorerEntry, 'name' | 'isFolder' | 'm
 }
 
 export function explorerTypeLabel(entry: Pick<ExplorerEntry, 'name' | 'isFolder' | 'mime'>): string {
-  const kind = explorerKind(entry);
-  return kind === 'folder' ? 'Folder' : KIND_STYLES[kind].label;
+  return entry.isFolder ? 'Folder' : fileTypeLabel(entry.name, entry.mime);
 }
 
 const thumbnailKinds = new Set<FileKind>(['image', 'video', 'pdf', 'word', 'excel', 'powerpoint']);
