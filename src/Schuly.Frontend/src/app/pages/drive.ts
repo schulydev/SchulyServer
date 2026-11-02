@@ -155,7 +155,6 @@ type DriveLayout = 'schuly' | 'explorer';
               class="focus-visible:outline-ring group flex cursor-pointer flex-col gap-2 rounded-lg p-2 focus-visible:outline-2 focus-visible:outline-offset-2"
               [class.bg-muted]="entry.id === selectedId()"
               [attr.aria-selected]="entry.id === selectedId()"
-              [attr.aria-label]="entry.name + ', ' + meta(entry)"
               [attr.tabindex]="i === tabIndex() ? 0 : -1"
               (click)="select(entry.id)"
               (dblclick)="select(entry.id); open()"
@@ -168,8 +167,8 @@ type DriveLayout = 'schuly' | 'explorer';
                 [class.border-ring]="entry.id === selectedId()"
                 [class.text-foreground]="entry.id === selectedId()"
               />
-              <div class="line-clamp-2 text-center text-sm leading-snug font-medium break-words" aria-hidden="true">{{ entry.name }}</div>
-              <div class="text-muted-foreground text-center text-xs" aria-hidden="true">{{ meta(entry) }}</div>
+              <div class="line-clamp-2 text-center text-sm leading-snug font-medium break-words">{{ entry.name }}</div>
+              <div class="text-muted-foreground text-center text-xs">{{ meta(entry) }}</div>
             </div>
           }
         </div>

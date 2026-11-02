@@ -20,7 +20,7 @@ interface NavItem {
   imports: [HlmSidebarImports, NgIcon, RouterLink, RouterLinkActive, NavUser],
   providers: [provideIcons({ lucideLayoutDashboard, lucideChartColumn, lucideClipboardList, lucideCalendarDays, lucideUserX, lucideFileText, lucideHardDrive, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug })],
   template: `
-    <hlm-sidebar collapsible="icon">
+    <hlm-sidebar collapsible="icon" role="complementary" aria-label="Sidebar">
       <div hlmSidebarHeader class="border-b">
         <ul hlmSidebarMenu>
           <li hlmSidebarMenuItem>
@@ -31,7 +31,7 @@ interface NavItem {
           </li>
         </ul>
       </div>
-      <div hlmSidebarContent>
+      <nav hlmSidebarContent aria-label="Main">
         @for (group of groups(); track group.label) {
           <div hlmSidebarGroup>
             <div hlmSidebarGroupLabel>{{ group.label }}</div>
@@ -61,7 +61,7 @@ interface NavItem {
             </div>
           </div>
         }
-      </div>
+      </nav>
       <div hlmSidebarFooter>
         <app-nav-user />
       </div>

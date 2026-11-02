@@ -2,7 +2,7 @@ import { Directive } from '@angular/core';
 import { classes } from '@spartan-ng/helm/utils';
 
 @Directive({
-  selector: 'main[hlmSidebarInset]',
+  selector: '[hlmSidebarInset]',
   exportAs: 'hlmSidebarInset',
   host: { 'data-slot': 'sidebar-inset' },
 })
