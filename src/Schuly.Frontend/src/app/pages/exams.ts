@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, inject, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -10,10 +9,11 @@ import { HlmTabsImports } from '@spartan-ng/helm/tabs';
 import { EmptyState } from '../shared/empty-state';
 import { GradeBadge } from '../shared/grade-badge';
 import { ExamRow, GradesStore } from '../stores/grades.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-exam-table',
-  imports: [HlmTableImports, HlmBadge, HlmSkeletonImports, DatePipe, GradeBadge, EmptyState],
+  imports: [HlmTableImports, HlmBadge, HlmSkeletonImports, AppDatePipe, GradeBadge, EmptyState],
   template: `
     @if (loading()) {
       <div class="flex flex-col gap-2">
@@ -51,8 +51,8 @@ import { ExamRow, GradesStore } from '../stores/grades.store';
                   </td>
                   <td hlmTd class="text-muted-foreground tabular-nums">
                     @if (exam.date) {
-                      <span class="sm:hidden">{{ exam.date | date: 'd MMM' }}</span>
-                      <span class="hidden sm:inline">{{ exam.date | date: 'EEE, d MMM y' }}</span>
+                      <span class="sm:hidden">{{ exam.date | appDate: 'dayMonth' }}</span>
+                      <span class="hidden sm:inline">{{ exam.date | appDate: 'weekdayDate' }}</span>
                     } @else {
                       -
                     }

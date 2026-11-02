@@ -1,8 +1,8 @@
-import { DatePipe, formatDate } from '@angular/common';
-import { Component, LOCALE_ID, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CalendarItem, daysBetween, overlapsDay, sameDay, startOfDay } from '../../core/calendar';
 import { CalendarStore } from '../../stores/calendar.store';
 import { tint } from './tint';
+import { AppDatePipe, formatWhen } from '../../core/date-format';
 
 interface MonthCell {
   date: Date;
@@ -14,7 +14,7 @@ interface MonthCell {
 
 @Component({
   selector: 'app-month-view',
-  imports: [DatePipe],
+  imports: [AppDatePipe],
   template: `
     <div class="overflow-hidden rounded-lg border">
       <div class="bg-muted/50 text-muted-foreground grid grid-cols-7 border-b text-xs font-medium">
@@ -30,7 +30,7 @@ interface MonthCell {
               [class]="dayClass(cell)"
               [attr.aria-pressed]="cell.selected"
               [attr.aria-label]="
-                (cell.date | date: 'fullDate') +
+                (cell.date | appDate: 'full') +
                 ', ' +
                 cell.items.length +
                 (cell.items.length === 1 ? ' entry' : ' entries')
@@ -59,7 +59,7 @@ interface MonthCell {
               >
                 @if (!item.allDay && sameDay(item.start, cell.date)) {
                   <span class="text-muted-foreground tabular-nums">{{
-                    item.start | date: 'HH:mm'
+                    item.start | appDate: 'time'
                   }}</span>
                 }
                 {{ item.title }}
@@ -82,13 +82,12 @@ interface MonthCell {
 })
 export class MonthView {
   protected readonly calendar = inject(CalendarStore);
-  private readonly locale = inject(LOCALE_ID);
   protected readonly tint = tint;
   protected readonly sameDay = sameDay;
 
   protected readonly weekdays = computed(() => {
     const monday = this.calendar.range().start;
-    return daysBetween(monday, 7).map((day) => formatDate(day, 'EEE', this.locale));
+    return daysBetween(monday, 7).map((day) => formatWhen(day, 'weekday'));
   });
 
   protected readonly cells = computed<MonthCell[]>(() => {

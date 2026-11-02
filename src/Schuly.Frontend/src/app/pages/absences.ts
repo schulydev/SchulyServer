@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, inject } from '@angular/core';
 import { provideIcons } from '@ng-icons/core';
@@ -13,6 +13,7 @@ import { AbsenceReportDialog } from './absence-report-dialog';
 import { AbsenceReportsCard } from './absence-reports-card';
 import { AbsenceReportsStore } from '../stores/absence-reports.store';
 import { AbsenceFilter, AbsencesStore } from '../stores/absences.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-absences',
@@ -22,7 +23,7 @@ import { AbsenceFilter, AbsencesStore } from '../stores/absences.store';
     HlmBadge,
     HlmToggleGroupImports,
     HlmSkeletonImports,
-    DatePipe,
+    AppDatePipe,
     DecimalPipe,
     EmptyState,
     AbsenceReportDialog,
@@ -103,13 +104,13 @@ import { AbsenceFilter, AbsencesStore } from '../stores/absences.store';
                 @for (absence of absences.visible(); track absence.id) {
                   <tr hlmTr>
                     <td hlmTd class="font-medium tabular-nums">
-                      <span class="sm:hidden">{{ absence.from | date: 'd MMM' }}</span>
+                      <span class="sm:hidden">{{ absence.from | appDate: 'dayMonth' }}</span>
                       <span class="hidden sm:inline">{{
-                        absence.from | date: 'EEE, d MMM y'
+                        absence.from | appDate: 'weekdayDate'
                       }}</span>
                     </td>
                     <td hlmTd class="text-muted-foreground hidden tabular-nums sm:table-cell">
-                      {{ absence.from | date: 'HH:mm' }} - {{ absence.until | date: 'HH:mm' }}
+                      {{ absence.from | appDate: 'time' }} - {{ absence.until | appDate: 'time' }}
                     </td>
                     <td hlmTd>
                       <span

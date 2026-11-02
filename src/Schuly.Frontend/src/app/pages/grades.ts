@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -11,6 +11,7 @@ import { HlmTableImports } from '@spartan-ng/helm/table';
 import { EmptyState } from '../shared/empty-state';
 import { GradeBadge } from '../shared/grade-badge';
 import { GradesStore } from '../stores/grades.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-grades',
@@ -21,7 +22,7 @@ import { GradesStore } from '../stores/grades.store';
     HlmNativeSelectImports,
     HlmSkeletonImports,
     NgIcon,
-    DatePipe,
+    AppDatePipe,
     DecimalPipe,
     GradeBadge,
     EmptyState,
@@ -123,7 +124,7 @@ import { GradesStore } from '../stores/grades.store';
                     <td hlmTd class="font-medium">{{ grade.exam }}</td>
                     <td hlmTd class="text-muted-foreground">{{ grade.subject }}</td>
                     <td hlmTd class="text-muted-foreground hidden md:table-cell">
-                      {{ grade.date | date: 'd MMM y' }}
+                      {{ grade.date | appDate: 'date' }}
                     </td>
                     <td hlmTd class="hidden text-right tabular-nums sm:table-cell">
                       {{ grade.weighting | number: '1.0-2' }}

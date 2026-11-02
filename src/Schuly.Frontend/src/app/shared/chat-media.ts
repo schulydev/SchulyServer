@@ -1,6 +1,7 @@
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideImageOff } from '@ng-icons/lucide';
+import { lucideImage, lucideImageOff } from '@ng-icons/lucide';
+import { HlmButton } from '@spartan-ng/helm/button';
 import { BubbleFile, BubbleMedia, BubbleSticker, CardView } from '../core/chat-media';
 import { ChatApi } from '../core/chat-api';
 import { FileCard } from './file-card';
@@ -89,7 +90,8 @@ export class ChatImage {
 /** Everything a message carries besides its text: images, GIFs, stickers, file chips, cards and Teams emojis. */
 @Component({
   selector: 'app-chat-media',
-  imports: [ChatImage, FileCard],
+  imports: [ChatImage, FileCard, HlmButton, NgIcon],
+  providers: [provideIcons({ lucideImage })],
   template: `
     @for (m of media(); track m.key) {
       <app-chat-image [item]="m" (open)="viewImage(m)" />
@@ -108,7 +110,15 @@ export class ChatImage {
               <p class="wrap-anywhere whitespace-pre-wrap" [class.font-semibold]="b.bold" [class.text-foreground/70]="b.subtle" [class.text-base]="b.large">{{ b.text }}</p>
             }
             @case ('image') {
-              <img [src]="b.url" [alt]="b.alt" referrerpolicy="no-referrer" loading="lazy" class="max-h-48 max-w-full rounded-md object-contain" />
+              @if (b.trusted || revealed().has(c.key + ':' + $index)) {
+                <img [src]="b.url" [alt]="b.alt" referrerpolicy="no-referrer" loading="lazy" class="max-h-48 max-w-full rounded-md object-contain" />
+              } @else {
+                <button hlmBtn variant="outline" size="sm" type="button" class="self-start" (click)="reveal(c.key + ':' + $index)">
+                  <ng-icon name="lucideImage" aria-hidden="true" />
+                  Show image
+                  <span class="sr-only">from {{ b.host }}{{ b.alt ? ': ' + b.alt : '' }}</span>
+                </button>
+              }
             }
             @case ('facts') {
               <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
@@ -134,6 +144,12 @@ export class ChatImage {
 })
 export class ChatMedia {
   private readonly api = inject(ChatApi);
+
+  /** Card images from outside Microsoft that were clicked; they stay shown for this view. */
+  protected readonly revealed = signal<ReadonlySet<string>>(new Set());
+  protected reveal(key: string): void {
+    this.revealed.update((set) => new Set(set).add(key));
+  }
 
   readonly media = input<BubbleMedia[]>([]);
   readonly files = input<BubbleFile[]>([]);

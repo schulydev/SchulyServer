@@ -77,15 +77,4 @@ export function formatSize(bytes: number): string {
   return `${unit === 0 || value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
-/** Today and yesterday by the clock, anything older by its date. */
-export function formatModified(iso: string | null, now: Date, locale?: string): string {
-  if (!iso) return '';
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return '';
-  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((day(now) - day(at)) / 86_400_000);
-  const time = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(at);
-  if (days === 0) return `Today, ${time}`;
-  if (days === 1) return `Yesterday, ${time}`;
-  return new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(at);
-}
+export { formatModified } from './date-format';

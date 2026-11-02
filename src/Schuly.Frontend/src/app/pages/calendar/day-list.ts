@@ -1,13 +1,13 @@
-import { DatePipe } from '@angular/common';
 import { Component, inject, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMapPin, lucideVideo } from '@ng-icons/lucide';
 import { CalendarItem } from '../../core/calendar';
 import { CalendarStore } from '../../stores/calendar.store';
+import { AppDatePipe } from '../../core/date-format';
 
 @Component({
   selector: 'app-day-list',
-  imports: [DatePipe, NgIcon],
+  imports: [AppDatePipe, NgIcon],
   providers: [provideIcons({ lucideMapPin, lucideVideo })],
   template: `
     <ul class="divide-y">
@@ -27,7 +27,7 @@ import { CalendarStore } from '../../stores/calendar.store';
               @if (item.allDay) {
                 All day
               } @else {
-                {{ item.start | date: 'HH:mm' }}<br />{{ item.end | date: 'HH:mm' }}
+                {{ item.start | appDate: 'time' }}<br />{{ item.end | appDate: 'time' }}
               }
             </span>
             <span class="grid min-w-0 flex-1 gap-0.5">

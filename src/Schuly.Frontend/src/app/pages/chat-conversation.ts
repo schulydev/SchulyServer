@@ -1,4 +1,4 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowLeft, lucideArrowDown, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideTriangleAlert, lucideCircleAlert } from '@ng-icons/lucide';
@@ -21,6 +21,7 @@ import { LoadMore } from '../shared/load-more';
 import { AccountProblem } from '../shared/account-problem';
 import { PersonAvatar } from '../shared/person-avatar';
 import { ChatStore, bodyText } from '../stores/chat.store';
+import { AppDatePipe, relativeDayLabel } from '../core/date-format';
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const NEAR_BOTTOM_PX = 80;
@@ -62,7 +63,7 @@ type LogItem =
 
 @Component({
   selector: 'app-chat-conversation',
-  imports: [DatePipe, NgTemplateOutlet, HlmButton, HlmSkeletonImports, NgIcon, ChatAvatar, ChatMedia, EmojiSlots, EmptyState, FileViewer, LoadMore, AccountProblem, PersonAvatar, ChatComposer],
+  imports: [AppDatePipe, NgTemplateOutlet, HlmButton, HlmSkeletonImports, NgIcon, ChatAvatar, ChatMedia, EmojiSlots, EmptyState, FileViewer, LoadMore, AccountProblem, PersonAvatar, ChatComposer],
   providers: [provideIcons({ lucideArrowLeft, lucideArrowDown, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideTriangleAlert, lucideCircleAlert })],
   template: `
     @if (store.openChat(); as chat) {
@@ -128,7 +129,7 @@ type LogItem =
                   @case ('day') {
                     <div class="my-4 flex justify-center">
                       <time class="bg-muted text-foreground/70 rounded-full px-3 py-0.5 text-xs font-medium" [attr.datetime]="item.date">
-                        {{ item.label ?? (item.date | date: (item.showYear ? 'EEEE, d MMMM y' : 'EEEE, d MMMM')) }}
+                        {{ item.label ?? (item.date | appDate: (item.showYear ? 'weekdayDateLong' : 'weekdayDayMonthLong')) }}
                       </time>
                     </div>
                   }
@@ -141,7 +142,7 @@ type LogItem =
                         <div class="flex max-w-[85%] flex-col items-end" [class]="item.files.length ? 'sm:max-w-[95%]' : 'sm:max-w-[75%]'">
                           @if (item.head) {
                             <span class="text-muted-foreground mb-0.5 text-xs">
-                              <time [attr.datetime]="item.time">{{ item.time | date: 'HH:mm' }}</time>
+                              <time [attr.datetime]="item.time">{{ item.time | appDate: 'time' }}</time>
                             </span>
                           }
                           <ng-container *ngTemplateOutlet="bubble; context: { $implicit: item }" />
@@ -165,7 +166,7 @@ type LogItem =
                           @if (item.head) {
                             <div class="mb-0.5 flex items-baseline gap-2">
                               <span class="text-sm font-semibold">{{ item.senderName }}</span>
-                              <span class="text-muted-foreground text-xs"><time [attr.datetime]="item.time">{{ item.time | date: 'HH:mm' }}</time></span>
+                              <span class="text-muted-foreground text-xs"><time [attr.datetime]="item.time">{{ item.time | appDate: 'time' }}</time></span>
                             </div>
                           }
                           <ng-container *ngTemplateOutlet="bubble; context: { $implicit: item }" />
@@ -289,13 +290,9 @@ export class ChatConversation {
   protected readonly items = computed<LogItem[]>(() => {
     const chatId = this.store.openId();
     const mine = this.store.meId();
-    const today = dayKey(new Date());
     const currentYear = new Date().getFullYear();
     const people = new Map((this.store.openChat()?.people ?? []).filter((p) => p.id).map((p) => [p.id as string, p.name]));
     if (mine) people.set(mine, 'You');
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = dayKey(yesterdayDate);
 
     const entries = [
       ...this.store.messages().map((m) => ({ message: m, pending: null })),
@@ -326,7 +323,7 @@ export class ChatConversation {
       if (key !== lastDay) {
         lastDay = key;
         prev = null;
-        out.push({ kind: 'day', key: `day-${key}`, label: key === today ? 'Today' : key === yesterday ? 'Yesterday' : null, date: time, showYear: date.getFullYear() !== currentYear });
+        out.push({ kind: 'day', key: `day-${key}`, label: relativeDayLabel(time), date: time, showYear: date.getFullYear() !== currentYear });
       }
 
       if (systemText) {

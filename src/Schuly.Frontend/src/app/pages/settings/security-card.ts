@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { form, FormField, FormRoot, minLength, required } from '@angular/forms/signals';
@@ -10,11 +9,12 @@ import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSeparator } from '@spartan-ng/helm/separator';
 import { SecurityStore } from '../../stores/security.store';
+import { AppDatePipe } from '../../core/date-format';
 
 @Component({
   selector: 'app-security-card',
   imports: [
-    DatePipe,
+    AppDatePipe,
     FormRoot,
     FormField,
     HlmAlertImports,
@@ -283,7 +283,7 @@ import { SecurityStore } from '../../stores/security.store';
                     }
                   </span>
                   <span class="text-muted-foreground text-xs">{{
-                    device.lastUsedAt || device.createdAt | date: 'd MMM y'
+                    device.lastUsedAt || device.createdAt | appDate: 'date'
                   }}</span>
                 </li>
               }

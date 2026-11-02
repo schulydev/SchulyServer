@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -13,10 +12,11 @@ import { EmptyState } from '../shared/empty-state';
 import { FileViewer, ViewerFile } from '../shared/file-viewer';
 import { StudentDocumentDto } from '../api';
 import { DocumentsStore } from '../stores/documents.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-documents',
-  imports: [SyncingNotice, HlmAlertImports, HlmTableImports, HlmBadge, HlmButton, HlmSkeletonImports, HlmSpinner, NgIcon, DatePipe, EmptyState, FileViewer],
+  imports: [SyncingNotice, HlmAlertImports, HlmTableImports, HlmBadge, HlmButton, HlmSkeletonImports, HlmSpinner, NgIcon, AppDatePipe, EmptyState, FileViewer],
   providers: [provideIcons({ lucideDownload, lucideEye, lucideFileText })],
   template: `
     <div class="flex flex-col gap-4 p-4 lg:p-6">
@@ -62,13 +62,13 @@ import { DocumentsStore } from '../stores/documents.store';
                       }
                     </td>
                     <td hlmTd class="text-muted-foreground hidden tabular-nums md:table-cell">
-                      {{ document.createdAt | date: 'd MMM y' }}
+                      {{ document.createdAt | appDate: 'date' }}
                     </td>
                     <td hlmTd class="text-muted-foreground hidden lg:table-cell">
                       {{ document.followUpAction || '-' }}
                       @if (document.followUpDate) {
                         <span class="tabular-nums"
-                          >({{ document.followUpDate | date: 'd MMM' }})</span
+                          >({{ document.followUpDate | appDate: 'dayMonth' }})</span
                         >
                       }
                     </td>

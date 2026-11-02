@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, model, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBellRing, lucideCircleAlert, lucideTriangleAlert, lucideX } from '@ng-icons/lucide';
@@ -14,6 +13,7 @@ import { toIsoDate } from '../core/dates';
 import { htmlToText } from '../core/rich-html';
 import { ScheduledMessage, ChatApi, apiMessage } from '../core/chat-api';
 import { DateTimeField } from '../shared/date-time-field';
+import { AppDatePipe } from '../core/date-format';
 
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
@@ -31,7 +31,7 @@ export function combine(date: string, time: string): Date | null {
 /** Schedule the current draft for later, and manage what is still waiting in this chat. */
 @Component({
   selector: 'app-schedule-dialog',
-  imports: [DatePipe, NgIcon, HlmButton, HlmDialogImports, HlmSpinner, DateTimeField],
+  imports: [AppDatePipe, NgIcon, HlmButton, HlmDialogImports, HlmSpinner, DateTimeField],
   providers: [provideIcons({ lucideX })],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
@@ -62,7 +62,7 @@ export function combine(date: string, time: string): Date | null {
                   <li class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
                     <span class="min-w-0 flex-1">
                       <span class="block truncate">{{ text(m) }}</span>
-                      <time class="text-foreground/70 text-xs" [attr.datetime]="m.sendAt">{{ m.sendAt | date: 'EEE d MMM, HH:mm' }}</time>
+                      <time class="text-foreground/70 text-xs" [attr.datetime]="m.sendAt">{{ m.sendAt | appDate: 'weekdayDayMonthTime' }}</time>
                     </span>
                     <button hlmBtn type="button" variant="ghost" size="sm" [disabled]="cancelling() === m.id" (click)="cancel(m)">
                       <ng-icon name="lucideX" aria-hidden="true" />

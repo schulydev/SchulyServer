@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideUndo2 } from '@ng-icons/lucide';
@@ -15,11 +14,12 @@ import {
   ReportedAbsence,
   absenceErrorMessage,
 } from '../stores/absence-reports.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-absence-reports-card',
   imports: [
-    DatePipe,
+    AppDatePipe,
     NgIcon,
     HlmAlertImports,
     HlmAlertDialogImports,
@@ -54,9 +54,9 @@ import {
               >
                 <div class="flex min-w-0 flex-col gap-1">
                   <span class="font-medium tabular-nums">
-                    {{ report.dateFrom | date: 'EEE, d MMM y' }}
+                    {{ report.dateFrom | appDate: 'weekdayDate' }}
                     @if (report.dateTo !== report.dateFrom) {
-                      to {{ report.dateTo | date: 'EEE, d MMM y' }}
+                      to {{ report.dateTo | appDate: 'weekdayDate' }}
                     }
                     @if (report.hourFrom && report.hourTo) {
                       <span class="text-muted-foreground font-normal">
@@ -96,7 +96,7 @@ import {
                       <ng-icon name="lucideUndo2" aria-hidden="true" />
                     }
                     Withdraw
-                    <span class="sr-only">report for {{ report.dateFrom | date: 'd MMM y' }}</span>
+                    <span class="sr-only">report for {{ report.dateFrom | appDate: 'date' }}</span>
                   </button>
                   <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
                     <hlm-alert-dialog-header>

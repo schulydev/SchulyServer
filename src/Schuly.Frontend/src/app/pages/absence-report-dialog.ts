@@ -10,6 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { formatWhen, uiLocale } from '../core/date-format';
 import { form, FormField, FormRoot, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSend } from '@ng-icons/lucide';
@@ -36,14 +37,9 @@ const MAX_LENGTH = 500;
 const OTHER_REASON = '__other__';
 const NO_REASON = '__none__';
 
-const LOCALE = 'en-GB';
-const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const LOCALE = uiLocale();
+const DATE_FORMAT = { format: (date: Date) => formatWhen(date, 'weekdayDate', LOCALE) };
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) => formatWhen(new Date(2023, 0, 1 + i), 'weekday', LOCALE).replace('.', '').slice(0, 2));
 const longMonth = (month: number, year = 2000) =>
   new Date(year, month).toLocaleDateString(LOCALE, { month: 'long' });
 

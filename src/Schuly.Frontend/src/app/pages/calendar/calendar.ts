@@ -1,7 +1,6 @@
-import { DatePipe, formatDate } from '@angular/common';
 import { SyncingNotice } from '../../shared/syncing-notice';
 import { LinkedAccountsStore } from '../../stores/linked-accounts.store';
-import { Component, LOCALE_ID, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronLeft, lucideChevronRight, lucideTriangleAlert } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -14,6 +13,7 @@ import { DayList } from './day-list';
 import { EventSheet } from './event-sheet';
 import { MonthView } from './month-view';
 import { WeekView } from './week-view';
+import { AppDatePipe, formatWhen } from '../../core/date-format';
 
 @Component({
   selector: 'app-calendar',
@@ -23,7 +23,7 @@ import { WeekView } from './week-view';
     HlmSpinner,
     HlmToggleGroupImports,
     NgIcon,
-    DatePipe,
+    AppDatePipe,
     MonthView,
     WeekView,
     DayList,
@@ -121,7 +121,7 @@ import { WeekView } from './week-view';
             <app-month-view />
             <section class="h-fit overflow-hidden rounded-lg border" aria-labelledby="selected-day">
               <h3 id="selected-day" class="bg-muted/50 border-b px-4 py-2.5 text-sm font-medium">
-                {{ calendar.selectedDay() | date: 'EEEE, d MMMM' }}
+                {{ calendar.selectedDay() | appDate: 'weekdayDayMonthLong' }}
               </h3>
               <app-day-list [items]="calendar.selectedDayItems()" />
             </section>
@@ -135,10 +135,10 @@ import { WeekView } from './week-view';
             @for (day of listDays(); track day.date.getTime()) {
               <section
                 class="overflow-hidden rounded-lg border"
-                [attr.aria-label]="day.date | date: 'fullDate'"
+                [attr.aria-label]="day.date | appDate: 'full'"
               >
                 <h3 class="bg-muted/50 border-b px-4 py-2.5 text-sm font-medium">
-                  {{ day.date | date: 'EEEE, d MMMM' }}
+                  {{ day.date | appDate: 'weekdayDayMonthLong' }}
                 </h3>
                 <app-day-list [items]="day.items" />
               </section>
@@ -159,13 +159,12 @@ import { WeekView } from './week-view';
 export class Calendar {
   protected readonly calendar = inject(CalendarStore);
   protected readonly linked = inject(LinkedAccountsStore);
-  private readonly locale = inject(LOCALE_ID);
 
   protected readonly title = computed(() => {
     const { start, end } = this.calendar.range();
     const view = this.calendar.view();
-    if (view === 'month') return formatDate(this.calendar.anchor(), 'MMMM y', this.locale);
-    return `${formatDate(start, 'd MMM', this.locale)} - ${formatDate(addDays(end, -1), 'd MMM y', this.locale)}`;
+    if (view === 'month') return formatWhen(this.calendar.anchor(), 'monthYearLong');
+    return `${formatWhen(start, 'dayMonth')} - ${formatWhen(addDays(end, -1), 'date')}`;
   });
 
   protected readonly listDays = computed(() => {

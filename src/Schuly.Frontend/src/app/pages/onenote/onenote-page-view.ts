@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowLeft, lucideExternalLink, lucideFileText, lucideLock, lucidePaperclip, lucidePencil, lucideSave, lucideTrash2, lucideX } from '@ng-icons/lucide';
@@ -13,6 +12,7 @@ import { OneNoteStore } from '../../stores/onenote.store';
 import { OneNoteBody } from './onenote-body';
 import { OneNoteEditor } from './onenote-editor';
 import { editorText, normalizeEditorHtml } from './page-html';
+import { AppDatePipe } from '../../core/date-format';
 
 const SAVE_ERRORS: Record<OneNoteProblem, string> = {
   readonly: 'This notebook is read only, so your changes were not saved.',
@@ -25,7 +25,7 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
 /** The right pane: header, attachments and either the sandboxed page or the editors. */
 @Component({
   selector: 'app-onenote-page-view',
-  imports: [DatePipe, HlmAlertDialogImports, HlmButton, HlmInput, HlmSkeletonImports, AccountProblem, NgIcon, OneNoteBody, OneNoteEditor],
+  imports: [AppDatePipe, HlmAlertDialogImports, HlmButton, HlmInput, HlmSkeletonImports, AccountProblem, NgIcon, OneNoteBody, OneNoteEditor],
   providers: [provideIcons({ lucideArrowLeft, lucideExternalLink, lucideFileText, lucideLock, lucidePaperclip, lucidePencil, lucideSave, lucideTrash2, lucideX })],
   host: { class: '@container flex min-h-0 min-w-0 flex-1 flex-col', '(keydown)': 'onKey($event)' },
   template: `
@@ -59,7 +59,7 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
                 <span class="min-w-0 truncate">{{ page.notebook?.displayName }}@if (page.notebook && page.section) { / }{{ page.section?.displayName }}</span>
               }
               @if (page.lastModifiedDateTime; as modified) {
-                <time [attr.datetime]="modified">Modified {{ modified | date: 'EEE d MMM y, HH:mm' }}</time>
+                <time [attr.datetime]="modified">Modified {{ modified | appDate: 'weekdayDateTime' }}</time>
               }
               @if (!page.writable) {
                 <span class="inline-flex items-center gap-1">
