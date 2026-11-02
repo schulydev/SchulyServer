@@ -55,6 +55,19 @@ namespace Schuly.Tests.Helply
         }
 
         [Test]
+        public async Task A_step_detail_says_only_harmless_things()
+        {
+            static Dictionary<string, object?> Args(string json) => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json)!.ToDictionary(p => p.Key, p => (object?)p.Value);
+
+            await Assert.That(HelplyToolLabels.Detail("list_mail", Args("{\"offset\":20,\"limit\":20,\"unreadOnly\":true}"))).IsEqualTo("page 2 · unread only");
+            await Assert.That(HelplyToolLabels.Detail("list_mail", Args("{\"folder\":\"sentitems\",\"search\":\"from:anna@example.ch\"}"))).IsEqualTo("sent mail · with a search");
+            await Assert.That(HelplyToolLabels.Detail("list_mail", Args("{\"folder\":\"AAMkAD-opaque-id\"}"))).IsNull();
+            await Assert.That(HelplyToolLabels.Detail("read_mail", Args("{\"messageId\":\"abc\",\"offset\":4000}"))).IsEqualTo("continued");
+            await Assert.That(HelplyToolLabels.Detail("list_grades", Args("{}"))).IsNull();
+            await Assert.That(HelplyToolLabels.Detail("list_grades", null)).IsNull();
+        }
+
+        [Test]
         public async Task Approval_summaries_describe_exactly_what_will_happen()
         {
             var longBody = new string('b', 500);

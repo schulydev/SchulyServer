@@ -11,7 +11,8 @@ import {
   toChatMessage,
 } from '../../core/helply-state';
 import { checkFiles } from '../../core/helply-files';
-import { ApprovalDecision, ConversationSummary, HelplyAttachment, StreamEvent } from '../../core/helply-types';
+import { ApprovalDecision, ConversationSummary, HelplyAttachment, HelplySettings, StreamEvent } from '../../core/helply-types';
+import { starterPrompts } from './helply-suggestions';
 
 export type Availability = 'loading' | 'on' | 'off' | 'error';
 
@@ -64,11 +65,15 @@ export class HelplyStore {
   readonly drafts = signal<DraftFile[]>([]);
   /** Inline problems with the files the user just tried to attach. */
   readonly attachErrors = signal<string[]>([]);
+  /** What Helply may use; null until loaded or when it couldn't be read. */
+  readonly settings = signal<HelplySettings | null>(null);
 
   readonly messages = computed(() => this.chat().messages);
   readonly approvals = computed(() => this.chat().approvals);
   readonly uploading = computed(() => this.drafts().filter((d) => d.status === 'uploading').length);
   readonly uploaded = computed(() => this.drafts().filter((d) => d.status === 'done').length);
+  /** Starter questions for an empty chat, matching what Helply may use. */
+  readonly suggestions = computed(() => starterPrompts(this.settings()));
   readonly activeTitle = computed(() => this.conversations().find((c) => c.id === this.activeId())?.title ?? 'New chat');
 
   async init(): Promise<void> {
@@ -79,10 +84,20 @@ export class HelplyStore {
         this.availability.set('off');
         return;
       }
+      void this.loadSettings();
       this.conversations.set(await this.api.conversations());
       this.availability.set('on');
     } catch (error) {
       this.availability.set(this.offOrError(error));
+    }
+  }
+
+  /** Best effort: without settings the empty chat just offers no starter questions. */
+  private async loadSettings(): Promise<void> {
+    try {
+      this.settings.set(await this.api.settings());
+    } catch {
+      this.settings.set(null);
     }
   }
 

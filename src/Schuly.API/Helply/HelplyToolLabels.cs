@@ -68,6 +68,61 @@ namespace Schuly.API.Helply
 
         public static IReadOnlyCollection<string> KnownTools => Labels.Keys;
 
+        private static readonly Dictionary<string, string> WellKnownFolders = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sentitems"] = "sent mail",
+            ["drafts"] = "drafts",
+            ["deleteditems"] = "deleted mail",
+            ["archive"] = "archive",
+            ["junkemail"] = "junk mail",
+        };
+
+        /// <summary>
+        /// A short note under a step in the chat ("page 2", "unread only"), built only from arguments that say nothing personal: paging numbers, flags and well-known folder names.
+        /// Search text, ids, names and addresses never go into it. Null when there is nothing worth saying.
+        /// </summary>
+        public static string? Detail(string toolName, IDictionary<string, object?>? args)
+        {
+            if (args is null)
+                return null;
+            var notes = new List<string>();
+            if (Number(args, "offset") is > 0 and var offset)
+            {
+                if (toolName.StartsWith("read_", StringComparison.Ordinal))
+                    notes.Add("continued");
+                else if (Number(args, "limit") is > 0 and var limit)
+                    notes.Add($"page {offset / limit + 1}");
+                else
+                    notes.Add("more results");
+            }
+            if (Bool(args, "unreadOnly") == true)
+                notes.Add("unread only");
+            if (Text(args, "folder") is { } folder && WellKnownFolders.TryGetValue(folder, out var folderName))
+                notes.Add(folderName);
+            if (toolName == "list_mail" && !string.IsNullOrWhiteSpace(Text(args, "search")))
+                notes.Add("with a search");
+            return notes.Count == 0 ? null : string.Join(" · ", notes);
+        }
+
+        private static long? Number(IDictionary<string, object?> args, string name) => args.TryGetValue(name, out var value) ? value switch
+        {
+            int i => i,
+            long l => l,
+            JsonElement { ValueKind: JsonValueKind.Number } e when e.TryGetInt64(out var n) => n,
+            JsonElement { ValueKind: JsonValueKind.String } e when long.TryParse(e.GetString(), out var n) => n,
+            string s when long.TryParse(s, out var n) => n,
+            _ => null,
+        } : null;
+
+        private static bool? Bool(IDictionary<string, object?> args, string name) => args.TryGetValue(name, out var value) ? value switch
+        {
+            bool b => b,
+            JsonElement { ValueKind: JsonValueKind.True } => true,
+            JsonElement { ValueKind: JsonValueKind.False } => false,
+            string s when bool.TryParse(s, out var b) => b,
+            _ => null,
+        } : null;
+
         /// <summary>The running and done labels for a tool; an unknown tool falls back to its title, then to a generic phrase.</summary>
         public static (string Running, string Done) For(string toolName, string? title)
         {

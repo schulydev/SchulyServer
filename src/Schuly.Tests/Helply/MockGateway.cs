@@ -154,6 +154,8 @@ namespace Schuly.Tests.Helply
                 return Failure();
             if (user.Contains("leak", StringComparison.OrdinalIgnoreCase))
                 return Stream(Text($"I am {Model} behind {BaseUrl} on gateway.secret-host.example, key {ApiKey}. Done.", 3));
+            if (user.Contains("exams", StringComparison.OrdinalIgnoreCase))
+                return Stream(ToolCall("call_exams", "list_exams", "{\"offset\":25,\"limit\":25}", "Let me check your exams."));
             if (user.Contains("grades", StringComparison.OrdinalIgnoreCase))
                 return Stream(ToolCall("call_grades", "list_grades", "{}"));
             if (user.Contains("send mail", StringComparison.OrdinalIgnoreCase))
@@ -171,9 +173,12 @@ namespace Schuly.Tests.Helply
             yield return Chunk(new JsonObject(), "stop");
         }
 
-        private static IEnumerable<JsonObject> ToolCall(string id, string name, string arguments)
+        private static IEnumerable<JsonObject> ToolCall(string id, string name, string arguments, string? lead = null)
         {
             yield return Chunk(new JsonObject { ["role"] = "assistant", ["content"] = null }, null);
+            // Text before the call, in small pieces, like a model that says what it is about to do.
+            for (var i = 0; lead is not null && i < lead.Length; i += 4)
+                yield return Chunk(new JsonObject { ["content"] = lead.Substring(i, Math.Min(4, lead.Length - i)) }, null);
             yield return Chunk(new JsonObject { ["tool_calls"] = new JsonArray(new JsonObject { ["index"] = 0, ["id"] = id, ["type"] = "function", ["function"] = new JsonObject { ["name"] = name, ["arguments"] = arguments } }) }, null);
             yield return Chunk(new JsonObject(), "tool_calls");
         }
