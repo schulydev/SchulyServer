@@ -24,7 +24,7 @@ export const routes: Routes = [
       { path: 'drive', title: 'Drive', loadComponent: () => import('./pages/drive').then((m) => m.Drive) },
       { path: 'notes', title: 'Notes', loadComponent: () => import('./pages/notes').then((m) => m.Notes) },
       { path: 'settings', title: 'Settings', loadComponent: () => import('./pages/settings').then((m) => m.Settings) },
-      { path: 'ai/helply', title: 'Helply', loadComponent: () => import('./pages/helply').then((m) => m.Helply) },
+      { path: 'ai/helply', title: 'Helply', data: { fullHeight: true }, loadComponent: () => import('./pages/helply').then((m) => m.Helply) },
       { path: 'ai/mcp', title: 'MCP', loadComponent: () => import('./pages/mcp').then((m) => m.Mcp) },
     ],
   },

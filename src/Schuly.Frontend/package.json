@@ -34,6 +34,7 @@
     "embla-carousel": ">=8.0.0 <9.0.0",
     "embla-carousel-angular": "^22.0.0",
     "emojibase-data": "18.0.0",
+    "marked": "18.0.3",
     "ngx-scrollbar": "^19.1.5",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",

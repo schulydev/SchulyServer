@@ -1,0 +1,64 @@
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging.Abstractions;
+using OpenAI.Chat;
+using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
+
+namespace Schuly.API.Helply
+{
+    /// <summary>
+    /// Keeps a conversation's history within bounds: the most recent messages up to a count and a character cap, starting at a plain user message so the window never opens
+    /// in the middle of a tool exchange (a tool result without its call is rejected by gateways). The latest user message is always kept, however long.
+    /// </summary>
+    public sealed class HelplyChatReducer(int maxMessages, int maxChars) : IChatReducer
+    {
+        public Task<IEnumerable<ChatMessage>> ReduceAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken = default) => Task.FromResult<IEnumerable<ChatMessage>>(Reduce(messages.ToList()));
+
+        public IReadOnlyList<ChatMessage> Reduce(IReadOnlyList<ChatMessage> messages)
+        {
+            var start = messages.Count;
+            var chars = 0;
+            while (start > 0 && messages.Count - start < maxMessages)
+            {
+                var size = Size(messages[start - 1]);
+                if (chars + size > maxChars && start < messages.Count)
+                    break;
+                chars += size;
+                start--;
+            }
+
+            // Open the window at a user message that starts a turn. If the budget ended inside the newest turn, fall back to that turn's start.
+            var opening = Enumerable.Range(start, messages.Count - start).Cast<int?>().FirstOrDefault(i => StartsTurn(messages[i!.Value]));
+            opening ??= Enumerable.Range(0, messages.Count).Reverse().Cast<int?>().FirstOrDefault(i => StartsTurn(messages[i!.Value]));
+            return opening is { } from ? messages.Skip(from).ToList() : messages.ToList();
+        }
+
+        private static bool StartsTurn(ChatMessage message) => message.Role == ChatRole.User && !message.Contents.Any(c => c is FunctionResultContent or ToolApprovalResponseContent);
+
+        private static int Size(ChatMessage message) => message.Contents.Sum(c => c switch
+        {
+            TextContent t => t.Text?.Length ?? 0,
+            FunctionResultContent r => r.Result?.ToString()?.Length ?? 0,
+            FunctionCallContent f => 100 + (f.Arguments?.Sum(a => a.Value?.ToString()?.Length ?? 0) ?? 0),
+            _ => 50,
+        });
+    }
+
+    /// <summary>Builds the agent for one run: the gateway's chat client, the system prompt, the tools exactly as MCP listed them, and a bounded history. Nothing here logs or traces.</summary>
+    public static class HelplyAgentFactory
+    {
+        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools)
+        {
+            var options = new ChatClientAgentOptions
+            {
+                ChatOptions = new ChatOptions { Instructions = instructions, Tools = tools, MaxOutputTokens = limits.MaxOutputTokens },
+                ChatHistoryProvider = new InMemoryChatHistoryProvider(new InMemoryChatHistoryProviderOptions
+                {
+                    ChatReducer = new HelplyChatReducer(limits.MaxHistoryMessages, limits.MaxHistoryChars),
+                    ReducerTriggerEvent = InMemoryChatHistoryProviderOptions.ChatReducerTriggerEvent.AfterMessageAdded,
+                }),
+            };
+            return chat.AsAIAgent(options, client => client.AsBuilder().UseFunctionInvocation(NullLoggerFactory.Instance, f => f.MaximumIterationsPerRequest = limits.MaxToolIterations).Build(), NullLoggerFactory.Instance);
+        }
+    }
+}

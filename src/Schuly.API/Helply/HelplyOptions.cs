@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Schuly.Infrastructure.Helply;
+
 namespace Schuly.API.Helply
 {
     /// <summary>
@@ -11,6 +14,21 @@ namespace Schuly.API.Helply
         public string? BaseUrl { get; set; }
         public string? ApiKey { get; set; }
         public string? Model { get; set; }
+    }
+
+    /// <summary>Per-user and per-run limits, <c>Helply:Limits</c>. Nothing secret, so these may live in appsettings.</summary>
+    public class HelplyLimits
+    {
+        public const string SectionName = "Helply:Limits";
+
+        public int MessagesPerMinute { get; set; } = 10;
+        public int MessagesPerDay { get; set; } = 200;
+        public int MaxInputChars { get; set; } = 4000;
+        public int RunTimeoutSeconds { get; set; } = 120;
+        public int MaxToolIterations { get; set; } = 8;
+        public int MaxHistoryMessages { get; set; } = 40;
+        public int MaxHistoryChars { get; set; } = 60000;
+        public int MaxOutputTokens { get; set; } = 2048;
     }
 
     /// <summary>Whether Helply can run. Decided once at startup; a missing setting only switches Helply off, it never stops the server.</summary>
@@ -28,6 +46,21 @@ namespace Schuly.API.Helply
             var options = configuration.GetSection(HelplyOptions.SectionName).Get<HelplyOptions>() ?? new HelplyOptions();
             var enabled = Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) && !string.IsNullOrWhiteSpace(options.ApiKey);
             services.AddSingleton(new HelplyAvailability { IsEnabled = enabled });
+            services.Configure<HelplyLimits>(configuration.GetSection(HelplyLimits.SectionName));
+
+            // Named clients carry no logging at all: the default handlers would log the request URI, which is the gateway address.
+            services.AddHttpClient(HelplyGateway.ClientName, client => client.Timeout = TimeSpan.FromSeconds(180)).RemoveAllLoggers();
+            services.AddHttpClient(HelplyMcpConnector.ClientName, client => client.Timeout = TimeSpan.FromSeconds(120)).RemoveAllLoggers();
+
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddSingleton<HelplyCipher>();
+            services.AddScoped<HelplyConversationStore>();
+            services.AddSingleton<HelplyGateway>();
+            services.AddSingleton<HelplyRateLimiter>();
+            services.AddSingleton<HelplyTurnLocks>();
+            services.AddScoped<HelplyMcpConnector>();
+            services.AddScoped<HelplyChatService>();
+            services.AddHostedService<HelplyCleanupService>();
             services.AddHostedService<HelplyStartupCheck>();
             return services;
         }

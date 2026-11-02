@@ -45,6 +45,7 @@ namespace Schuly.Infrastructure.Services
             QueueNotificationPreferenceDeletionAsync,
             QueueNotificationOutboxDeletionAsync,
             QueueMcpCredentialDeletionAsync,
+            QueueHelplyDeletionAsync,
         ];
 
         public async Task<AccountPurgeSummary> PurgeApplicationUserAsync(Guid applicationUserId, CancellationToken cancellationToken = default)
@@ -248,6 +249,13 @@ namespace Schuly.Infrastructure.Services
             dbContext.McpGrants.RemoveRange(await dbContext.McpGrants.Where(g => g.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
             dbContext.McpApiKeys.RemoveRange(await dbContext.McpApiKeys.Where(k => k.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
             dbContext.McpActivities.RemoveRange(await dbContext.McpActivities.Where(a => a.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
+        }
+
+        // Helply conversations and settings cascade from ApplicationUser as well; explicit here for the same reason.
+        private static async Task QueueHelplyDeletionAsync(SchulyDbContext dbContext, Guid applicationUserId, CancellationToken cancellationToken)
+        {
+            dbContext.HelplyConversations.RemoveRange(await dbContext.HelplyConversations.Where(c => c.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
+            dbContext.HelplySettings.RemoveRange(await dbContext.HelplySettings.Where(h => h.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
         }
 
         private static string HashUserId(Guid id) => Convert.ToHexStringLower(SHA256.HashData(id.ToByteArray()))[..16];
