@@ -39,6 +39,12 @@ namespace Schuly.API.Helply
             ["list_drive_items"] = ("Browsing your OneDrive", "Browsed your OneDrive"),
             ["read_drive_file"] = ("Reading a OneDrive file", "Read a OneDrive file"),
             ["list_notebooks"] = ("Checking your OneNote notebooks", "Checked your OneNote notebooks"),
+            ["list_sections"] = ("Checking your OneNote sections", "Checked your OneNote sections"),
+            ["list_pages"] = ("Checking your OneNote pages", "Checked your OneNote pages"),
+            ["read_page"] = ("Reading a OneNote page", "Read a OneNote page"),
+            ["search_pages"] = ("Searching your OneNote pages", "Searched your OneNote pages"),
+            ["create_page"] = ("Creating a OneNote page", "Created a OneNote page"),
+            ["update_page"] = ("Updating a OneNote page", "Updated a OneNote page"),
             ["list_calendar_events"] = ("Checking your calendar", "Checked your calendar"),
             ["list_reported_absences"] = ("Checking your reported absences", "Checked your reported absences"),
             ["list_absence_reasons"] = ("Checking the absence reasons", "Checked the absence reasons"),
@@ -69,6 +75,8 @@ namespace Schuly.API.Helply
             ["send_chat_message"] = [("chatId", "Chat id"), ("text", "Message")],
             ["report_absence"] = [("dateFrom", "From date"), ("dateTo", "To date"), ("hourFrom", "From time"), ("hourTo", "To time"), ("reason", "Reason"), ("comment", "Comment")],
             ["withdraw_absence_report"] = [("ids", "Report ids")],
+            ["create_page"] = [("sectionId", "Section id"), ("title", "Page title"), ("content", "Content")],
+            ["update_page"] = [("pageId", "Page id"), ("title", "New title"), ("appendText", "Text to append")],
         };
 
         /// <summary>Every argument of the call with a human label: what the "Show everything that will be sent" block lists. Nothing is shortened.</summary>
@@ -152,6 +160,16 @@ namespace Schuly.API.Helply
                     break;
                 case "withdraw_absence_report":
                     summary = "Withdraw " + (target?.Description ?? "a reported absence");
+                    break;
+                case "create_page":
+                    summary = $"Create the OneNote page \"{Arg("title")}\"";
+                    Add("Page title", Arg("title"));
+                    Add("Content preview", Preview(Arg("content")));
+                    break;
+                case "update_page":
+                    summary = string.IsNullOrWhiteSpace(Arg("title")) ? $"Add text to {target?.Description ?? "a OneNote page"}" : $"Rename {target?.Description ?? "a OneNote page"} to \"{Arg("title")}\"" + (string.IsNullOrWhiteSpace(Arg("appendText")) ? string.Empty : " and add text");
+                    Add("New title", Arg("title"));
+                    Add("Text to append", Preview(Arg("appendText")));
                     break;
                 default:
                     summary = $"Use {heading}";

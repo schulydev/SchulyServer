@@ -25,8 +25,37 @@ namespace Schuly.API.Helply
             {
                 "send_chat_message" => await ChatAsync(tools, args, ct),
                 "withdraw_absence_report" => await AbsencesAsync(tools, args, ct),
+                "update_page" => await PageAsync(tools, args, ct),
                 _ => null,
             };
+        }
+
+        private static async Task<HelplyTarget> PageAsync(HelplyToolSet tools, IDictionary<string, object?>? args, CancellationToken ct)
+        {
+            var id = HelplyToolLabels.Text(args, "pageId") ?? string.Empty;
+            if (id.Length > 0 && Lookup(args, out var call))
+            {
+                call["pageId"] = id;
+                call["maxChars"] = 1;
+                if (await tools.CallReadOnlyAsync("read_page", call, ct) is { } text && Parse(text) is { } root)
+                {
+                    using (root)
+                    {
+                        var title = Part(root.RootElement, "title");
+                        var notebook = Part(root.RootElement, "notebook");
+                        var section = Part(root.RootElement, "section");
+                        if (title is not null)
+                        {
+                            var where = string.Join(" / ", new[] { notebook, section }.OfType<string>());
+                            var rows = new List<HelplyStoredDetail>();
+                            AddRow(rows, "Page", title);
+                            AddRow(rows, "Notebook", where.Length > 0 ? where : null);
+                            return new HelplyTarget($"the OneNote page \"{title.Replace('"', '\'')}\"" + (where.Length > 0 ? $" in {where}" : string.Empty), rows);
+                        }
+                    }
+                }
+            }
+            return new HelplyTarget($"a OneNote page (couldn't look up this page, id {Short(id)})", [new HelplyStoredDetail { Label = "Page", Value = $"Couldn't look up this page (id {Short(id)})" }]);
         }
 
         private static async Task<HelplyTarget> MailAsync(HelplyToolSet tools, IDictionary<string, object?>? args, CancellationToken ct)
