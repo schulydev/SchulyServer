@@ -9,6 +9,8 @@ export interface ExplorerEntry {
   modified: string | null;
   mime: string | null;
   childCount: number | null;
+  /** The drive of an item outside the user's own OneDrive. */
+  driveId?: string | null;
 }
 
 export type ExplorerSortKey = 'name' | 'modified' | 'type' | 'size';

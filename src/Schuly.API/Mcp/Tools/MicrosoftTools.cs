@@ -16,7 +16,7 @@ namespace Schuly.API.Mcp.Tools
     /// Microsoft ids (chat, message, folder, item, notebook, section, page) are opaque sealed strings: they are passed through untouched, never parsed or built.
     /// </summary>
     [McpServerToolType]
-    public sealed class MicrosoftTools(IMediator mediator, IHttpContextAccessor accessor, InProcessPluginApi plugins, IHttpClientFactory httpClientFactory)
+    public sealed partial class MicrosoftTools(IMediator mediator, IHttpContextAccessor accessor, InProcessPluginApi plugins, IHttpClientFactory httpClientFactory)
     {
         private const string Base = "/api/plugins/microsoft";
         private const int MaxDriveFileBytes = 1024 * 1024;
@@ -203,7 +203,7 @@ namespace Schuly.API.Mcp.Tools
         }
 
         [McpServerTool(Name = "read_drive_file", Title = "Read OneDrive file", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Returns a small OneDrive file (up to 1 MB): text files as text (paged), others as base64 up to 256 KB. Give the folder path and the itemId from list_drive_items.")]
+        [Description("Returns a small file from the user's own OneDrive folder: Word, Excel, PowerPoint and PDF files as extracted text (same as read_file), text files as text (paged), others as base64 up to 256 KB. Give the folder path and the itemId from list_drive_items. For Teams or shared files use read_file.")]
         [McpAccess(McpArea.Drive, McpAccessLevel.Read)]
         public async Task<string> ReadDriveFile([Description("Folder the file is in, as for list_drive_items.")] string path, [Description("itemId from list_drive_items, exactly as returned (opaque).")] string itemId, Guid? accountId = null, int offset = 0, int maxChars = DefaultMaxChars, CancellationToken ct = default)
         {
@@ -215,6 +215,8 @@ namespace Schuly.API.Mcp.Tools
                 throw new McpException("That item is a folder. Use list_drive_items with its path.");
 
             var name = Str(item, "name");
+            if (ReadableExtensions.Contains(Path.GetExtension(name ?? string.Empty).ToLowerInvariant()))
+                return Serialize(await ReadFileTextAsync(account, null, itemId, offset, maxChars, null, 0, 500, ct));
             var size = Long(item, "size") ?? 0;
             if (size > MaxDriveFileBytes)
                 return Serialize(new { fileName = name, sizeBytes = size, note = "The file is larger than 1 MB and is not returned here. Open it in OneDrive instead.", webUrl = Str(item, "webUrl") });
@@ -418,6 +420,8 @@ namespace Schuly.API.Mcp.Tools
             {
                 StatusCodes.Status404NotFound => "Not found. Either the item does not exist or the Microsoft 365 plugin is not installed on this Schuly server.",
                 StatusCodes.Status409Conflict => "The Microsoft sign-in for this account expired. Reconnect the account in the Schuly app.",
+                StatusCodes.Status413PayloadTooLarge => message ?? "The file is too large to read as text. Open it in Schuly or OneDrive instead.",
+                StatusCodes.Status415UnsupportedMediaType => message ?? (Str(response.Json() ?? default, "detail") ?? "This file type cannot be read as text."),
                 StatusCodes.Status400BadRequest => message ?? "Microsoft 365 rejected the request. Check the ids and parameters.",
                 StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden => "Schuly refused this request for the signed-in user.",
                 _ => "Microsoft 365 did not answer. Try again later.",

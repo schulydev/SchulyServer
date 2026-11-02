@@ -1,5 +1,6 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods } from '@ngrx/signals';
+import { DriveView, MINE_ROOT, listingOf, parseView, serializeView } from '../core/drive-location';
 import { cleanPreview } from '../core/preview-text';
 import { withAccountResource } from './account-resource';
 import { LinkedAccountsStore } from './linked-accounts.store';
@@ -32,6 +33,9 @@ export interface DriveItem {
   folder?: { childCount?: number | null } | null;
   file?: { mimeType?: string | null } | null;
   '@microsoft.graph.downloadUrl'?: string | null;
+  /** Present on items of teams, shared and recent listings: the drive the item lives in. */
+  parentReference?: { driveId?: string | null } | null;
+  shared?: { sharedBy?: { displayName?: string | null; email?: string | null } | null } | null;
 }
 
 export const MailStore = signalStore(
@@ -92,40 +96,63 @@ const kindOf = (item: DriveItem, name: string): DriveKind => {
   return extensionKinds[extensionOf(name)] ?? 'file';
 };
 
-/** The `path` parameter of a folder given as the names from the drive root. */
-const drivePath = (trail: string[]): string => (trail.length ? `root:/${trail.map(encodeURIComponent).join('/')}:` : 'root');
+/** One drive item as a row: kind, size, links. `own` marks a listing of the user's own OneDrive, whose items download by their pre-authenticated link. */
+export function toDriveEntry(i: DriveItem, own: boolean) {
+  const name = i.name || 'Untitled';
+  const kind = kindOf(i, name);
+  const driveId = own ? null : (i.parentReference?.driveId ?? null);
+  const download = i.folder ? null : own ? (i['@microsoft.graph.downloadUrl'] ?? null) : null;
+  return {
+    id: i.id,
+    name,
+    kind,
+    isFolder: kind === 'folder',
+    size: i.size ?? 0,
+    childCount: i.folder?.childCount ?? null,
+    extension: extensionOf(name),
+    mime: i.file?.mimeType ?? null,
+    modified: i.lastModifiedDateTime ?? null,
+    link: i.webUrl ?? null,
+    download,
+    /** The drive of an item outside the user's own OneDrive; null for own files. */
+    driveId,
+    /** Whether the bytes can be fetched: own files by their link, others through the drive item route. */
+    openable: kind !== 'folder' && (!!download || !!driveId),
+    sharedBy: i.shared?.sharedBy?.displayName ?? i.shared?.sharedBy?.email ?? null,
+  };
+}
+
+const byFoldersThenName = (a: { isFolder: boolean; name: string }, b: { isFolder: boolean; name: string }) =>
+  Number(b.isFolder) - Number(a.isFolder) || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 
 export const DriveStore = signalStore(
-  withAccountResource<DriveItem>('drive', 'files', { path: 'root' }, { pageSize: 100, max: 1000 }),
+  withAccountResource<DriveItem>('drive', 'files', { view: serializeView(MINE_ROOT) }, { pageSize: 100, max: 1000 }, {
+    route: (params) => {
+      const listing = listingOf(parseView(params['view']));
+      return { path: listing.path, query: listing.query };
+    },
+    unwrap: (body) => {
+      const list = Array.isArray(body) ? body : (body as { items?: unknown } | null)?.items;
+      return Array.isArray(list) ? (list as DriveItem[]) : [];
+    },
+  }),
   withComputed((store) => ({
-    entries: computed(() =>
-      store
-        .items()
-        .map((i) => {
-          const name = i.name || 'Untitled';
-          const kind = kindOf(i, name);
-          return {
-            id: i.id,
-            name,
-            kind,
-            isFolder: kind === 'folder',
-            size: i.size ?? 0,
-            childCount: i.folder?.childCount ?? null,
-            extension: extensionOf(name),
-            mime: i.file?.mimeType ?? null,
-            modified: i.lastModifiedDateTime ?? null,
-            link: i.webUrl ?? null,
-            download: i.folder ? null : (i['@microsoft.graph.downloadUrl'] ?? null),
-          };
-        })
-        .sort((a, b) => Number(b.isFolder) - Number(a.isFolder) || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })),
-    ),
+    view: computed(() => parseView(store.params()['view'])),
+    entries: computed(() => {
+      const view = parseView(store.params()['view']);
+      const entries = store.items().map((i) => toDriveEntry(i, view.location.kind === 'mine'));
+      // Recent files stay in the order the service answers (newest first) while the root of the list is shown.
+      return view.location.kind === 'recent' && !view.trail.length ? entries : entries.sort(byFoldersThenName);
+    }),
   })),
   withMethods((store) => ({
-    /** Opens a folder given as the names from the drive root; an empty trail is the root. */
-    openFolder: (trail: string[]) => store.setParam('path', drivePath(trail)),
+    /** Shows a location and the folders opened inside it. */
+    openView: (view: DriveView) => {
+      const next = serializeView(view);
+      if (store.params()['view'] !== next) store.setParam('view', next);
+    },
     /** Warms the cache for a folder (hover or focus) so opening it shows at once. */
-    prefetchFolder: (trail: string[]) => store.prefetch({ path: drivePath(trail) }),
+    prefetchView: (view: DriveView) => store.prefetch({ view: serializeView(view) }),
   })),
 );
 

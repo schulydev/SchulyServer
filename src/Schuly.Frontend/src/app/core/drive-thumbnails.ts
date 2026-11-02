@@ -33,10 +33,10 @@ export class DriveThumbnails {
   }
 
   /** The preview of an item, or null when it has none. `wanted` is asked again right before the request goes out. */
-  url(itemId: string, version: string | null, size: ThumbnailSize, wanted: () => boolean = () => true): Promise<string | null> {
+  url(itemId: string, version: string | null, size: ThumbnailSize, wanted: () => boolean = () => true, driveId: string | null = null): Promise<string | null> {
     const base = this.accounts.endpoint('drive');
     if (!base) return Promise.resolve(null);
-    const key = `${base}|${itemId}|${version ?? ''}|${size}`;
+    const key = `${base}|${driveId ?? ''}|${itemId}|${version ?? ''}|${size}`;
     const found = this.urls.get(key);
     if (found) {
       this.touch(key);
@@ -48,7 +48,9 @@ export class DriveThumbnails {
         skipped = true;
         return null;
       }
-      const path = `${base}/files/${encodeURIComponent(itemId)}/thumbnail`;
+      const path = driveId
+        ? `${base}/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}/thumbnail`
+        : `${base}/files/${encodeURIComponent(itemId)}/thumbnail`;
       const blob = await firstValueFrom(this.http.get(path, { params: { size }, responseType: 'blob' }));
       return blob.size > 0 ? URL.createObjectURL(blob) : null;
     })
