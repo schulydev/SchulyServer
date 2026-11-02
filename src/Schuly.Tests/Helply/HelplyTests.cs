@@ -219,6 +219,30 @@ namespace Schuly.Tests.Helply
         }
 
         [Test]
+        public async Task A_step_keeps_its_place_in_the_text_and_a_harmless_detail()
+        {
+            await using var host = await HelplyHttpHost.StartAsync(nameof(A_step_keeps_its_place_in_the_text_and_a_harmless_detail));
+            var (_, token) = host.NewUser();
+            var id = await host.CreateConversationAsync(token);
+
+            var turn = await host.SendMessageAsync(token, id, "Which exams do I have?");
+
+            const string lead = "Let me check your exams.";
+            var started = turn.Named("tool_started").Single();
+            await Assert.That(started.Json.GetProperty("at").GetInt32()).IsEqualTo(lead.Length);
+            await Assert.That(started.Json.GetProperty("detail").GetString()).IsEqualTo("page 2");
+            // All of the text before the call was sent before the call.
+            var before = string.Concat(turn.Events.Take(turn.Events.IndexOf(started)).Where(e => e.Name == "delta").Select(e => e.Json.GetProperty("text").GetString()));
+            await Assert.That(before).IsEqualTo(lead);
+            await Assert.That(turn.Named("tool_finished").Single().Json.GetProperty("at").GetInt32()).IsEqualTo(lead.Length);
+            await Assert.That(turn.Text).IsEqualTo(lead + "\n\nYour grades look good");
+
+            var tool = (await host.CallAsync(HttpMethod.Get, $"/api/helply/conversations/{id}", token)).Json.GetProperty("messages")[1].GetProperty("tools")[0];
+            await Assert.That(tool.GetProperty("at").GetInt32()).IsEqualTo(lead.Length);
+            await Assert.That(tool.GetProperty("detail").GetString()).IsEqualTo("page 2");
+        }
+
+        [Test]
         public async Task A_write_tool_waits_for_approval_and_runs_once_approved()
         {
             await using var host = await HelplyHttpHost.StartAsync(nameof(A_write_tool_waits_for_approval_and_runs_once_approved));

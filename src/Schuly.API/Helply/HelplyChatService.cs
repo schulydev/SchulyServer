@@ -210,10 +210,10 @@ namespace Schuly.API.Helply
                 foreach (var tool in turn.Kind == HelplyTurnKind.Approvals ? turn.Decisions.Where(d => !d.Approved) : [])
                 {
                     var denied = original.Pending.First(p => p.ApprovalId == tool.ApprovalId);
-                    await Emit(new HelplyEvent("tool_finished", new { id = denied.ToolCallId, label = denied.ToolLabel, status = HelplyToolStatus.Denied }));
+                    await Emit(new HelplyEvent("tool_finished", new { id = denied.ToolCallId, label = denied.ToolLabel, status = HelplyToolStatus.Denied, at = assistant.Text.Length }));
                 }
                 foreach (var tool in started)
-                    await Emit(new HelplyEvent("tool_started", new { id = tool.Id, label = tool.Label }));
+                    await Emit(new HelplyEvent("tool_started", ToolEvent(tool)));
 
                 var connection = await gateway.ConnectAsync(cts.Token);
                 redactor = connection.Redactor;
@@ -248,6 +248,20 @@ namespace Schuly.API.Helply
                 var text = redactor.CreateStream();
                 var needsSeparator = turn.Kind == HelplyTurnKind.Approvals && assistant.Text.Length > 0;
                 var produced = false;
+
+                // Sends redacted text to the user, after a blank line when it follows a tool call or an approval.
+                async Task EmitText(string safe)
+                {
+                    if (safe.Length == 0)
+                        return;
+                    produced = true;
+                    if (needsSeparator && assistant.Text.Length > 0 && !char.IsWhiteSpace(assistant.Text[^1]))
+                        safe = "\n\n" + safe;
+                    needsSeparator = false;
+                    assistant.Text += safe;
+                    await Emit(new HelplyEvent("delta", new { text = safe }));
+                }
+
                 for (var attempt = 0; ; attempt++)
                 {
                     var session = await RestoreSessionAsync(agent, conversation, cts.Token);
@@ -260,21 +274,14 @@ namespace Schuly.API.Helply
                                 switch (content)
                                 {
                                     case TextContent { Text.Length: > 0 } piece:
-                                        var safe = text.Push(piece.Text);
-                                        if (safe.Length > 0)
-                                        {
-                                            produced = true;
-                                            if (needsSeparator && assistant.Text.Length > 0 && !char.IsWhiteSpace(assistant.Text[^1]))
-                                                safe = "\n\n" + safe;
-                                            needsSeparator = false;
-                                            assistant.Text += safe;
-                                            await Emit(new HelplyEvent("delta", new { text = safe }));
-                                        }
+                                        await EmitText(text.Push(piece.Text));
                                         break;
                                     case FunctionCallContent call when toolSet.Info.TryGetValue(call.Name, out var info) && !info.NeedsApproval && assistant.Tools.All(t => t.Id != call.CallId):
                                         produced = true;
+                                        // The text before a call is a finished stretch: send all of it, so the step's place ("at") is where the user's text ends.
+                                        await EmitText(text.Flush());
                                         var labels = HelplyToolLabels.For(info.Name, info.Title);
-                                        var tool = AddTool(assistant, call.CallId, labels.Running);
+                                        var tool = AddTool(assistant, call.CallId, labels.Running, HelplyToolLabels.Detail(call.Name, call.Arguments));
                                         if (call.Name == "bash" && toolSet.IsLocal(call.Name))
                                             tool.Code = new HelplyStoredCodeRun { Command = Shown(redactor, HelplyToolLabels.Text(call.Arguments, "command") ?? string.Empty, MaxShownCommandChars) };
                                         finishLabels[call.CallId] = (labels.Done, info.Title);
@@ -295,6 +302,7 @@ namespace Schuly.API.Helply
                                         break;
                                     case ToolApprovalRequestContent request when request.ToolCall is FunctionCallContent approvalCall:
                                         produced = true;
+                                        await EmitText(text.Flush());
                                         ownDomains ??= await OwnDomainsAsync(turn.UserId, cts.Token);
                                         if (!leaksSeeded)
                                         {
@@ -321,12 +329,7 @@ namespace Schuly.API.Helply
                     }
                 }
 
-                var rest = text.Flush();
-                if (rest.Length > 0)
-                {
-                    assistant.Text += rest;
-                    await Emit(new HelplyEvent("delta", new { text = rest }));
-                }
+                await EmitText(text.Flush());
                 foreach (var stale in assistant.Tools.Where(t => t.Status == HelplyToolStatus.Running))
                     stale.Status = HelplyToolStatus.Done;
 
@@ -431,9 +434,8 @@ namespace Schuly.API.Helply
 
         private static string Shown(HelplyRedactor redactor, string text, int max) => redactor.Redact(text.Length <= max ? text : text[..max] + "\n...");
 
-        private static object ToolEvent(HelplyStoredTool tool) => tool.Code is null
-            ? new { id = tool.Id, label = tool.Label, status = tool.Status, code = (object?)null }
-            : new { id = tool.Id, label = tool.Label, status = tool.Status, code = (object?)new { command = tool.Code.Command, output = tool.Code.Output, exitCode = tool.Code.ExitCode } };
+        /// <summary>A tool step as the user sees it. <c>at</c> is how much of the reply's text came before the step, so the chat can place the step between the stretches of text it came between.</summary>
+        private static object ToolEvent(HelplyStoredTool tool) => new { id = tool.Id, label = tool.Label, status = tool.Status, at = tool.At, detail = tool.Detail, code = tool.Code is null ? null : new { command = tool.Code.Command, output = tool.Code.Output, exitCode = tool.Code.ExitCode } };
 
         private static object HelplyDtoShape(HelplyStoredApproval a) => new { approvalId = a.ApprovalId, toolLabel = a.ToolLabel, summary = a.Summary, details = a.Details.Select(d => new { label = d.Label, value = d.Value }).ToList(), destructive = a.Destructive, arguments = a.Arguments.Select(d => new { label = d.Label, value = d.Value }).ToList(), risk = a.Risk, riskReasons = a.RiskReasons };
 
@@ -476,9 +478,9 @@ namespace Schuly.API.Helply
             return await agent.CreateSessionAsync(ct);
         }
 
-        private static HelplyStoredTool AddTool(HelplyStoredMessage message, string callId, string label)
+        private static HelplyStoredTool AddTool(HelplyStoredMessage message, string callId, string label, string? detail = null)
         {
-            var tool = new HelplyStoredTool { Id = callId, Label = label, Status = HelplyToolStatus.Running };
+            var tool = new HelplyStoredTool { Id = callId, Label = label, Status = HelplyToolStatus.Running, At = message.Text.Length, Detail = detail };
             message.Tools.Add(tool);
             return tool;
         }
@@ -486,7 +488,7 @@ namespace Schuly.API.Helply
         private static void AddFinishedTool(HelplyTranscript transcript, HelplyStoredApproval pending, string status)
         {
             var message = transcript.Messages.FirstOrDefault(m => m.Id == pending.MessageId);
-            message?.Tools.Add(new HelplyStoredTool { Id = pending.ToolCallId, Label = pending.ToolLabel, Status = status });
+            message?.Tools.Add(new HelplyStoredTool { Id = pending.ToolCallId, Label = pending.ToolLabel, Status = status, At = message.Text.Length });
         }
 
         /// <summary>The mail domains of the user's linked Microsoft accounts: addresses on them count as inside the school.</summary>

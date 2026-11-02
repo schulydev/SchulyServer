@@ -13,7 +13,7 @@ namespace Schuly.Application.Dtos
 
     public record HelplyConversationSummaryDto(Guid Id, string Title, DateTime CreatedAt, DateTime UpdatedAt, DateTime ExpiresAt);
 
-    public record HelplyToolActivityDto(string Id, string Label, string Status, HelplyCodeRunDto? Code);
+    public record HelplyToolActivityDto(string Id, string Label, string Status, HelplyCodeRunDto? Code, int? At, string? Detail);
 
     public record HelplyMessageDto(Guid Id, string Role, string Text, DateTime CreatedAt, IReadOnlyList<HelplyToolActivityDto> Tools, bool Failed, IReadOnlyList<HelplyAttachmentDto> Attachments);
 
@@ -32,7 +32,7 @@ namespace Schuly.Application.Dtos
 
         public static HelplyAttachmentDto ToDto(HelplyAttachmentInfo a) => new(a.Id, a.FileName, a.MediaType, a.SizeBytes);
 
-        public static HelplyToolActivityDto ToDto(HelplyStoredTool t) => new(t.Id, t.Label, t.Status, t.Code is null ? null : new HelplyCodeRunDto(t.Code.Command, t.Code.Output, t.Code.ExitCode));
+        public static HelplyToolActivityDto ToDto(HelplyStoredTool t) => new(t.Id, t.Label, t.Status, t.Code is null ? null : new HelplyCodeRunDto(t.Code.Command, t.Code.Output, t.Code.ExitCode), t.At, t.Detail);
 
         public static HelplyConversationSummaryDto ToSummary(HelplyConversation c, string title) => new(c.Id, title, c.CreatedAt, c.LastActivityAt, c.ExpiresAt);
 

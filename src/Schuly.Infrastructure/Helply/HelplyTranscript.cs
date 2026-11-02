@@ -60,6 +60,10 @@ namespace Schuly.Infrastructure.Helply
         public string Status { get; set; } = HelplyToolStatus.Running;
         /// <summary>Set for a workspace command (the bash tool).</summary>
         public HelplyStoredCodeRun? Code { get; set; }
+        /// <summary>How much of the reply's text came before this step; null on steps stored before steps kept their place.</summary>
+        public int? At { get; set; }
+        /// <summary>A short note on the step built only from harmless arguments ("page 2", "unread only"); never names, addresses or search text.</summary>
+        public string? Detail { get; set; }
     }
 
     public sealed class HelplyStoredDetail
