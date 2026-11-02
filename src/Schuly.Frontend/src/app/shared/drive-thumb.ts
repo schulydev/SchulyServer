@@ -75,7 +75,7 @@ export class DriveThumb {
   private alive = true;
 
   /** A refreshed listing hands new objects; only a different item or version asks again. */
-  private readonly version = computed(() => `${this.entry().id}|${this.entry().modified ?? ''}|${this.entry().name}`);
+  private readonly version = computed(() => `${this.entry().driveId ?? ''}|${this.entry().id}|${this.entry().modified ?? ''}|${this.entry().name}`);
 
   protected readonly icon = computed(() => {
     const kind = explorerKind(this.entry());
@@ -115,7 +115,7 @@ export class DriveThumb {
       if (!this.seen() || !wantsThumbnail(entry)) return;
       untracked(() => {
         void this.thumbnails
-          .url(entry.id, entry.modified, size, () => this.alive && this.near)
+          .url(entry.id, entry.modified, size, () => this.alive && this.near, entry.driveId ?? null)
           .then((url) => {
             if (this.alive && this.version() === version) this.src.set(url);
           });

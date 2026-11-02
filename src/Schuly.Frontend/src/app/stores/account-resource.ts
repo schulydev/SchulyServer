@@ -24,6 +24,13 @@ export const accountProblemText: Record<AccountProblem, { title: string; descrip
 
 type ResourceParams = Record<string, string | number | boolean>;
 
+/** Lets a resource choose its route and read its list from the params, for lists that live under more than one route. */
+export interface ResourceRouting<T> {
+  route: (params: ResourceParams) => { path: string; query: ResourceParams };
+  /** Reads the list out of a response body that is not the list itself. */
+  unwrap?: (body: unknown) => T[];
+}
+
 /** Paging by growing the page: the endpoints take `top` but no cursor, so "more" asks again for a longer list. */
 export interface ResourcePaging {
   /** First page size and the step each "load more" adds. */
@@ -72,7 +79,9 @@ const problemOf = (error: unknown): AccountProblem =>
  * Loads a list from `<capability basePath>/{id}/{resource}` for the selected account of a capability kind, reloading when the account or a query parameter changes.
  * With `paging`, `loadMore()` requests a longer list while the current items stay on screen; any reload starts again at one page.
  */
-export function withAccountResource<T>(kind: CapabilityKind, resource: string, params: ResourceParams = {}, paging?: ResourcePaging) {
+export function withAccountResource<T>(kind: CapabilityKind, resource: string, params: ResourceParams = {}, paging?: ResourcePaging, routing?: ResourceRouting<T>) {
+  const route = (p: ResourceParams) => (routing ? routing.route(p) : { path: resource, query: p });
+  const read = (body: unknown): T[] => (routing?.unwrap ? routing.unwrap(body) : Array.isArray(body) ? (body as T[]) : []);
   const pageSize = paging?.pageSize ?? 0;
   return signalStoreFeature(
     withState<ResourceState<T>>({
@@ -114,9 +123,10 @@ export function withAccountResource<T>(kind: CapabilityKind, resource: string, p
           }),
           switchMap((r) => {
             if (!r.id || !r.base) return of(null);
-            const query = paging ? { ...r.params, top: r.top } : r.params;
-            return http.get<T[]>(`${r.base}/${resource}`, { params: query }).pipe(
-              map((items) => (Array.isArray(items) ? items : [])),
+            const target = route(r.params);
+            const query = paging ? { ...target.query, top: r.top } : target.query;
+            return http.get<unknown>(`${r.base}/${target.path}`, { params: query }).pipe(
+              map(read),
               tapResponse({
                 next: (items) => {
                   swrCache.set(cacheKey(r.id!, resource, r.params, paging ? r.top : 0), items);
@@ -153,10 +163,11 @@ export function withAccountResource<T>(kind: CapabilityKind, resource: string, p
           const key = cacheKey(id, resource, params, paging ? pageSize : 0);
           const hit = swrCache.get(key);
           if (hit && hit.age < PREFETCH_FRESH_MS) return;
-          const query = paging ? { ...params, top: pageSize } : params;
+          const target = route(params);
+          const query = paging ? { ...target.query, top: pageSize } : target.query;
           http
-            .get<T[]>(`${base}/${resource}`, { params: query })
-            .subscribe({ next: (items) => Array.isArray(items) && swrCache.set(key, items), error: () => undefined });
+            .get<unknown>(`${base}/${target.path}`, { params: query })
+            .subscribe({ next: (body) => swrCache.set(key, read(body)), error: () => undefined });
         },
         /** Reloads from the first page for the selected account. */
         reload: () => requests.next({ id: accounts.selectedId(kind), base: accounts.endpoint(kind), params: store.params(), top: pageSize, more: false }),

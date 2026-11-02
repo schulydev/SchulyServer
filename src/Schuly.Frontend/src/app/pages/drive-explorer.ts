@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, LOCALE_ID, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, LOCALE_ID, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowDown,
@@ -29,6 +29,9 @@ import {
   rangeOf,
   sortEntries,
 } from '../core/drive-explorer';
+import { DriveContent } from '../core/drive-content';
+import { DriveNavigation } from '../core/drive-navigation';
+import { DriveSearch } from '../core/drive-search';
 import { persistedChoice } from '../core/persisted';
 import { DriveThumb } from '../shared/drive-thumb';
 import { SearchField } from '../shared/search-field';
@@ -87,9 +90,9 @@ const PREFETCH_DELAY_MS = 120;
           <ng-icon name="lucideDownload" aria-hidden="true" />
           <span class="@max-[44rem]/explorer:sr-only">Download</span>
         </button>
-        <button hlmBtn variant="ghost" size="sm" type="button" title="Open in OneDrive" [disabled]="!single()?.link" (click)="openInOneDrive()">
+        <button hlmBtn variant="ghost" size="sm" type="button" title="Open online" [disabled]="!single()?.link" (click)="openInOneDrive()">
           <ng-icon name="lucideSquareArrowOutUpRight" aria-hidden="true" />
-          <span class="@max-[44rem]/explorer:sr-only">Open in OneDrive</span>
+          <span class="@max-[44rem]/explorer:sr-only">Open online</span>
           <span class="sr-only">(opens in a new tab)</span>
         </button>
         <button hlmBtn variant="ghost" size="sm" type="button" title="Copy link" [disabled]="!linkable().length" (click)="copyLinks(linkable())">
@@ -98,7 +101,7 @@ const PREFETCH_DELAY_MS = 120;
         </button>
       </div>
       <div class="ml-auto flex items-center gap-2">
-        <app-search-field [(value)]="query" label="Search files" placeholder="Search files" />
+        <app-search-field [(value)]="search.query" label="Search all files" placeholder="Search all files" />
         @if (mode.value() === 'grid') {
           <button hlmBtn variant="outline" size="sm" type="button" [hlmDropdownMenuTrigger]="sortMenu" [attr.aria-label]="'Sort by ' + sortLabel()" title="Sort">
             <ng-icon name="lucideArrowDownUp" aria-hidden="true" />
@@ -118,9 +121,6 @@ const PREFETCH_DELAY_MS = 120;
           <button hlmToggleGroupItem value="grid" aria-label="Grid" title="Grid"><ng-icon name="lucideLayoutGrid" aria-hidden="true" /></button>
         </hlm-toggle-group>
       </div>
-      @if (query().trim() && store.hasMore()) {
-        <p class="text-muted-foreground w-full text-xs">Searching loaded items only. Scroll to load more.</p>
-      }
     </div>
 
     @if (busy()) {
@@ -151,7 +151,7 @@ const PREFETCH_DELAY_MS = 120;
         <ng-icon name="lucideFolderOpen" size="32" aria-hidden="true" />
         <p class="grid gap-1">
           <strong class="text-foreground font-medium">{{ store.entries().length ? 'No matching files' : 'This folder is empty' }}</strong>
-          <span class="text-sm">{{ store.entries().length ? 'Try a different search.' : 'Files and folders from OneDrive appear here.' }}</span>
+          <span class="text-sm">{{ store.entries().length ? 'Files from everywhere are listed below.' : nav.emptyText() }}</span>
         </p>
       </div>
     } @else if (mode.value() === 'list') {
@@ -271,7 +271,7 @@ const PREFETCH_DELAY_MS = 120;
         <hlm-dropdown-menu-separator />
         <button hlmDropdownMenuItem [disabled]="!single()?.link" (click)="openInOneDrive()">
           <ng-icon name="lucideSquareArrowOutUpRight" />
-          <span>Open in OneDrive</span>
+          <span>Open online</span>
         </button>
         <button hlmDropdownMenuItem [disabled]="!linkable().length" (click)="copyLinks(linkable())">
           <ng-icon name="lucideLink" />
@@ -304,11 +304,10 @@ export class DriveExplorer {
   protected readonly store = inject(DriveStore);
   private readonly locale = inject(LOCALE_ID);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected readonly nav = inject(DriveNavigation);
+  protected readonly search = inject(DriveSearch);
+  private readonly content = inject(DriveContent);
 
-  /** The open folder as names from the drive root. */
-  readonly trail = input.required<string[]>();
-  /** Open a folder: the full trail of names. */
-  readonly navigate = output<string[]>();
   /** Show a file in the viewer, with the files in their on-screen order for previous / next. */
   readonly view = output<{ entry: DriveEntry; files: DriveEntry[] }>();
 
@@ -319,7 +318,6 @@ export class DriveExplorer {
     return { key, down: direction === 'desc' };
   });
 
-  protected readonly query = signal('');
   protected readonly selection = signal<string[]>([]);
   protected readonly focused = signal<string | null>(null);
   private anchor: string | null = null;
@@ -333,7 +331,7 @@ export class DriveExplorer {
   protected readonly busy = computed(() => this.store.waiting() || this.store.loading());
 
   protected readonly rows = computed<Row[]>(() => {
-    const q = this.query().trim().toLowerCase();
+    const q = this.search.query().trim().toLowerCase();
     const entries = q ? this.store.entries().filter((e) => e.name.toLowerCase().includes(q)) : this.store.entries();
     const now = new Date();
     return sortEntries(entries, this.sort(), this.locale).map((entry) => {
@@ -359,7 +357,7 @@ export class DriveExplorer {
       .map((r) => r.entry);
   });
   protected readonly single = computed(() => (this.chosen().length === 1 ? this.chosen()[0] : null));
-  protected readonly downloadable = computed(() => this.chosen().filter((e) => !e.isFolder && e.download));
+  protected readonly downloadable = computed(() => this.chosen().filter((e) => e.openable));
   protected readonly linkable = computed(() => this.chosen().filter((e) => e.link));
 
   /** Roving tab stop: the focused row while it is listed, else the first. */
@@ -393,13 +391,12 @@ export class DriveExplorer {
       observer.observe(this.toolbar().nativeElement);
       destroyRef.onDestroy(() => observer.disconnect());
     });
-    // Another folder starts with nothing selected and the search cleared.
+    // Another folder starts with nothing selected.
     effect(() => {
-      this.trail();
+      this.nav.view();
       untracked(() => {
         this.selection.set([]);
         this.focused.set(null);
-        this.query.set('');
         this.anchor = null;
       });
     });
@@ -548,10 +545,9 @@ export class DriveExplorer {
   }
 
   private goUp(event: KeyboardEvent): void {
-    const trail = this.trail();
-    if (!trail.length) return;
+    if (!this.nav.trail().length) return;
     event.preventDefault();
-    this.navigate.emit(trail.slice(0, -1));
+    this.nav.up();
   }
 
   /** Tiles per row, read from the layout: the tiles sharing the first tile's top. */
@@ -574,9 +570,9 @@ export class DriveExplorer {
   /** A folder opens in place; a file opens in the viewer, or in OneDrive when it has no download link. */
   protected open(entry: DriveEntry): void {
     if (entry.isFolder) {
-      this.navigate.emit([...this.trail(), entry.name]);
-    } else if (entry.download) {
-      this.view.emit({ entry, files: this.rows().map((r) => r.entry).filter((e) => !e.isFolder && e.download) });
+      if (!this.nav.enter(entry) && entry.link) window.open(entry.link, '_blank', 'noopener');
+    } else if (entry.openable) {
+      this.view.emit({ entry, files: this.rows().map((r) => r.entry).filter((e) => e.openable) });
     } else if (entry.link) {
       window.open(entry.link, '_blank', 'noopener');
     }
@@ -587,19 +583,9 @@ export class DriveExplorer {
     if (link) window.open(link, '_blank', 'noopener');
   }
 
-  /** Each file through its pre-authenticated link, one after another so the browser takes them all. */
+  /** Each file saved one after another so the browser takes them all. */
   protected download(entries: DriveEntry[]): void {
-    entries.forEach((entry, i) => {
-      if (!entry.download) return;
-      const url = entry.download;
-      setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = entry.name;
-        link.rel = 'noopener';
-        link.click();
-      }, i * 400);
-    });
+    entries.forEach((entry, i) => setTimeout(() => void this.content.save(entry), i * 400));
   }
 
   protected async copyLinks(entries: DriveEntry[]): Promise<void> {
@@ -617,9 +603,8 @@ export class DriveExplorer {
   protected warm(entry: DriveEntry, now = false): void {
     this.cool();
     if (!entry.isFolder) return;
-    const trail = [...this.trail(), entry.name];
-    if (now) return this.store.prefetchFolder(trail);
-    this.hoverTimer = setTimeout(() => this.store.prefetchFolder(trail), PREFETCH_DELAY_MS);
+    if (now) return this.nav.prefetch(entry);
+    this.hoverTimer = setTimeout(() => this.nav.prefetch(entry), PREFETCH_DELAY_MS);
   }
 
   protected cool(): void {
