@@ -387,6 +387,79 @@ namespace Schuly.Infrastructure.Migrations
                     b.ToTable("Grades");
                 });
 
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("FileName")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<bool>("FromAssistant")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasText")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("PageCount")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("TextLength")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("ConversationId", "MessageId");
+
+                    b.HasIndex("MessageId", "CreatedAt");
+
+                    b.ToTable("HelplyAttachments");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyAttachmentContent", b =>
+                {
+                    b.Property<Guid>("AttachmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Text")
+                        .HasColumnType("bytea");
+
+                    b.HasKey("AttachmentId");
+
+                    b.ToTable("HelplyAttachmentContents");
+                });
+
             modelBuilder.Entity("Schuly.Domain.Helply.HelplyConversation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -446,6 +519,9 @@ namespace Schuly.Infrastructure.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("WorkspaceEnabled")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -2423,6 +2499,34 @@ namespace Schuly.Infrastructure.Migrations
                     b.Navigation("SchoolUser");
                 });
 
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyAttachment", b =>
+                {
+                    b.HasOne("Schuly.Domain.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Schuly.Domain.Helply.HelplyConversation", "Conversation")
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Conversation");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyAttachmentContent", b =>
+                {
+                    b.HasOne("Schuly.Domain.Helply.HelplyAttachment", null)
+                        .WithOne("Content")
+                        .HasForeignKey("Schuly.Domain.Helply.HelplyAttachmentContent", "AttachmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Schuly.Domain.Helply.HelplyConversation", b =>
                 {
                     b.HasOne("Schuly.Domain.ApplicationUser", "ApplicationUser")
@@ -2841,6 +2945,11 @@ namespace Schuly.Infrastructure.Migrations
             modelBuilder.Entity("Schuly.Domain.Exam", b =>
                 {
                     b.Navigation("Grades");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.Helply.HelplyAttachment", b =>
+                {
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Schuly.Domain.School", b =>

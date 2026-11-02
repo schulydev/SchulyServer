@@ -47,8 +47,15 @@ namespace Schuly.API.Helply
     /// <summary>Builds the agent for one run: the gateway's chat client, the system prompt, the tools exactly as MCP listed them, and a bounded history. Nothing here logs or traces.</summary>
     public static class HelplyAgentFactory
     {
-        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools)
+        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools) => Create(chat, limits, instructions, tools, null, limits.MaxToolIterations);
+
+        /// <summary>
+        /// The agent with Helply's tool loop: every call goes through <see cref="HelplyToolInvoker"/> (argument cap, repeat guard, result cap), the loop stops after
+        /// <paramref name="maxIterations"/> round trips, and with <paramref name="attachments"/> every request has its attachment markers expanded underneath the loop.
+        /// </summary>
+        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools, HelplyAttachmentContext? attachments, int maxIterations)
         {
+            var invoker = new HelplyToolInvoker(limits.MaxToolArgumentChars, limits.MaxToolResultChars);
             var options = new ChatClientAgentOptions
             {
                 ChatOptions = new ChatOptions { Instructions = instructions, Tools = tools, MaxOutputTokens = limits.MaxOutputTokens },
@@ -58,7 +65,19 @@ namespace Schuly.API.Helply
                     ReducerTriggerEvent = InMemoryChatHistoryProviderOptions.ChatReducerTriggerEvent.AfterMessageAdded,
                 }),
             };
-            return chat.AsAIAgent(options, client => client.AsBuilder().UseFunctionInvocation(NullLoggerFactory.Instance, f => f.MaximumIterationsPerRequest = limits.MaxToolIterations).Build(), NullLoggerFactory.Instance);
+            return chat.AsAIAgent(options, client =>
+            {
+                var builder = client.AsBuilder().UseFunctionInvocation(NullLoggerFactory.Instance, f =>
+                {
+                    f.MaximumIterationsPerRequest = Math.Max(1, maxIterations);
+                    f.MaximumConsecutiveErrorsPerRequest = 3;
+                    f.AllowConcurrentInvocation = false;
+                    f.FunctionInvoker = invoker.InvokeAsync;
+                });
+                if (attachments is not null)
+                    builder = builder.Use(inner => new HelplyAttachmentExpander(inner, attachments));
+                return builder.Build();
+            }, NullLoggerFactory.Instance);
         }
     }
 }

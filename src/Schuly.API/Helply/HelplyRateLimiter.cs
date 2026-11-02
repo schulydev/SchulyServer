@@ -29,10 +29,23 @@ namespace Schuly.API.Helply
             return true;
         }
 
+        public const int UploadsPerHour = 60;
+
+        private readonly PartitionedRateLimiter<Guid> _uploads = PartitionedRateLimiter.Create<Guid, Guid>(user => RateLimitPartition.GetFixedWindowLimiter(user, _ => new FixedWindowRateLimiterOptions { PermitLimit = UploadsPerHour, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
+
+        /// <summary>One upload. Separate from messages, so attaching files never eats into the message allowance.</summary>
+        public bool TryAcquireUpload(Guid applicationUserId, out TimeSpan retryAfter)
+        {
+            using var lease = _uploads.AttemptAcquire(applicationUserId);
+            retryAfter = lease.IsAcquired ? TimeSpan.Zero : lease.TryGetMetadata(MetadataName.RetryAfter, out var wait) ? wait : TimeSpan.FromMinutes(10);
+            return lease.IsAcquired;
+        }
+
         public void Dispose()
         {
             _perMinute.Dispose();
             _perDay.Dispose();
+            _uploads.Dispose();
         }
     }
 

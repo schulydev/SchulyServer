@@ -38,6 +38,8 @@ namespace Schuly.Infrastructure
         public DbSet<McpActivity> McpActivities { get; set; }
         public DbSet<HelplyConversation> HelplyConversations { get; set; }
         public DbSet<HelplySettings> HelplySettings { get; set; }
+        public DbSet<HelplyAttachment> HelplyAttachments { get; set; }
+        public DbSet<HelplyAttachmentContent> HelplyAttachmentContents { get; set; }
 
         public SchulyDbContext(DbContextOptions<SchulyDbContext> options) : base(options) { }
 
@@ -496,6 +498,35 @@ namespace Schuly.Infrastructure
                     .WithMany()
                     .HasForeignKey(c => c.ApplicationUserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<HelplyAttachment>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.FileName).IsRequired();
+                entity.Property(a => a.MediaType).HasMaxLength(200).IsRequired();
+                entity.HasIndex(a => new { a.ConversationId, a.MessageId });
+                entity.HasIndex(a => new { a.MessageId, a.CreatedAt });
+                entity.HasIndex(a => a.ApplicationUserId);
+
+                entity.HasOne(a => a.ApplicationUser)
+                    .WithMany()
+                    .HasForeignKey(a => a.ApplicationUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Conversation)
+                    .WithMany()
+                    .HasForeignKey(a => a.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Content)
+                    .WithOne()
+                    .HasForeignKey<HelplyAttachmentContent>(c => c.AttachmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<HelplyAttachmentContent>(entity =>
+            {
+                entity.HasKey(c => c.AttachmentId);
+                entity.Property(c => c.Data).IsRequired();
             });
 
             modelBuilder.Entity<HelplySettings>(entity =>

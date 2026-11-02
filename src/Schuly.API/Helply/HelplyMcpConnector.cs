@@ -17,8 +17,25 @@ namespace Schuly.API.Helply
     /// <summary>The tools of one run and the MCP session behind them. Dispose it when the run ends.</summary>
     public sealed class HelplyToolSet(McpClient? client, IList<AITool> tools, IReadOnlyDictionary<string, HelplyToolInfo> info) : IAsyncDisposable
     {
-        public IList<AITool> Tools { get; } = tools;
-        public IReadOnlyDictionary<string, HelplyToolInfo> Info { get; } = info;
+        private readonly Dictionary<string, HelplyToolInfo> _info = new(info, StringComparer.Ordinal);
+
+        public IList<AITool> Tools { get; } = tools.ToList();
+        public IReadOnlyDictionary<string, HelplyToolInfo> Info => _info;
+
+        /// <summary>Adds tools that run in this process (the workspace tools). A name MCP already uses is never shadowed.</summary>
+        public void AddLocal(IEnumerable<AITool> local, IReadOnlyDictionary<string, HelplyToolInfo> localInfo)
+        {
+            foreach (var tool in local)
+            {
+                if (_info.ContainsKey(tool.Name) || !localInfo.TryGetValue(tool.Name, out var description))
+                    continue;
+                Tools.Add(tool);
+                _info[tool.Name] = description;
+            }
+        }
+
+        /// <summary>Whether a tool name belongs to the workspace rather than to MCP.</summary>
+        public bool IsLocal(string name) => _info.TryGetValue(name, out var tool) && HelplyWorkspaceTools.Info.TryGetValue(name, out var local) && ReferenceEquals(tool, local);
 
         /// <summary>Calls one tool of this run's MCP session, but only if MCP itself lists it as read-only. Returns its text, or null when it is not allowed, fails or answers with an error.</summary>
         public async Task<string?> CallReadOnlyAsync(string name, IReadOnlyDictionary<string, object?> arguments, CancellationToken ct)

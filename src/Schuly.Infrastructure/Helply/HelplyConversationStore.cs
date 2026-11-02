@@ -18,6 +18,9 @@ namespace Schuly.Infrastructure.Helply
 
         private DateTime Now => time.GetUtcNow().UtcDateTime;
 
+        /// <summary>The attachments of these conversations, on the same database context so a delete removes both in one save.</summary>
+        public HelplyAttachmentStore Attachments { get; } = new(db, cipher, time);
+
         public Task<HelplyConversation?> FindAsync(Guid applicationUserId, Guid id, CancellationToken ct = default)
         {
             var now = Now;
@@ -75,6 +78,7 @@ namespace Schuly.Infrastructure.Helply
             var conversation = await db.HelplyConversations.FirstOrDefaultAsync(c => c.Id == id && c.ApplicationUserId == applicationUserId, ct);
             if (conversation is null)
                 return false;
+            await Attachments.RemoveForConversationsAsync([conversation.Id], ct);
             db.HelplyConversations.Remove(conversation);
             await db.SaveChangesAsync(ct);
             return true;
@@ -83,6 +87,7 @@ namespace Schuly.Infrastructure.Helply
         public async Task<int> DeleteAllAsync(Guid applicationUserId, CancellationToken ct = default)
         {
             var all = await db.HelplyConversations.Where(c => c.ApplicationUserId == applicationUserId).ToListAsync(ct);
+            await Attachments.RemoveForConversationsAsync(all.Select(c => c.Id).ToList(), ct);
             db.HelplyConversations.RemoveRange(all);
             await db.SaveChangesAsync(ct);
             return all.Count;
@@ -93,6 +98,7 @@ namespace Schuly.Infrastructure.Helply
         {
             var now = Now;
             var expired = await db.HelplyConversations.Where(c => c.ExpiresAt <= now).ToListAsync(ct);
+            await Attachments.RemoveForConversationsAsync(expired.Select(c => c.Id).ToList(), ct);
             db.HelplyConversations.RemoveRange(expired);
             await db.SaveChangesAsync(ct);
             return expired.Count;
@@ -100,6 +106,24 @@ namespace Schuly.Infrastructure.Helply
 
         public async Task<McpPermissionSet> GetPermissionsAsync(Guid applicationUserId, CancellationToken ct = default) =>
             (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.Permissions ?? McpPermissionSet.ReadOnly();
+
+        public async Task<bool> GetWorkspaceEnabledAsync(Guid applicationUserId, CancellationToken ct = default) =>
+            (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.WorkspaceEnabled ?? false;
+
+        public async Task<bool> SetWorkspaceEnabledAsync(Guid applicationUserId, bool enabled, CancellationToken ct = default)
+        {
+            var settings = await db.HelplySettings.FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct);
+            var now = Now;
+            if (settings is null)
+                db.HelplySettings.Add(new HelplySettings { Id = Guid.NewGuid(), ApplicationUserId = applicationUserId, Permissions = McpPermissionSet.ReadOnly(), WorkspaceEnabled = enabled, CreatedAt = now, UpdatedAt = now });
+            else
+            {
+                settings.WorkspaceEnabled = enabled;
+                settings.UpdatedAt = now;
+            }
+            await db.SaveChangesAsync(ct);
+            return enabled;
+        }
 
         public async Task<McpPermissionSet> SetPermissionsAsync(Guid applicationUserId, McpPermissionSet? permissions, CancellationToken ct = default)
         {
