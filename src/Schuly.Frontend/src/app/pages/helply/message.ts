@@ -38,7 +38,7 @@ const MARKDOWN =
   template: `
     @if (isUser()) {
       <article aria-label="You" class="flex w-full min-w-0 justify-end">
-        <pk-user-turn class="min-w-0 max-w-full">
+        <pk-user-turn class="w-full min-w-0">
           <app-attachment-cards pkUserTurnTop [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
           @if (message().text) {<span>{{ message().text }}</span>}
         </pk-user-turn>
@@ -59,11 +59,14 @@ const MARKDOWN =
                 <span class="shimmer text-muted-foreground motion-reduce:shimmer-none [--shimmer-color:var(--foreground)]">Thinking...</span>
               </p>
             }
-            <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
+            @if (message().attachments.length) {
+              <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
+            }
             @if (message().error) {
               <div hlmAlert variant="destructive">
                 <ng-icon name="lucideCircleAlert" aria-hidden="true" />
-                <p hlmAlertDescription>{{ message().error }}</p>
+                <!-- Spartan's destructive text on the card misses 4.5:1; mixed toward the foreground it passes in both themes. -->
+                <p hlmAlertDescription class="text-[color-mix(in_oklch,var(--destructive)_70%,var(--foreground))]!">{{ message().error }}</p>
               </div>
             }
           </div>

@@ -89,10 +89,11 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
     <!-- Height animates through the grid row, so the chain folds and opens smoothly. -->
     <div
       [id]="bodyId"
-      class="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none"
+      class="grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none"
       [class.grid-rows-[1fr]]="shown()"
       [class.grid-rows-[0fr]]="!shown()"
       [class.opacity-0]="!shown()"
+      [class.invisible]="!shown()"
       [attr.inert]="shown() ? null : ''"
     >
       <div class="min-h-0 overflow-hidden">

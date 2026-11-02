@@ -82,17 +82,26 @@ let nextId = 0;
     }
     @if (decision() === undefined) {
       <div class="flex flex-wrap gap-2">
-        <button
-          hlmBtn
-          type="button"
-          [variant]="approval().destructive ? 'destructive' : 'default'"
-          size="sm"
-          [disabled]="busy()"
-          (click)="decide.emit(true)"
-        >
-          <ng-icon name="lucideCheck" aria-hidden="true" />
-          Approve
-        </button>
+        @if (approval().destructive) {
+          <!-- Spartan's destructive text on its own tint misses 4.5:1; mixed toward the foreground it passes in both themes. -->
+          <button
+            hlmBtn
+            type="button"
+            variant="destructive"
+            size="sm"
+            class="text-[color-mix(in_oklch,var(--destructive)_70%,var(--foreground))]!"
+            [disabled]="busy()"
+            (click)="decide.emit(true)"
+          >
+            <ng-icon name="lucideCheck" aria-hidden="true" />
+            Approve
+          </button>
+        } @else {
+          <button hlmBtn type="button" size="sm" [disabled]="busy()" (click)="decide.emit(true)">
+            <ng-icon name="lucideCheck" aria-hidden="true" />
+            Approve
+          </button>
+        }
         <button hlmBtn type="button" variant="outline" size="sm" [disabled]="busy()" (click)="decide.emit(false)">
           <ng-icon name="lucideX" aria-hidden="true" />
           Deny

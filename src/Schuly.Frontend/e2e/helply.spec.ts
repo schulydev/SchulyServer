@@ -12,6 +12,12 @@ interface MockOptions {
   workspaceAvailable?: boolean;
   /** Body of the SSE reply to the next message. */
   stream?: string;
+  /** Body of the SSE reply to a decision on pending approvals. */
+  approvalStream?: string;
+  /** Body of the SSE reply to a retry. */
+  retryStream?: string;
+  /** Areas Helply may use; Mail and Grades read by default. */
+  areas?: Record<string, string>;
   conversation?: unknown;
 }
 
@@ -20,6 +26,8 @@ interface Mock {
   deleted: string[];
   sent: { text: string; attachmentIds: string[] }[];
   workspaceSaves: boolean[];
+  decisions: unknown[];
+  retries: number;
   settings: { permissions: unknown; workspace: boolean; workspaceAvailable: boolean };
 }
 
@@ -47,7 +55,9 @@ async function install(page: Page, options: MockOptions = {}): Promise<Mock> {
     deleted: [],
     sent: [],
     workspaceSaves: [],
-    settings: { permissions, workspace: options.workspace ?? false, workspaceAvailable: options.workspaceAvailable ?? true },
+    decisions: [],
+    retries: 0,
+    settings: { permissions: options.areas ? { ...permissions, areas: options.areas } : permissions, workspace: options.workspace ?? false, workspaceAvailable: options.workspaceAvailable ?? true },
   };
   const summary = { id: 'c1', title: options.conversation ? 'Old chat' : 'New chat', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 864e5).toISOString() };
   const conversations = options.conversation ? [summary] : [];
@@ -80,6 +90,14 @@ async function install(page: Page, options: MockOptions = {}): Promise<Mock> {
     }
     if (path.startsWith('/conversations/c1/attachments/') && method === 'GET') {
       return route.fulfill({ contentType: 'text/plain', body: 'hello world' });
+    }
+    if (path === '/conversations/c1/approvals') {
+      mock.decisions.push(route.request().postDataJSON());
+      return route.fulfill({ contentType: 'text/event-stream', body: options.approvalStream ?? '' });
+    }
+    if (path === '/conversations/c1/retry') {
+      mock.retries++;
+      return route.fulfill({ contentType: 'text/event-stream', body: options.retryStream ?? '' });
     }
     if (path === '/conversations/c1/messages') {
       mock.sent.push(route.request().postDataJSON());
@@ -359,3 +377,241 @@ test.describe('screenshots', () => {
     }
   }
 });
+
+// ---- The kit's chat parts: suggestions, chain of thought, actions, code blocks ----
+
+const done = (title = 'Chat') => ['done', { messageId: 'a1', awaitingApproval: false, title }] as [string, unknown];
+
+/** The turn from the bug report: a lead-in, a mail list, more text, then three more pages, then the answer. */
+const LEAD = "I'll check your unread emails.";
+const MORE = '\n\nLet me check the remaining unread messages.';
+const ANSWER = '\n\nYou have **5 unread emails**:\n\n1. Exam dates from Anna\n2. Room change for Physics';
+const MAIL_STREAM = sse(
+  ['start', { messageId: 'a1' }],
+  ['delta', { text: LEAD }],
+  ['tool_started', { id: 't1', label: 'Reading your mail list', at: LEAD.length, detail: 'unread only' }],
+  ['tool_finished', { id: 't1', label: 'Read your mail list', status: 'done', at: LEAD.length, detail: 'unread only' }],
+  ['delta', { text: MORE }],
+  ...[2, 3, 4].flatMap((n): [string, unknown][] => [
+    ['tool_started', { id: `t${n}`, label: 'Reading your mail list', at: LEAD.length + MORE.length, detail: `page ${n} · unread only` }],
+    ['tool_finished', { id: `t${n}`, label: 'Read your mail list', status: 'done', at: LEAD.length + MORE.length, detail: `page ${n} · unread only` }],
+  ]),
+  ['delta', { text: ANSWER }],
+  done('Unread mail'),
+);
+
+const CODE_STREAM = sse(['start', { messageId: 'a1' }], ['delta', { text: 'Here is the script:\n\n```python\nprint(6 * 7)\n```\n\nIt prints 42.' }], done());
+
+const DRAFTED = 'I drafted the reply to Anna.';
+const APPROVAL_STREAM = sse(
+  ['start', { messageId: 'a1' }],
+  ['delta', { text: DRAFTED }],
+  [
+    'approval_required',
+    {
+      approvalId: 'ap1',
+      toolLabel: 'Reply to mail',
+      summary: 'Reply to the email "Exam dates" from Anna',
+      details: [{ label: 'Reply', value: 'Thanks, see you Monday.' }],
+      destructive: true,
+      arguments: [{ label: 'Reply', value: 'Thanks, see you Monday.' }],
+      risk: 'normal',
+      riskReasons: [],
+    },
+  ],
+  ['done', { messageId: 'a1', awaitingApproval: true, title: 'Reply' }],
+);
+const APPROVED_STREAM = sse(
+  ['start', { messageId: 'a1' }],
+  ['tool_started', { id: 'r1', label: 'Replying to an email', at: DRAFTED.length }],
+  ['tool_finished', { id: 'r1', label: 'Replied to an email', status: 'done' }],
+  ['delta', { text: '\n\nThe reply is sent.' }],
+  done('Reply'),
+);
+
+const FAILED = "Helply couldn't answer right now.";
+const ERROR_STREAM = sse(['start', { messageId: 'a1' }], ['error', { message: FAILED, code: 'unavailable', retryable: true }]);
+
+/** Replaces the SSE reply to the next message with one the test feeds piece by piece. */
+async function holdStream(page: Page) {
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    const w = window as unknown as { __push?: (chunk: string | null) => void };
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (/\/api\/helply\/conversations\/[^/]+\/messages$/.test(url) && init?.method === 'POST') {
+        let controller!: ReadableStreamDefaultController<Uint8Array>;
+        const body = new ReadableStream<Uint8Array>({ start: (c) => (controller = c) });
+        w.__push = (chunk) => (chunk === null ? controller.close() : controller.enqueue(new TextEncoder().encode(chunk)));
+        return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } }));
+      }
+      return original(input, init);
+    };
+  });
+}
+
+async function push(page: Page, chunk: string | null) {
+  await page.waitForFunction(() => typeof (window as unknown as { __push?: unknown }).__push === 'function');
+  await page.evaluate((c) => (window as unknown as { __push: (chunk: string | null) => void }).__push(c), chunk);
+}
+
+/** Lets the chain finish folding or opening, so axe and screenshots see it at rest. */
+const settle = (page: Page) => page.waitForTimeout(450);
+
+async function send(page: Page, text: string) {
+  await page.getByLabel('Message Helply').fill(text);
+  await page.getByRole('button', { name: 'Send message' }).click();
+}
+
+const VIEWS = [
+  { scheme: 'light', width: 1280 },
+  { scheme: 'dark', width: 1280 },
+  { scheme: 'light', width: 390 },
+  { scheme: 'dark', width: 390 },
+] as const;
+
+for (const { scheme, width } of VIEWS) {
+  test.describe(`kit chat ${scheme} ${width}px`, () => {
+    const shot = async (page: Page, name: string) => {
+      if (!SHOTS) return;
+      mkdirSync(SHOTS, { recursive: true });
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(SHOTS, `helply-${name}-${width}-${scheme}.png`) });
+    };
+
+    test.beforeEach(async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width, height: 860 });
+    });
+
+    test('the empty chat suggests only what Helply may use, with one workspace question', async ({ page }) => {
+      const mock = await install(page, { areas: { Exams: 'Read', Grades: 'Read', Mail: 'Off' }, workspace: true });
+      await open(page);
+      const suggestions = page.getByRole('list', { name: 'Suggested questions' });
+      await expect(suggestions.getByRole('button')).toHaveText(['What exams do I have this week?', 'How are my grades this semester?', 'Make a chart of my grades']);
+      await expect(suggestions).not.toContainText(/mail/i);
+      for (const button of await suggestions.getByRole('button').all()) {
+        const box = (await button.boundingBox())!;
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
+      }
+      await axe(page, 'app-helply');
+      await shot(page, 'empty');
+
+      await suggestions.getByRole('button', { name: 'Make a chart of my grades' }).click();
+      await expect.poll(() => mock.sent[0]?.text).toBe('Make a chart of my grades');
+    });
+
+    test('a multi-tool turn is one ordered chain of thought, folded once the answer is in', async ({ page }) => {
+      await install(page, { stream: MAIL_STREAM });
+      await open(page);
+      await send(page, 'Summarize my unread mail');
+
+      const answer = page.getByRole('article', { name: 'Helply' });
+      await expect(answer.getByText('5 unread emails')).toBeVisible();
+      const header = answer.getByRole('button', { name: /Read your mail list · 4 steps/ });
+      await expect(header).toHaveAttribute('aria-expanded', 'false');
+      await expect(answer.getByText(LEAD)).toBeHidden();
+      await expect(answer.getByRole('button', { name: 'Copy' })).toBeVisible();
+      await axe(page, 'app-helply');
+      await shot(page, 'chain-folded');
+
+      await header.click();
+      await expect(header).toHaveAttribute('aria-expanded', 'true');
+      const chain = answer.getByRole('list', { name: 'What Helply did' });
+      await expect(chain.getByRole('listitem')).toHaveText([
+        /^I'll check your unread emails\.\s*$/,
+        /^\s*Read your mail list\s+· unread only, Done$/,
+        /^Let me check the remaining unread messages\.\s*$/,
+        /^\s*Read your mail list\s+· 3 pages · unread only, Done$/,
+      ]);
+      // The answer sits below the chain and holds none of the text written on the way.
+      await expect(answer.locator('pk-markdown').last()).not.toContainText(LEAD);
+      await settle(page);
+      await axe(page, 'app-helply');
+      await shot(page, 'chain-open');
+    });
+
+    test('while streaming the chain stays open and earlier text moves into it as steps arrive', async ({ page }) => {
+      await holdStream(page);
+      await install(page);
+      await open(page);
+      await send(page, 'Summarize my unread mail');
+
+      const answer = page.getByRole('article', { name: 'Helply' });
+      await expect(answer.getByText('Thinking...')).toBeVisible();
+      await shot(page, 'thinking');
+      await push(page, sse(['start', { messageId: 'a1' }], ['delta', { text: LEAD }]));
+      await expect(answer.getByText(LEAD)).toBeVisible();
+      await expect(answer.getByRole('list', { name: 'What Helply did' })).toHaveCount(0);
+
+      await push(page, sse(['tool_started', { id: 't1', label: 'Reading your mail list', at: LEAD.length, detail: 'unread only' }]));
+      const chain = answer.getByRole('list', { name: 'What Helply did' });
+      await expect(chain.getByRole('listitem')).toHaveText([/I'll check your unread emails\./, /Reading your mail list\s+· unread only, In progress/]);
+      await expect(answer.getByRole('button', { name: /steps/ })).toHaveCount(0);
+      await axe(page, 'app-helply');
+      await shot(page, 'streaming');
+
+      await push(page, sse(['tool_finished', { id: 't1', label: 'Read your mail list', status: 'done' }], ['delta', { text: ANSWER }], done()));
+      await push(page, null);
+      await expect(answer.getByText('5 unread emails')).toBeVisible();
+      await expect(answer.getByRole('button', { name: /Read your mail list/ })).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    test('an approval waits at the end of the turn and approving continues it in the chain', async ({ page }) => {
+      const mock = await install(page, { stream: APPROVAL_STREAM, approvalStream: APPROVED_STREAM });
+      await open(page);
+      await send(page, 'Reply to Anna');
+
+      const card = page.getByLabel('Approval needed: Reply to mail');
+      await expect(card).toBeVisible();
+      await expect(page.getByRole('article', { name: 'Helply' }).getByText(DRAFTED)).toBeVisible();
+      await axe(page, 'app-helply');
+      await shot(page, 'approval');
+
+      await card.getByRole('button', { name: 'Approve' }).click();
+      await expect.poll(() => mock.decisions).toEqual([{ decisions: [{ approvalId: 'ap1', approved: true }] }]);
+      const answer = page.getByRole('article', { name: 'Helply' });
+      await expect(answer.getByText('The reply is sent.')).toBeVisible();
+      await expect(card).toHaveCount(0);
+      await answer.getByRole('button', { name: /Replied to an email/ }).click();
+      await expect(answer.getByRole('list', { name: 'What Helply did' }).getByRole('listitem')).toHaveText([/I drafted the reply to Anna\./, /Replied to an email/]);
+      await settle(page);
+      await axe(page, 'app-helply');
+    });
+
+    test('an error is an alert and the last answer can be retried from its actions', async ({ page }) => {
+      const mock = await install(page, { stream: ERROR_STREAM, retryStream: sse(['start', { messageId: 'a1' }], ['delta', { text: 'Back again.' }], done()) });
+      await open(page);
+      await send(page, 'Hello');
+
+      const answer = page.getByRole('article', { name: 'Helply' });
+      await expect(answer.getByRole('alert')).toHaveText(FAILED);
+      const retry = answer.getByRole('button', { name: 'Retry' });
+      await expect(retry).toBeVisible();
+      await axe(page, 'app-helply');
+      await shot(page, 'error');
+
+      await retry.click();
+      await expect(answer.getByText('Back again.')).toBeVisible();
+      expect(mock.retries).toBe(1);
+      await expect(answer.getByRole('alert')).toHaveCount(0);
+      await expect(answer.getByRole('button', { name: 'Retry' })).toHaveCount(0);
+    });
+
+    test('code in an answer is the kit code block with a copy button', async ({ page, context }) => {
+      await context.grantPermissions(['clipboard-write']);
+      await install(page, { stream: CODE_STREAM });
+      await open(page);
+      await send(page, 'Write a script');
+
+      const answer = page.getByRole('article', { name: 'Helply' });
+      const block = answer.locator('.pk-code-block');
+      await expect(block).toBeVisible();
+      await expect(block).toContainText('print(6 * 7)');
+      await block.getByRole('button', { name: 'Copy' }).click();
+      await expect(block.getByRole('button', { name: 'Copied' })).toBeVisible();
+      await axe(page, 'app-helply');
+      await shot(page, 'code');
+    });
+  });
+}
