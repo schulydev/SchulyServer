@@ -19,12 +19,12 @@ import { HelplyAttachment } from '../../core/helply-types';
             <button
               type="button"
               class="hover:bg-accent focus-visible:ring-ring/50 flex min-w-0 items-center gap-2 rounded-l-lg px-2.5 py-1.5 text-left text-xs outline-none focus-visible:ring-3"
-              [attr.aria-label]="'Open ' + file.fileName"
+              
               (click)="open.emit(file)"
             >
               <ng-icon [name]="icon(file.fileName)" aria-hidden="true" class="shrink-0 text-base" />
               <span class="flex min-w-0 flex-col">
-                <span class="max-w-48 truncate font-medium">{{ file.fileName }}</span>
+                <span class="max-w-48 truncate font-medium"><span class="sr-only">Open </span>{{ file.fileName }}</span>
                 <span class="text-muted-foreground">{{ size(file.sizeBytes) }}</span>
               </span>
             </button>

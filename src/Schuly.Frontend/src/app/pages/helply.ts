@@ -90,7 +90,7 @@ function readListWidth(): number {
             (click)="navOpen.set(!navOpen())"
           >
             <ng-icon name="lucidePanelLeft" aria-hidden="true" />
-            Conversations
+            <span class="max-sm:sr-only">Conversations</span>
           </button>
         }
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium">{{ store.activeTitle() }}</h2>
@@ -101,7 +101,7 @@ function readListWidth(): number {
           </button>
           <button hlmBtn type="button" variant="outline" size="sm" (click)="settingsOpen.set(true)">
             <ng-icon name="lucideSettings" aria-hidden="true" />
-            Helply settings
+            <span class="max-sm:sr-only">Helply settings</span>
           </button>
         }
       </div>

@@ -34,9 +34,7 @@ const MARKDOWN =
       <article aria-label="You" class="flex w-full min-w-0 justify-end">
         <pk-user-turn class="min-w-0 max-w-full">
           <app-attachment-cards pkUserTurnTop [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
-          @if (message().text) {
-            {{ message().text }}
-          }
+          @if (message().text) {<span>{{ message().text }}</span>}
         </pk-user-turn>
       </article>
     } @else {
