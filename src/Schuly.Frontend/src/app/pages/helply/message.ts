@@ -1,7 +1,9 @@
 import { Component, computed, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideRotateCw } from '@ng-icons/lucide';
+import { PkAssistantTurn, PkUserTurn } from '@prompt-kit/chat-turn';
 import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ChatMessage } from '../../core/helply-state';
 import { renderMarkdown } from '../../core/markdown';
 import { HelplyAttachment } from '../../core/helply-types';
@@ -24,26 +26,32 @@ const MARKDOWN =
 
 @Component({
   selector: 'app-helply-message',
-  imports: [AttachmentCards, HlmButton, NgIcon, ToolChips],
+  imports: [AttachmentCards, HlmButton, HlmSpinner, NgIcon, PkAssistantTurn, PkUserTurn, ToolChips],
   providers: [provideIcons({ lucideCircleAlert, lucideRotateCw })],
-  host: { class: 'flex' , '[class.justify-end]': 'isUser()' },
+  host: { class: 'flex min-w-0' },
   template: `
     @if (isUser()) {
-      <article aria-label="You" class="flex max-w-[85%] flex-col items-end gap-1.5">
-        <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
-        @if (message().text) {
-          <p class="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm break-words whitespace-pre-wrap">{{ message().text }}</p>
-        }
+      <article aria-label="You" class="flex w-full min-w-0 justify-end">
+        <pk-user-turn class="min-w-0 max-w-full">
+          <app-attachment-cards pkUserTurnTop [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
+          @if (message().text) {
+            {{ message().text }}
+          }
+        </pk-user-turn>
       </article>
     } @else {
-      <article aria-label="Helply" class="flex max-w-full min-w-0 gap-3 sm:max-w-[85%]">
+      <article aria-label="Helply" class="flex w-full min-w-0 gap-3">
         <img src="helply-avatar.svg" alt="" width="32" height="32" class="mt-0.5 size-8 shrink-0" />
-        <div class="flex min-w-0 flex-col gap-2">
+        <pk-assistant-turn class="min-w-0 flex-1" [copyText]="message().text" [streaming]="message().streaming">
+          <div class="flex min-w-0 flex-col gap-2">
           <app-tool-chips [tools]="message().tools" />
           @if (message().text) {
             <div [class]="markdownClass" [innerHTML]="html()"></div>
           } @else if (message().streaming && !message().tools.length) {
-            <p class="text-muted-foreground text-sm" aria-hidden="true">Thinking...</p>
+            <p class="text-muted-foreground flex items-center gap-2 text-sm" aria-hidden="true">
+              <hlm-spinner aria-hidden="true" />
+              <span class="motion-safe:animate-pulse">Thinking...</span>
+            </p>
           }
           <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
           @if (message().error) {
@@ -60,7 +68,8 @@ const MARKDOWN =
               </div>
             }
           }
-        </div>
+          </div>
+        </pk-assistant-turn>
       </article>
     }
   `,

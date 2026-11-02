@@ -12,6 +12,7 @@
     "target": "ES2022",
     "module": "preserve",
     "paths": {
+      "@prompt-kit/*": ["./libs/prompt-kit/*"],
       "@spartan-ng/helm/accordion": ["./libs/ui/accordion/src/index.ts"],
       "@spartan-ng/helm/alert": ["./libs/ui/alert/src/index.ts"],
       "@spartan-ng/helm/alert-dialog": ["./libs/ui/alert-dialog/src/index.ts"],

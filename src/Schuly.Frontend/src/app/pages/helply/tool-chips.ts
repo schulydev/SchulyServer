@@ -2,7 +2,7 @@ import { Component, computed, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBan, lucideChevronDown, lucideCircleAlert, lucideCircleCheck, lucideLoader2, lucideWrench } from '@ng-icons/lucide';
 import { ToolActivity, ToolStatus } from '../../core/helply-types';
-import { CodeChip } from './code-chip';
+import { PkTool, ToolPart } from '@prompt-kit/tool';
 
 const ICONS: Record<ToolStatus, string> = {
   running: 'lucideLoader2',
@@ -21,7 +21,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
 /** What Helply looked up for a message. Several finished tools collapse into one disclosure. */
 @Component({
   selector: 'app-tool-chips',
-  imports: [CodeChip, NgIcon],
+  imports: [NgIcon, PkTool],
   providers: [provideIcons({ lucideBan, lucideChevronDown, lucideCircleAlert, lucideCircleCheck, lucideLoader2, lucideWrench })],
   template: `
     @if (plain().length || codeTools().length) {
@@ -63,7 +63,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
           </ul>
         }
         @for (tool of codeTools(); track tool.id) {
-          <app-code-chip [tool]="tool" />
+          <pk-tool class="mt-0 w-full max-w-xl" [toolPart]="part(tool)" />
         }
       </div>
     }
@@ -81,6 +81,19 @@ export class ToolChips {
   protected readonly running = computed(() => this.plain().some((t) => t.status === 'running'));
   protected readonly collapsible = computed(() => this.plain().length > 2);
   protected readonly open = computed(() => !this.collapsible() || this.expanded() || this.running());
+
+  /** A sandbox command as a pk-tool: label as the title, the command as input, its output and exit code. */
+  protected part(tool: ToolActivity): ToolPart {
+    const code = tool.code;
+    return {
+      type: tool.label,
+      state: tool.status === 'running' ? 'input-streaming' : tool.status === 'done' ? 'output-available' : 'output-error',
+      input: code ? { command: code.command } : undefined,
+      output: code?.output ?? undefined,
+      exitCode: code?.exitCode ?? null,
+      errorText: tool.status === 'denied' ? 'Not allowed' : tool.status === 'failed' ? 'The command failed' : undefined,
+    };
+  }
 
   protected icon(status: ToolStatus): string {
     return ICONS[status];

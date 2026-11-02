@@ -1,5 +1,8 @@
 {
   "componentsPath": "libs/ui",
   "importAlias": "@spartan-ng/helm",
-  "style": "nova"
+  "style": "nova",
+  "promptKit": {
+    "componentsPath": "libs/prompt-kit"
+  }
 }
