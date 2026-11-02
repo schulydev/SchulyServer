@@ -11,7 +11,7 @@ with a real domain.
 | `caddy` | `caddy:2` | **80 / 443** (the only public ports) |
 | `backend` | `ghcr.io/schulydev/schuly` | via Caddy → `https://${API_HOST}` |
 | `schulware` | `ghcr.io/pianonic/schulwareapi` | internal |
-| `schulymicrosoft` | `ghcr.io/schulydev/schulymicrosoft` | internal (Microsoft 365 access for the Microsoft plugin) |
+| `schulymicrosoft` | `ghcr.io/schulydev/schulymicrosoft` | internal (Microsoft 365 access for the Microsoft plugin; healthchecked on `/health/ready`, the backend starts only once it is ready) |
 | `postgres` | `postgres:18.1` | internal (DBs: `schuly`, `schuly_plugin_*`) |
 | `seaweedfs` | `chrislusf/seaweedfs` | internal (S3 document storage) |
 

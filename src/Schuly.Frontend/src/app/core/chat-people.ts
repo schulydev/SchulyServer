@@ -35,7 +35,7 @@ export function nameFromEmail(email: string | null | undefined): string {
  * last message when that is not the user.
  */
 export function chatPeople(
-  chat: { id: string; chatType?: string | null; members?: PersonLike[] | null },
+  chat: { id: string; chatType?: string | null; isSelfChat?: boolean | null; members?: PersonLike[] | null },
   mineId: string | null,
   ownEmail: string | null,
   lastSender?: { id?: string | null; displayName?: string | null } | null,
@@ -43,7 +43,7 @@ export function chatPeople(
   const members = chat.members ?? [];
   const email = ownEmail?.toLowerCase() ?? null;
   const isMe = (m: PersonLike) => (!!mineId && m.userId === mineId) || (!!email && m.email?.toLowerCase() === email);
-  if (chat.id.startsWith('48:notes')) return { people: [{ id: mineId, name: NOTES_TITLE }], memberCount: Math.max(1, members.length), notes: true };
+  if (chat.isSelfChat === true) return { people: [{ id: mineId, name: NOTES_TITLE }], memberCount: Math.max(1, members.length), notes: true };
 
   const people: ChatPerson[] = [];
   for (const m of members) {

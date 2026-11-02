@@ -47,6 +47,13 @@ services:
       PYTHONUNBUFFERED: "1"
       # Shared with the backend's Microsoft plugin; guards the password sign-in routes.
       SCHULY_SERVICE_KEY: ${MICROSOFT_SERVICE_KEY:-}
+    healthcheck:
+      # 503 until the startup warm-up is done, then 200. The image has no curl.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
 
   backend:
     image: ghcr.io/schulydev/schuly:${SCHULY_VERSION:-latest}
@@ -61,6 +68,8 @@ services:
         condition: service_healthy
       init-perms:
         condition: service_completed_successfully
+      schulymicrosoft:
+        condition: service_healthy
 
   caddy:
     image: caddy:2
