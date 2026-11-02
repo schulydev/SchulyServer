@@ -178,8 +178,10 @@ type DriveLayout = 'schuly' | 'explorer';
                   [class.bg-muted]="entry.id === selectedId()"
                   [attr.aria-selected]="entry.id === selectedId()"
                   [attr.tabindex]="i === tabIndex() ? 0 : -1"
-                  (click)="select(entry.id)"
-                  (dblclick)="select(entry.id); open()"
+                  (click)="activate(entry)"
+                  (mouseenter)="warm(entry)"
+                  (mouseleave)="cool()"
+                  (focus)="warm(entry, true)"
                 >
                   <app-drive-thumb
                     [entry]="entry"
@@ -299,8 +301,33 @@ export class Drive {
     if (value === 'schuly' || value === 'explorer') this.layout.set(value);
   }
 
-  protected select(id: string): void {
-    this.selectedId.set(id);
+  /** Selects the entry and opens it: a folder is entered, a file shows in the viewer (or online when it cannot be previewed). */
+  protected activate(entry: DriveEntry): void {
+    this.selectedId.set(entry.id);
+    this.cool();
+    if (entry.isFolder) {
+      if (this.nav.enter(entry)) this.selectedId.set(null);
+      else if (entry.link) window.open(entry.link, '_blank', 'noopener');
+    } else if (entry.openable) {
+      this.view(entry);
+    } else if (entry.link) {
+      window.open(entry.link, '_blank', 'noopener');
+    }
+  }
+
+  private hoverTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Folders are fetched ahead once a pointer rests on them (or keyboard focus reaches them), so opening shows at once. */
+  protected warm(entry: DriveEntry, now = false): void {
+    this.cool();
+    if (!entry.isFolder) return;
+    if (now) return this.nav.prefetch(entry);
+    this.hoverTimer = setTimeout(() => this.nav.prefetch(entry), 120);
+  }
+
+  protected cool(): void {
+    if (this.hoverTimer !== null) clearTimeout(this.hoverTimer);
+    this.hoverTimer = null;
   }
 
   protected open(): void {
@@ -331,15 +358,14 @@ export class Drive {
       case 'Home': next = 0; break;
       case 'End': next = entries.length - 1; break;
       case 'Enter':
-        if (hasSelection) {
-          event.preventDefault();
-          this.open();
-        }
-        return;
-      case ' ':
+      case ' ': {
+        // Act on the card that has focus, which may not be selected yet (Tab lands on the first one).
+        const focused = cards.findIndex((c) => c === document.activeElement);
+        if (focused < 0) return;
         event.preventDefault();
-        this.selectedId.set(entries[index].id);
+        this.activate(entries[focused]);
         return;
+      }
       default:
         return;
     }

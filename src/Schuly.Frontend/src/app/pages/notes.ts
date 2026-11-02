@@ -34,7 +34,7 @@ const isTyping = (target: EventTarget | null): boolean => {
   imports: [HlmButton, HlmDialogImports, HlmInput, HlmSpinner, AccountPicker, NgIcon, OneNotePageView, OneNotePages, OneNoteTree, SearchField, SplitHandle],
   providers: [provideIcons({ lucideKeyboard, lucideNotebook }), OneNoteStore],
   host: {
-    class: 'flex h-[calc(100svh-var(--header-height))] min-h-0 min-w-0 flex-col overflow-hidden',
+    class: 'flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
     '(document:keydown)': 'shortcut($event)',
   },
   template: `
@@ -77,7 +77,7 @@ const isTyping = (target: EventTarget | null): boolean => {
       </section>
       <app-split-handle label="Resize page list" [width]="listWidth.value()" [min]="240" [max]="560" [initial]="340" (widthChange)="listWidth.set($event)" />
 
-      <section class="min-w-0 flex-1 flex-col overflow-hidden" [class]="stage() === 'page' ? 'flex' : 'hidden lg:flex'" aria-label="Page">
+      <section class="min-h-0 min-w-0 flex-1 flex-col overflow-hidden" [class]="stage() === 'page' ? 'flex' : 'hidden lg:flex'" aria-label="Page">
         @if (store.pageId()) {
           <app-onenote-page-view (back)="store.closePage()" />
         } @else {
