@@ -232,20 +232,117 @@ namespace Schuly.API.Mcp.Tools
         }
 
         [McpServerTool(Name = "list_notebooks", Title = "List OneNote notebooks", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Lists the user's OneNote notebooks with name, last change and a link to open them.")]
+        [Description("Lists the user's OneNote notebooks, personal ones and those of their Teams / classes, with name, source, whether they can be edited, last change and a link. Use a notebookId with list_sections.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
         public async Task<string> ListNotebooks(Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
-            var notebooks = Items(await ReadAsync($"{Base}/accounts/{account}/notebooks", ct)).Select(n => new
+            var notebooks = Items(await ReadAsync($"{Base}/accounts/{account}/onenote/notebooks?teams=true", ct)).Select(n => new
             {
                 notebookId = Str(n, "id"),
                 name = Str(n, "displayName"),
+                source = Prop(n, "source") is { } s ? (Str(s, "kind") == "team" ? Str(s, "name") ?? "team" : "personal") : null,
+                writable = Bool(n, "writable"),
                 modified = Str(n, "lastModifiedDateTime"),
-                isShared = Bool(n, "isShared"),
-                webUrl = Prop(n, "links") is { } l && Prop(l, "oneNoteWebUrl") is { } w ? Str(w, "href") : null,
+                webUrl = Str(n, "webUrl"),
             });
             return Serialize(new { accountId = account, notebooks });
+        }
+
+        [McpServerTool(Name = "list_sections", Title = "List OneNote sections", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        [Description("Lists the sections and section groups of a notebook as a flat list with their full path. Use a sectionId with list_pages and create_page.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
+        public async Task<string> ListSections([Description("notebookId from list_notebooks.")] string notebookId, Guid? accountId = null, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            var tree = await ReadAsync($"{Base}/accounts/{account}/onenote/notebooks/{Uri.EscapeDataString(notebookId)}/sections", ct) ?? default;
+            var sections = new List<object>();
+            FlattenSections(Prop(tree, "children"), string.Empty, sections, 0);
+            return Serialize(new { accountId = account, notebookId, sections });
+        }
+
+        [McpServerTool(Name = "list_pages", Title = "List OneNote pages", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        [Description("Lists the pages of a OneNote section in order, with title, indent level (0 page, 1+ subpage) and last change. Read one with read_page. Page with offset and nextOffset.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
+        public async Task<string> ListPages([Description("sectionId from list_sections.")] string sectionId, Guid? accountId = null, [Description("Pages to skip, for paging.")] int offset = 0, [Description("Pages per call, 1-100.")] int limit = 50, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            offset = Math.Max(0, offset);
+            var data = await ReadAsync($"{Base}/accounts/{account}/onenote/sections/{Uri.EscapeDataString(sectionId)}/pages?top={Math.Clamp(limit, 1, 100)}&skip={offset}", ct) ?? default;
+            var pages = Items(Prop(data, "items")).Select(p => new { pageId = Str(p, "id"), title = Str(p, "title"), level = Long(p, "level"), modified = Str(p, "lastModifiedDateTime"), webUrl = Str(p, "webUrl") });
+            return Serialize(new { accountId = account, sectionId, offset, pages, nextOffset = Long(data, "nextSkip") });
+        }
+
+        [McpServerTool(Name = "read_page", Title = "Read OneNote page", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        [Description("Reads one OneNote page: title, notebook, section, attachment names, number of images and the text of the page. Images, ink and drawings are not included. Long pages are paged: call again with the returned nextOffset.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
+        public async Task<string> ReadPage([Description("pageId from list_pages or search_pages.")] string pageId, Guid? accountId = null, [Description("Character offset into the text.")] int offset = 0, [Description("Characters per page.")] int maxChars = DefaultMaxChars, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            var page = await ReadAsync($"{Base}/accounts/{account}/onenote/pages/{Uri.EscapeDataString(pageId)}", ct) ?? default;
+            var resources = Items(Prop(page, "resources")).ToList();
+            return Serialize(new
+            {
+                accountId = account,
+                pageId = Str(page, "id"),
+                title = Str(page, "title"),
+                notebook = Prop(page, "notebook") is { } n ? Str(n, "displayName") : null,
+                section = Prop(page, "section") is { } s ? Str(s, "displayName") : null,
+                modified = Str(page, "lastModifiedDateTime"),
+                webUrl = Str(page, "webUrl"),
+                writable = Bool(page, "writable"),
+                attachments = resources.Where(r => Str(r, "kind") == "file").Select(r => Str(r, "name") ?? "file").ToList(),
+                imageCount = resources.Count(r => Str(r, "kind") == "image"),
+                body = TextPage(OneNoteText.HtmlToText(Str(page, "html")), offset, maxChars),
+            });
+        }
+
+        [McpServerTool(Name = "search_pages", Title = "Search OneNote pages", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+        [Description("Searches OneNote pages by title (the page text is not searched). Optionally limited to one notebook. partial is true when a large notebook could only be searched in part.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
+        public async Task<string> SearchPages([Description("Text to find in page titles, 1-100 characters.")] string query, [Description("Only search this notebook (notebookId from list_notebooks).")] string? notebookId = null, Guid? accountId = null, [Description("Hits to return, 1-50.")] int limit = 25, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            var url = $"{Base}/accounts/{account}/onenote/search?q={Uri.EscapeDataString(query)}&top={Math.Clamp(limit, 1, 50)}" + (string.IsNullOrWhiteSpace(notebookId) ? "" : $"&notebook={Uri.EscapeDataString(notebookId)}");
+            var data = await ReadAsync(url, ct) ?? default;
+            var hits = Items(Prop(data, "items")).Select(h => new
+            {
+                pageId = Str(h, "id"),
+                title = Str(h, "title"),
+                notebook = Prop(h, "notebook") is { } n ? Str(n, "displayName") : null,
+                section = Prop(h, "section") is { } s ? Str(s, "displayName") : null,
+                modified = Str(h, "lastModifiedDateTime"),
+                webUrl = Str(h, "webUrl"),
+            });
+            return Serialize(new { accountId = account, query, hits, partial = Bool(data, "partial") });
+        }
+
+        [McpServerTool(Name = "create_page", Title = "Create OneNote page", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
+        [Description("Creates a new page in a OneNote section of the user's real notebook, with a title and optional plain text (one paragraph per line). Formatting is not supported. Confirm with the user first.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.ReadWrite)]
+        public async Task<string> CreatePage([Description("sectionId from list_sections.")] string sectionId, [Description("Page title, 1-255 characters.")] string title, [Description("Plain-text content, one paragraph per line.")] string? content = null, Guid? accountId = null, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            if (content is { Length: > OneNoteText.MaxWriteChars })
+                throw new McpException("The content is too long. Split it into several pages or appends.");
+            var html = OneNoteText.TextToHtml(content);
+            var result = await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/onenote/sections/{Uri.EscapeDataString(sectionId)}/pages", new { title, html = html.Length == 0 ? null : html }, ct);
+            return Serialize(new { created = true, accountId = account, pageId = result is { } r ? Str(r, "id") : null, title = result is { } t ? Str(t, "title") : title, webUrl = result is { } w ? Str(w, "webUrl") : null });
+        }
+
+        [McpServerTool(Name = "update_page", Title = "Update OneNote page", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
+        [Description("Edits a page in the user's real OneNote notebook: renames it and/or appends plain text as new paragraphs at the end. Existing content cannot be replaced or removed with this tool. Appending twice adds the text twice. Confirm with the user first.")]
+        [McpAccess(McpArea.OneNote, McpAccessLevel.ReadWrite)]
+        public async Task<string> UpdatePage([Description("pageId from list_pages or search_pages.")] string pageId, [Description("New title, 1-255 characters.")] string? title = null, [Description("Plain text to append, one paragraph per line.")] string? appendText = null, Guid? accountId = null, CancellationToken ct = default)
+        {
+            var account = await AccountAsync(accountId, ct);
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(appendText))
+                throw new McpException("Give a new title, text to append, or both.");
+            if (appendText is { Length: > OneNoteText.MaxWriteChars })
+                throw new McpException("The text is too long. Append it in several calls.");
+            var append = OneNoteText.TextToHtml(appendText);
+            var result = await WriteAsync(HttpMethods.Patch, $"{Base}/accounts/{account}/onenote/pages/{Uri.EscapeDataString(pageId)}", new { title = string.IsNullOrWhiteSpace(title) ? null : title, append = append.Length == 0 ? null : append }, ct);
+            return Serialize(new { updated = true, accountId = account, pageId, title = result is { } r ? Str(r, "title") : title, webUrl = result is { } w ? Str(w, "webUrl") : null });
         }
 
         [McpServerTool(Name = "list_calendar_events", Title = "List Microsoft 365 calendar", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -275,6 +372,21 @@ namespace Schuly.API.Mcp.Tools
             flag = Prop(m, "flag") is { } f ? Str(f, "flagStatus") : null,
             preview = Str(m, "bodyPreview") is { } p ? Cap(p, 300) : null,
         };
+
+        private static void FlattenSections(JsonElement? nodes, string parentPath, List<object> into, int depth)
+        {
+            if (depth > 8)
+                return;
+            foreach (var node in Items(nodes))
+            {
+                var name = Str(node, "displayName") ?? "(unnamed)";
+                var path = parentPath.Length == 0 ? name : $"{parentPath} / {name}";
+                var isGroup = Str(node, "kind") == "group";
+                into.Add(new { sectionId = Str(node, "id"), name, path, isGroup });
+                if (isGroup)
+                    FlattenSections(Prop(node, "children"), path, into, depth + 1);
+            }
+        }
 
         private async Task<List<JsonElement>> DriveFolderAsync(Guid account, string path, CancellationToken ct) =>
             Items(await ReadAsync($"{Base}/accounts/{account}/files?path={Uri.EscapeDataString(path)}&top=500", ct)).ToList();

@@ -73,7 +73,7 @@ export const MCP_GROUPS: McpAreaGroup[] = [
         canWrite: true,
       },
       { area: 'Drive', label: 'Drive', description: 'Browse your OneDrive files.', canWrite: false },
-      { area: 'OneNote', label: 'OneNote', description: 'Read your OneNote notebooks.', canWrite: false },
+      { area: 'OneNote', label: 'OneNote', description: 'Read and edit your OneNote notebooks.', canWrite: true },
     ],
   },
 ];

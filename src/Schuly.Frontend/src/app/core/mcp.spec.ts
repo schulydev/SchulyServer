@@ -22,7 +22,7 @@ describe('permission presets', () => {
 
   it('drops deleting when the last write permission is removed', () => {
     let set = fullAccessPreset();
-    for (const area of ['Mail', 'Absences', 'Teams'] as const) set = withLevel(set, area, 'Read');
+    for (const area of ['Mail', 'Absences', 'Teams', 'OneNote'] as const) set = withLevel(set, area, 'Read');
     expect(set.allowDestructive).toBe(false);
   });
 });
