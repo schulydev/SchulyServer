@@ -96,6 +96,8 @@ test.beforeEach(async ({ page }) => {
   );
   await page.route(`${base}/files/recent*`, (route) => route.fulfill({ json: [file('rc1', 'Zuletzt geoeffnet.txt', { parentReference: { driveId: SHARED_DRIVE } })] }));
   await page.route(`${base}/drives/*/items/*/children*`, (route) => route.fulfill({ json: [file(SUB_ID, 'Mathe Pruefung.txt')] }));
+  // An Office file is tried as a PDF first; the mock has no conversion, so the viewer falls back to the raw bytes.
+  await page.route(`${base}/drives/*/items/*/pdf`, (route) => route.fulfill({ status: 404 }));
   await page.route(`${base}/drives/*/items/*/content`, (route) => route.fulfill({ contentType: 'text/plain', body: 'Hello from the team drive' }));
   await page.route(`${base}/files/search`, (route) => {
     searchBodies.push(route.request().postDataJSON());
@@ -199,7 +201,10 @@ for (const layout of ['schuly', 'explorer'] as const) {
       await hit.getByText('Masterplan BM23d.xlsx').click();
       await expect(page.getByRole('dialog')).toBeVisible();
       expect(urls.filter((u) => u.toLowerCase().includes('masterplan'))).toEqual([]);
-      expect(urls.some((u) => u.includes(`/drives/${encodeURIComponent(TEAM_DRIVE)}/items/${encodeURIComponent(SEARCH_ID)}/content`))).toBe(true);
+      const item = `/drives/${encodeURIComponent(TEAM_DRIVE)}/items/${encodeURIComponent(SEARCH_ID)}`;
+      // The viewer loads after the dialog opens (an .xlsx asks for a PDF first), so wait for the request.
+      await expect.poll(() => urls.some((u) => u.includes(`${item}/content`))).toBe(true);
+      expect(urls.some((u) => u.includes('/files/' + encodeURIComponent(SEARCH_ID)))).toBe(false);
     });
   });
 }
