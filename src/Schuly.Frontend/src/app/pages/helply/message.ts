@@ -2,10 +2,10 @@ import { Component, computed, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideRotateCw } from '@ng-icons/lucide';
 import { PkAssistantTurn, PkUserTurn } from '@prompt-kit/chat-turn';
+import { PkMarkdown } from '@prompt-kit/markdown';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ChatMessage } from '../../core/helply-state';
-import { renderMarkdown } from '../../core/markdown';
 import { HelplyAttachment } from '../../core/helply-types';
 import { AttachmentCards } from './attachment-cards';
 import { ToolChips } from './tool-chips';
@@ -16,17 +16,17 @@ const MARKDOWN =
   '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 ' +
   '[&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold ' +
   '[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold ' +
-  '[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:rounded-sm [&_a:focus-visible]:ring-ring/50 [&_a:focus-visible]:ring-3 [&_a]:outline-none ' +
+  '[&_a]:text-primary [&_a]:underline [&_a+span]:text-muted-foreground [&_a]:underline-offset-2 [&_a]:rounded-sm [&_a:focus-visible]:ring-ring/50 [&_a:focus-visible]:ring-3 [&_a]:outline-none ' +
   '[&_code]:bg-muted [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs ' +
   '[&_pre]:bg-muted [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:p-3 ' +
   '[&_pre_code]:bg-transparent [&_pre_code]:p-0 ' +
   '[&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground ' +
-  '[&_.table-scroll]:my-2 [&_.table-scroll]:overflow-x-auto [&_.table-scroll]:rounded-lg [&_.table-scroll]:border [&_.table-scroll:focus-visible]:ring-ring/50 [&_.table-scroll:focus-visible]:ring-3 [&_.table-scroll]:outline-none ' +
+  '[&_table]:my-2 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border ' +
   '[&_table]:w-full [&_table]:text-xs [&_th]:bg-muted [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border-t [&_td]:px-2 [&_td]:py-1 [&_hr]:my-3';
 
 @Component({
   selector: 'app-helply-message',
-  imports: [AttachmentCards, HlmButton, HlmSpinner, NgIcon, PkAssistantTurn, PkUserTurn, ToolChips],
+  imports: [AttachmentCards, HlmButton, HlmSpinner, NgIcon, PkAssistantTurn, PkMarkdown, PkUserTurn, ToolChips],
   providers: [provideIcons({ lucideCircleAlert, lucideRotateCw })],
   host: { class: 'flex min-w-0' },
   template: `
@@ -44,7 +44,7 @@ const MARKDOWN =
           <div class="flex min-w-0 flex-col gap-2">
           <app-tool-chips [tools]="message().tools" />
           @if (message().text) {
-            <div [class]="markdownClass" [innerHTML]="html()"></div>
+            <pk-markdown externalImages="none" rawHtml="escape" linkPolicy="strict" [class]="markdownClass" [content]="message().text" />
           } @else if (message().streaming && !message().tools.length) {
             <p class="text-muted-foreground flex items-center gap-2 text-sm" aria-hidden="true">
               <hlm-spinner aria-hidden="true" />
@@ -83,7 +83,6 @@ export class HelplyMessageView {
 
   protected readonly markdownClass = MARKDOWN;
   protected readonly isUser = computed(() => this.message().role === 'user');
-  protected readonly html = computed(() => renderMarkdown(this.message().text));
   protected readonly canRetry = computed(
     () => this.isLast() && this.message().retryable && !this.message().streaming && !this.retryDisabled(),
   );
