@@ -7,6 +7,7 @@ import {
   ApprovalDecision,
   Conversation,
   ConversationSummary,
+  HelplyAttachment,
   HelplySettings,
   StreamEvent,
 } from './helply-types';
@@ -42,6 +43,30 @@ export class HelplyApi {
     return firstValueFrom(this.http.put<HelplySettings>(`${BASE}/settings/permissions`, permissions));
   }
 
+  updateWorkspace(enabled: boolean): Promise<HelplySettings> {
+    return firstValueFrom(this.http.put<HelplySettings>(`${BASE}/settings/workspace`, { enabled }));
+  }
+
+  uploadAttachment(conversationId: string, file: File): Promise<HelplyAttachment> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return firstValueFrom(this.http.post<HelplyAttachment>(`${BASE}/conversations/${encodeURIComponent(conversationId)}/attachments`, form));
+  }
+
+  deleteAttachment(conversationId: string, attachmentId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`${BASE}/conversations/${encodeURIComponent(conversationId)}/attachments/${encodeURIComponent(attachmentId)}`),
+    );
+  }
+
+  attachmentBlob(conversationId: string, attachmentId: string): Promise<Blob> {
+    return firstValueFrom(
+      this.http.get(`${BASE}/conversations/${encodeURIComponent(conversationId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+        responseType: 'blob',
+      }),
+    );
+  }
+
   conversations(): Promise<ConversationSummary[]> {
     return firstValueFrom(this.http.get<ConversationSummary[]>(`${BASE}/conversations`));
   }
@@ -66,8 +91,8 @@ export class HelplyApi {
     return firstValueFrom(this.http.get<Conversation>(`${BASE}/conversations/${encodeURIComponent(id)}`));
   }
 
-  sendMessage(id: string, text: string, signal: AbortSignal): AsyncGenerator<StreamEvent> {
-    return this.stream(`${BASE}/conversations/${encodeURIComponent(id)}/messages`, { text }, signal);
+  sendMessage(id: string, text: string, attachmentIds: string[], signal: AbortSignal): AsyncGenerator<StreamEvent> {
+    return this.stream(`${BASE}/conversations/${encodeURIComponent(id)}/messages`, { text, attachmentIds }, signal);
   }
 
   decide(id: string, decisions: ApprovalDecision[], signal: AbortSignal): AsyncGenerator<StreamEvent> {

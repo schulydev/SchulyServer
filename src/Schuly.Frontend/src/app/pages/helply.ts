@@ -1,10 +1,12 @@
-import { Component, OnInit, inject, signal, viewChild } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePanelLeft, lucidePlus, lucideRefreshCw, lucideSettings } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { HelplyAttachment } from '../core/helply-types';
+import { FileViewer, ViewerFile } from '../shared/file-viewer';
 import { Composer } from './helply/composer';
 import { ConversationList } from './helply/conversation-list';
 import { HelplySettingsSheet } from './helply/helply-settings-sheet';
@@ -17,6 +19,7 @@ import { MessageList } from './helply/message-list';
     Composer,
     ConversationList,
     HelplySettingsSheet,
+    FileViewer,
     HlmAlertImports,
     HlmButton,
     HlmSheetImports,
@@ -104,8 +107,18 @@ import { MessageList } from './helply/message-list';
             (suggest)="send($event)"
             (retry)="store.retry()"
             (decide)="store.decide($event.approvalId, $event.approved)"
+            (openFile)="view($event)"
+            (downloadFile)="download($event)"
           />
-          <app-composer [streaming]="store.streaming()" (send)="send($event)" (stop)="store.stop()" />
+          <app-composer
+            [streaming]="store.streaming()"
+            [drafts]="store.drafts()"
+            [errors]="store.attachErrors()"
+            (send)="send($event)"
+            (stop)="store.stop()"
+            (attach)="store.attach($event)"
+            (removeDraft)="store.removeDraft($event)"
+          />
         }
       }
     </section>
@@ -129,12 +142,28 @@ import { MessageList } from './helply/message-list';
     </hlm-sheet>
 
     <app-helply-settings-sheet [(open)]="settingsOpen" />
+    <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
   `,
 })
 export class Helply implements OnInit {
   protected readonly store = inject(HelplyStore);
   protected readonly navOpen = signal(false);
   protected readonly settingsOpen = signal(false);
+  protected readonly viewing = signal<ViewerFile | null>(null);
+
+  /** Every file in the open conversation, in message order, so the viewer can step through them. */
+  protected readonly viewerFiles = computed<ViewerFile[]>(() => {
+    const seen = new Set<string>();
+    const files: ViewerFile[] = [];
+    for (const message of this.store.messages()) {
+      for (const a of message.attachments) {
+        if (seen.has(a.id)) continue;
+        seen.add(a.id);
+        files.push(this.toViewerFile(a));
+      }
+    }
+    return files;
+  });
   private readonly composer = viewChild(Composer);
 
   ngOnInit(): void {
@@ -149,6 +178,28 @@ export class Helply implements OnInit {
   protected newChat(): void {
     this.store.newChat();
     queueMicrotask(() => this.composer()?.focus());
+  }
+
+  protected view(attachment: HelplyAttachment): void {
+    this.viewing.set(this.viewerFiles().find((f) => f.key === `helply:${attachment.id}`) ?? null);
+  }
+
+  protected async download(attachment: HelplyAttachment): Promise<void> {
+    try {
+      const blob = await this.store.attachmentBlob(attachment.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      this.store.notice.set("Couldn't download that file.");
+    }
+  }
+
+  private toViewerFile(a: HelplyAttachment): ViewerFile {
+    return { name: a.fileName, key: `helply:${a.id}`, load: () => this.store.attachmentBlob(a.id) };
   }
 
   protected send(text: string): void {

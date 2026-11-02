@@ -4,6 +4,8 @@ import { lucideCircleAlert, lucideRotateCw } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { ChatMessage } from '../../core/helply-state';
 import { renderMarkdown } from '../../core/markdown';
+import { HelplyAttachment } from '../../core/helply-types';
+import { AttachmentCards } from './attachment-cards';
 import { ToolChips } from './tool-chips';
 
 const MARKDOWN =
@@ -22,13 +24,16 @@ const MARKDOWN =
 
 @Component({
   selector: 'app-helply-message',
-  imports: [HlmButton, NgIcon, ToolChips],
+  imports: [AttachmentCards, HlmButton, NgIcon, ToolChips],
   providers: [provideIcons({ lucideCircleAlert, lucideRotateCw })],
   host: { class: 'flex' , '[class.justify-end]': 'isUser()' },
   template: `
     @if (isUser()) {
-      <article aria-label="You" class="bg-primary text-primary-foreground max-w-[85%] rounded-2xl rounded-br-sm px-4 py-2.5 text-sm break-words whitespace-pre-wrap">
-        {{ message().text }}
+      <article aria-label="You" class="flex max-w-[85%] flex-col items-end gap-1.5">
+        <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
+        @if (message().text) {
+          <p class="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm break-words whitespace-pre-wrap">{{ message().text }}</p>
+        }
       </article>
     } @else {
       <article aria-label="Helply" class="flex max-w-full min-w-0 gap-3 sm:max-w-[85%]">
@@ -40,6 +45,7 @@ const MARKDOWN =
           } @else if (message().streaming && !message().tools.length) {
             <p class="text-muted-foreground text-sm" aria-hidden="true">Thinking...</p>
           }
+          <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
           @if (message().error) {
             <div class="text-destructive flex items-start gap-2 text-sm" role="alert">
               <ng-icon name="lucideCircleAlert" aria-hidden="true" class="mt-0.5 shrink-0" />
@@ -65,6 +71,8 @@ export class HelplyMessageView {
   readonly isLast = input(false);
   readonly retryDisabled = input(false);
   readonly retry = output();
+  readonly openFile = output<HelplyAttachment>();
+  readonly downloadFile = output<HelplyAttachment>();
 
   protected readonly markdownClass = MARKDOWN;
   protected readonly isUser = computed(() => this.message().role === 'user');

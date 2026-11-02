@@ -5,7 +5,7 @@ import { lucideArrowDown } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ChatMessage } from '../../core/helply-state';
-import { ApprovalRequest } from '../../core/helply-types';
+import { ApprovalRequest, HelplyAttachment } from '../../core/helply-types';
 import { ApprovalCard } from './approval-card';
 import { HelplyMessageView } from './message';
 
@@ -57,7 +57,7 @@ const STICK_THRESHOLD = 80;
           </div>
         } @else {
           @for (message of messages(); track message.id; let last = $last) {
-            <app-helply-message [message]="message" [isLast]="last" [retryDisabled]="busy()" (retry)="retry.emit()" />
+            <app-helply-message [message]="message" [isLast]="last" [retryDisabled]="busy()" (retry)="retry.emit()" (openFile)="openFile.emit($event)" (downloadFile)="downloadFile.emit($event)" />
           }
           @for (approval of approvals(); track approval.approvalId) {
             <div class="ml-0 sm:ml-11">
@@ -98,6 +98,8 @@ export class MessageList {
   readonly busy = input(false);
   readonly suggest = output<string>();
   readonly retry = output();
+  readonly openFile = output<HelplyAttachment>();
+  readonly downloadFile = output<HelplyAttachment>();
   readonly decide = output<{ approvalId: string; approved: boolean }>();
 
   protected readonly prompts = STARTER_PROMPTS;

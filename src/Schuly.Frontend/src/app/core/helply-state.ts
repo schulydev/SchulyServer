@@ -1,4 +1,4 @@
-import { ApprovalRequest, HelplyMessage, StreamErrorCode, StreamEvent, ToolActivity } from './helply-types';
+import { ApprovalRequest, HelplyAttachment, HelplyMessage, StreamErrorCode, StreamEvent, ToolActivity, ToolCode } from './helply-types';
 
 /** A message as shown in the chat: the server shape plus transient streaming state. */
 export interface ChatMessage extends HelplyMessage {
@@ -22,6 +22,7 @@ export const emptyChat = (): ChatState => ({ messages: [], approvals: [], title:
 export const toChatMessage = (message: HelplyMessage): ChatMessage => ({
   ...message,
   tools: message.tools ?? [],
+  attachments: message.attachments ?? [],
   streaming: false,
   error: message.failed ? GENERIC_ERROR : null,
   retryable: message.failed,
@@ -56,6 +57,7 @@ export function applyStreamEvent(state: ChatState, event: StreamEvent, now = '')
           text: '',
           createdAt: now,
           tools: [],
+          attachments: [],
           failed: false,
           streaming: true,
           error: null,
@@ -77,12 +79,12 @@ export function applyStreamEvent(state: ChatState, event: StreamEvent, now = '')
     case 'tool_started':
       return updateLastAssistant(state, (m) => ({
         ...m,
-        tools: withTool(m.tools, { id: event.id, label: event.label, status: 'running' }),
+        tools: withTool(m.tools, { id: event.id, label: event.label, status: 'running', code: event.code }),
       }));
     case 'tool_finished':
       return updateLastAssistant(state, (m) => ({
         ...m,
-        tools: withTool(m.tools, { id: event.id, label: event.label, status: event.status }),
+        tools: withTool(m.tools, { id: event.id, label: event.label, status: event.status, code: event.code }),
       }));
     case 'approval_required': {
       if (state.approvals.some((a) => a.approvalId === event.approvalId)) return state;
@@ -98,6 +100,12 @@ export function applyStreamEvent(state: ChatState, event: StreamEvent, now = '')
       };
       return { ...state, approvals: [...state.approvals, approval] };
     }
+    case 'file':
+      return updateLastAssistant(state, (m) =>
+        m.attachments.some((a) => a.id === event.id)
+          ? m
+          : { ...m, attachments: [...m.attachments, { id: event.id, fileName: event.fileName, mediaType: event.mediaType, sizeBytes: event.sizeBytes }] },
+      );
     case 'done':
       return updateLastAssistant(
         { ...state, title: event.title || state.title, awaitingApproval: event.awaitingApproval },
@@ -123,6 +131,16 @@ export function stopStreaming(state: ChatState): ChatState {
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 const CODES: StreamErrorCode[] = ['unavailable', 'timeout', 'rate_limited', 'too_long', 'disabled'];
 
+function parseCode(value: unknown): ToolCode | null {
+  if (!value || typeof value !== 'object') return null;
+  const o = value as Record<string, unknown>;
+  return {
+    command: text(o['command']),
+    output: typeof o['output'] === 'string' ? o['output'] : null,
+    exitCode: typeof o['exitCode'] === 'number' ? o['exitCode'] : null,
+  };
+}
+
 /** Parses a raw SSE event into a typed stream event. Unknown or malformed events return null. */
 export function parseStreamEvent(name: string, data: string): StreamEvent | null {
   let value: unknown;
@@ -139,10 +157,10 @@ export function parseStreamEvent(name: string, data: string): StreamEvent | null
     case 'delta':
       return { type: 'delta', text: text(o['text']) };
     case 'tool_started':
-      return { type: 'tool_started', id: text(o['id']), label: text(o['label']) };
+      return { type: 'tool_started', id: text(o['id']), label: text(o['label']), code: parseCode(o['code']) };
     case 'tool_finished': {
       const status = o['status'] === 'failed' || o['status'] === 'denied' ? o['status'] : 'done';
-      return { type: 'tool_finished', id: text(o['id']), label: text(o['label']), status };
+      return { type: 'tool_finished', id: text(o['id']), label: text(o['label']), status, code: parseCode(o['code']) };
     }
     case 'approval_required':
       return {
@@ -160,6 +178,19 @@ export function parseStreamEvent(name: string, data: string): StreamEvent | null
         risk: o['risk'] === 'high' ? 'high' : 'normal',
         riskReasons: Array.isArray(o['riskReasons']) ? (o['riskReasons'] as unknown[]).map(text) : [],
       };
+    case 'file': {
+      const id = text(o['id']);
+      if (!id) return null;
+      const size = Number(o['sizeBytes']);
+      return {
+        type: 'file',
+        messageId: text(o['messageId']),
+        id,
+        fileName: text(o['fileName']),
+        mediaType: text(o['mediaType']),
+        sizeBytes: Number.isFinite(size) ? size : 0,
+      };
+    }
     case 'done':
       return {
         type: 'done',
@@ -182,6 +213,7 @@ export function prepareRetry(state: ChatState): ChatState {
     ...m,
     text: '',
     tools: [],
+    attachments: [],
     failed: false,
     streaming: true,
     error: null,
@@ -190,18 +222,19 @@ export function prepareRetry(state: ChatState): ChatState {
 }
 
 /** Adds the user's message and an empty assistant message that the stream will fill. */
-export function beginTurn(state: ChatState, text: string, now: string, key: string): ChatState {
+export function beginTurn(state: ChatState, text: string, now: string, key: string, attachments: HelplyAttachment[] = []): ChatState {
   const userMessage: ChatMessage = {
     id: `local-user-${key}`,
     role: 'user',
     text,
     createdAt: now,
     tools: [],
+    attachments,
     failed: false,
     streaming: false,
     error: null,
     retryable: false,
   };
-  const assistant: ChatMessage = { ...userMessage, id: `local-assistant-${key}`, role: 'assistant', text: '', streaming: true };
+  const assistant: ChatMessage = { ...userMessage, id: `local-assistant-${key}`, role: 'assistant', text: '', attachments: [], streaming: true };
   return { ...state, approvals: [], awaitingApproval: false, messages: [...state.messages, userMessage, assistant] };
 }

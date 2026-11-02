@@ -5,6 +5,7 @@ import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HelplyApi } from '../../core/helply-api';
 import { mcpErrorMessage } from '../../core/mcp-api';
 import { McpPermissionSet, readOnlyPreset, samePermissions } from '../../core/mcp-permissions';
@@ -13,7 +14,7 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
 /** Side sheet to choose what Helply may use. Reuses the MCP permission editor. */
 @Component({
   selector: 'app-helply-settings-sheet',
-  imports: [HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, McpPermissionEditor, NgIcon],
+  imports: [HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, HlmSwitch, McpPermissionEditor, NgIcon],
   providers: [provideIcons({ lucideInfo })],
   template: `
     <hlm-sheet side="right" [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
@@ -33,6 +34,28 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
           @if (loading()) {
             <hlm-spinner aria-label="Loading settings" />
           } @else if (loaded()) {
+            <section class="flex flex-col gap-2 rounded-lg border p-4" aria-labelledby="helply-workspace-title">
+              <div class="flex items-center justify-between gap-3">
+                <h3 id="helply-workspace-title" class="text-sm font-medium">
+                  <label for="helply-workspace">Workspace (run code)</label>
+                </h3>
+                <hlm-switch
+                  inputId="helply-workspace"
+                  aria-describedby="helply-workspace-help"
+                  [checked]="draftWorkspace()"
+                  [disabled]="!workspaceAvailable()"
+                  (checkedChange)="draftWorkspace.set($event)"
+                />
+              </div>
+              <p id="helply-workspace-help" class="text-muted-foreground text-sm">
+                Lets Helply run code in a sandbox without internet access, for calculations, charts and reading large files.
+                Files you attach are copied in and wiped when the reply ends. Sending anything (mail, Teams) still asks for
+                your approval.
+              </p>
+              @if (!workspaceAvailable()) {
+                <p class="text-muted-foreground text-sm font-medium">Not available on this server.</p>
+              }
+            </section>
             <app-mcp-permission-editor [(value)]="draft" />
           }
         </div>
@@ -65,6 +88,9 @@ export class HelplySettingsSheet {
 
   private readonly initial = signal<McpPermissionSet | null>(null);
   protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? readOnlyPreset());
+  private readonly initialWorkspace = signal(false);
+  protected readonly workspaceAvailable = signal(false);
+  protected readonly draftWorkspace = linkedSignal<boolean>(() => this.initialWorkspace());
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
@@ -72,7 +98,7 @@ export class HelplySettingsSheet {
   protected readonly loaded = computed(() => this.initial() !== null);
   protected readonly changed = computed(() => {
     const initial = this.initial();
-    return !!initial && !samePermissions(initial, this.draft());
+    return !!initial && (!samePermissions(initial, this.draft()) || this.draftWorkspace() !== this.initialWorkspace());
   });
 
   constructor() {
@@ -86,7 +112,10 @@ export class HelplySettingsSheet {
     this.error.set(null);
     this.saved.set(false);
     try {
-      this.initial.set((await this.api.settings()).permissions);
+      const settings = await this.api.settings();
+      this.initialWorkspace.set(settings.workspace === true);
+      this.workspaceAvailable.set(settings.workspaceAvailable === true);
+      this.initial.set(settings.permissions);
     } catch (error) {
       this.error.set(mcpErrorMessage(error, "Couldn't load Helply's settings."));
     } finally {
@@ -99,7 +128,13 @@ export class HelplySettingsSheet {
     this.error.set(null);
     this.saved.set(false);
     try {
-      this.initial.set((await this.api.updatePermissions(this.draft())).permissions);
+      const initial = this.initial();
+      if (!initial || !samePermissions(initial, this.draft())) {
+        this.initial.set((await this.api.updatePermissions(this.draft())).permissions);
+      }
+      if (this.draftWorkspace() !== this.initialWorkspace()) {
+        this.initialWorkspace.set((await this.api.updateWorkspace(this.draftWorkspace())).workspace === true);
+      }
       this.saved.set(true);
     } catch (error) {
       this.error.set(mcpErrorMessage(error, "Couldn't save Helply's settings."));

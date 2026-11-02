@@ -2,6 +2,7 @@ import { Component, computed, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBan, lucideChevronDown, lucideCircleAlert, lucideCircleCheck, lucideLoader2, lucideWrench } from '@ng-icons/lucide';
 import { ToolActivity, ToolStatus } from '../../core/helply-types';
+import { CodeChip } from './code-chip';
 
 const ICONS: Record<ToolStatus, string> = {
   running: 'lucideLoader2',
@@ -20,10 +21,10 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
 /** What Helply looked up for a message. Several finished tools collapse into one disclosure. */
 @Component({
   selector: 'app-tool-chips',
-  imports: [NgIcon],
+  imports: [CodeChip, NgIcon],
   providers: [provideIcons({ lucideBan, lucideChevronDown, lucideCircleAlert, lucideCircleCheck, lucideLoader2, lucideWrench })],
   template: `
-    @if (tools().length) {
+    @if (plain().length || codeTools().length) {
       <div class="flex flex-col items-start gap-1.5">
         @if (collapsible()) {
           <button
@@ -34,7 +35,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
             (click)="expanded.set(!expanded())"
           >
             <ng-icon name="lucideWrench" aria-hidden="true" />
-            Used {{ tools().length }} tools
+            Used {{ plain().length }} tools
             <ng-icon
               name="lucideChevronDown"
               aria-hidden="true"
@@ -43,9 +44,9 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
             />
           </button>
         }
-        @if (open()) {
+        @if (plain().length && open()) {
           <ul [id]="listId" class="flex flex-wrap gap-1.5" aria-label="Tools Helply used">
-            @for (tool of tools(); track tool.id) {
+            @for (tool of plain(); track tool.id) {
               <li
                 class="bg-muted text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
                 [class.text-destructive]="tool.status === 'failed'"
@@ -61,6 +62,9 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
             }
           </ul>
         }
+        @for (tool of codeTools(); track tool.id) {
+          <app-code-chip [tool]="tool" />
+        }
       </div>
     }
   `,
@@ -72,8 +76,10 @@ export class ToolChips {
   readonly tools = input.required<ToolActivity[]>();
 
   protected readonly expanded = signal(false);
-  protected readonly running = computed(() => this.tools().some((t) => t.status === 'running'));
-  protected readonly collapsible = computed(() => this.tools().length > 2);
+  protected readonly plain = computed(() => this.tools().filter((t) => !t.code));
+  protected readonly codeTools = computed(() => this.tools().filter((t) => !!t.code));
+  protected readonly running = computed(() => this.plain().some((t) => t.status === 'running'));
+  protected readonly collapsible = computed(() => this.plain().length > 2);
   protected readonly open = computed(() => !this.collapsible() || this.expanded() || this.running());
 
   protected icon(status: ToolStatus): string {

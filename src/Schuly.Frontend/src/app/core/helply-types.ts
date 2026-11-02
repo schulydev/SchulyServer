@@ -2,6 +2,24 @@ import { McpPermissionSet } from './mcp-permissions';
 
 export interface HelplySettings {
   permissions: McpPermissionSet;
+  /** Whether Helply may run code in the sandbox workspace. */
+  workspace: boolean;
+  /** False when the server has no sandbox configured. */
+  workspaceAvailable: boolean;
+}
+
+export interface HelplyAttachment {
+  id: string;
+  fileName: string;
+  mediaType: string;
+  sizeBytes: number;
+}
+
+/** What a sandbox command did. On a started tool, output and exitCode are null. */
+export interface ToolCode {
+  command: string;
+  output: string | null;
+  exitCode: number | null;
 }
 
 export interface ConversationSummary {
@@ -18,6 +36,7 @@ export interface ToolActivity {
   id: string;
   label: string;
   status: ToolStatus;
+  code?: ToolCode | null;
 }
 
 export interface ApprovalDetail {
@@ -44,6 +63,7 @@ export interface HelplyMessage {
   createdAt: string;
   tools: ToolActivity[];
   failed: boolean;
+  attachments: HelplyAttachment[];
 }
 
 export interface Conversation extends ConversationSummary {
@@ -56,9 +76,10 @@ export type StreamErrorCode = 'unavailable' | 'timeout' | 'rate_limited' | 'too_
 export type StreamEvent =
   | { type: 'start'; messageId: string }
   | { type: 'delta'; text: string }
-  | { type: 'tool_started'; id: string; label: string }
-  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'> }
+  | { type: 'tool_started'; id: string; label: string; code: ToolCode | null }
+  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'>; code: ToolCode | null }
   | ({ type: 'approval_required' } & ApprovalRequest)
+  | ({ type: 'file'; messageId: string } & HelplyAttachment)
   | { type: 'done'; messageId: string; awaitingApproval: boolean; title: string }
   | { type: 'error'; message: string; code: StreamErrorCode | null; retryable: boolean };
 
