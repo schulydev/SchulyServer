@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, linkedSignal, model, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, model, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideInfo } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -7,6 +7,7 @@ import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HelplyApi } from '../../core/helply-api';
+import { HelplySettings } from '../../core/helply-types';
 import { mcpErrorMessage } from '../../core/mcp-api';
 import { McpPermissionSet, readOnlyPreset, samePermissions } from '../../core/mcp-permissions';
 import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
@@ -85,6 +86,8 @@ export class HelplySettingsSheet {
   private readonly api = inject(HelplyApi);
 
   readonly open = model(false);
+  /** The settings as saved, so the page can follow them (starter questions). */
+  readonly saved$ = output<HelplySettings>({ alias: 'saved' });
 
   private readonly initial = signal<McpPermissionSet | null>(null);
   protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? readOnlyPreset());
@@ -136,6 +139,7 @@ export class HelplySettingsSheet {
         this.initialWorkspace.set((await this.api.updateWorkspace(this.draftWorkspace())).workspace === true);
       }
       this.saved.set(true);
+      this.saved$.emit({ permissions: this.initial() ?? this.draft(), workspace: this.initialWorkspace(), workspaceAvailable: this.workspaceAvailable() });
     } catch (error) {
       this.error.set(mcpErrorMessage(error, "Couldn't save Helply's settings."));
     } finally {

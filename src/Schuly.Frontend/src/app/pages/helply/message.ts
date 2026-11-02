@@ -3,13 +3,19 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideRotateCw } from '@ng-icons/lucide';
 import { PkAssistantTurn, PkUserTurn } from '@prompt-kit/chat-turn';
 import { PkMarkdown } from '@prompt-kit/markdown';
+import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
-import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { ChatMessage } from '../../core/helply-state';
 import { HelplyAttachment } from '../../core/helply-types';
 import { AttachmentCards } from './attachment-cards';
-import { ToolChips } from './tool-chips';
+import { buildTimeline } from './helply-timeline';
+import { ReplyChain } from './reply-chain';
 
+/**
+ * Typography for Helply's answers. Fenced code is rendered by pk-markdown as the kit's code block (a
+ * header with the language and a Copy button, highlighted by shiki); only its plain fallback, before
+ * highlighting, is styled here.
+ */
 const MARKDOWN =
   'text-sm leading-relaxed break-words ' +
   '[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 ' +
@@ -17,16 +23,16 @@ const MARKDOWN =
   '[&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold ' +
   '[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold ' +
   '[&_a]:text-primary [&_a]:underline [&_a+span]:text-muted-foreground [&_a]:underline-offset-2 [&_a]:rounded-sm [&_a:focus-visible]:ring-ring/50 [&_a:focus-visible]:ring-3 [&_a]:outline-none ' +
-  '[&_code]:bg-muted [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs ' +
-  '[&_pre]:bg-muted [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:p-3 ' +
-  '[&_pre_code]:bg-transparent [&_pre_code]:p-0 ' +
+  '[&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:rounded [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_code]:font-mono [&_:not(pre)>code]:text-xs ' +
+  '[&_.pk-code-container>pre]:bg-muted [&_.pk-code-container>pre]:my-3 [&_.pk-code-container>pre]:overflow-x-auto [&_.pk-code-container>pre]:rounded-md [&_.pk-code-container>pre]:border [&_.pk-code-container>pre]:p-3 [&_.pk-code-container>pre]:text-[13px] ' +
+  '[&_.pk-code-block]:bg-card [&_.pk-code-copy]:rounded-sm [&_.pk-code-copy]:outline-none [&_.pk-code-copy:focus-visible]:ring-ring/50 [&_.pk-code-copy:focus-visible]:ring-3 ' +
   '[&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground ' +
   '[&_table]:my-2 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border ' +
   '[&_table]:w-full [&_table]:text-xs [&_th]:bg-muted [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border-t [&_td]:px-2 [&_td]:py-1 [&_hr]:my-3';
 
 @Component({
   selector: 'app-helply-message',
-  imports: [AttachmentCards, HlmButton, HlmSpinner, NgIcon, PkAssistantTurn, PkMarkdown, PkUserTurn, ToolChips],
+  imports: [AttachmentCards, HlmAlertImports, HlmButton, NgIcon, PkAssistantTurn, PkMarkdown, PkUserTurn, ReplyChain],
   providers: [provideIcons({ lucideCircleAlert, lucideRotateCw })],
   host: { class: 'flex min-w-0' },
   template: `
@@ -40,33 +46,33 @@ const MARKDOWN =
     } @else {
       <article aria-label="Helply" class="flex w-full min-w-0 gap-3">
         <img src="helply-avatar.svg" alt="" width="32" height="32" class="mt-0.5 size-8 shrink-0" />
-        <pk-assistant-turn class="min-w-0 flex-1" [copyText]="message().text" [streaming]="message().streaming">
-          <div class="flex min-w-0 flex-col gap-2">
-          <app-tool-chips [tools]="message().tools" />
-          @if (message().text) {
-            <pk-markdown externalImages="none" rawHtml="escape" linkPolicy="strict" [class]="markdownClass" [content]="message().text" />
-          } @else if (message().streaming && !message().tools.length) {
-            <p class="text-muted-foreground flex items-center gap-2 text-sm" aria-hidden="true">
-              <hlm-spinner aria-hidden="true" />
-              <span class="motion-safe:animate-pulse">Thinking...</span>
-            </p>
-          }
-          <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
-          @if (message().error) {
-            <div class="text-destructive flex items-start gap-2 text-sm" role="alert">
-              <ng-icon name="lucideCircleAlert" aria-hidden="true" class="mt-0.5 shrink-0" />
-              <span>{{ message().error }}</span>
-            </div>
-            @if (canRetry()) {
-              <div>
-                <button hlmBtn type="button" variant="outline" size="sm" (click)="retry.emit()">
-                  <ng-icon name="lucideRotateCw" aria-hidden="true" />
-                  Retry
-                </button>
+        <pk-assistant-turn class="min-w-0 flex-1 gap-2" [copyText]="copyText()" [streaming]="message().streaming">
+          <div class="flex min-w-0 flex-col gap-3">
+            @if (timeline().chain.length) {
+              <app-reply-chain [timeline]="timeline()" [streaming]="message().streaming" />
+            }
+            @if (timeline().answer) {
+              <pk-markdown externalImages="none" rawHtml="escape" linkPolicy="strict" [class]="markdownClass" [content]="timeline().answer" />
+            } @else if (thinking()) {
+              <!-- The page's live region already says that Helply is typing. -->
+              <p class="text-sm" aria-hidden="true">
+                <span class="shimmer text-muted-foreground motion-reduce:shimmer-none [--shimmer-color:var(--foreground)]">Thinking...</span>
+              </p>
+            }
+            <app-attachment-cards [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
+            @if (message().error) {
+              <div hlmAlert variant="destructive">
+                <ng-icon name="lucideCircleAlert" aria-hidden="true" />
+                <p hlmAlertDescription>{{ message().error }}</p>
               </div>
             }
-          }
           </div>
+          @if (canRetry()) {
+            <button pkAssistantTurnActions hlmBtn type="button" variant="ghost" size="sm" (click)="retry.emit()">
+              <ng-icon name="lucideRotateCw" aria-hidden="true" />
+              Retry
+            </button>
+          }
         </pk-assistant-turn>
       </article>
     }
@@ -83,6 +89,14 @@ export class HelplyMessageView {
 
   protected readonly markdownClass = MARKDOWN;
   protected readonly isUser = computed(() => this.message().role === 'user');
+  /** The steps Helply took, with the text it wrote between them, and its answer after the last one. */
+  protected readonly timeline = computed(() => buildTimeline(this.message().text, this.message().tools));
+  /** Copy takes the answer; a reply that is all steps copies its whole text. */
+  protected readonly copyText = computed(() => this.timeline().answer || this.message().text);
+  /** Waiting for the model: nothing written yet after the last step and no step running. */
+  protected readonly thinking = computed(
+    () => this.message().streaming && !this.timeline().answer && !this.message().tools.some((t) => t.status === 'running'),
+  );
   protected readonly canRetry = computed(
     () => this.isLast() && this.message().retryable && !this.message().streaming && !this.retryDisabled(),
   );

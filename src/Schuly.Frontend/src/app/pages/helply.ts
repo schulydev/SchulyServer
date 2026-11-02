@@ -143,6 +143,7 @@ function readListWidth(): number {
             [decisions]="store.decisions()"
             [loading]="store.loadingConversation()"
             [busy]="store.streaming()"
+            [suggestions]="store.suggestions()"
             (suggest)="send($event)"
             (retry)="store.retry()"
             (decide)="store.decide($event.approvalId, $event.approved)"
@@ -181,7 +182,7 @@ function readListWidth(): number {
       </hlm-sheet-content>
     </hlm-sheet>
 
-    <app-helply-settings-sheet [(open)]="settingsOpen" />
+    <app-helply-settings-sheet [(open)]="settingsOpen" (saved)="store.settings.set($event)" />
     <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
   `,
 })

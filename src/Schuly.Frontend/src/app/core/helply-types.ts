@@ -37,6 +37,10 @@ export interface ToolActivity {
   label: string;
   status: ToolStatus;
   code?: ToolCode | null;
+  /** How much of the reply's text came before this step; absent on steps stored before steps kept their place. */
+  at?: number | null;
+  /** A short harmless note from the server, such as "page 2" or "unread only". */
+  detail?: string | null;
 }
 
 export interface ApprovalDetail {
@@ -76,8 +80,8 @@ export type StreamErrorCode = 'unavailable' | 'timeout' | 'rate_limited' | 'too_
 export type StreamEvent =
   | { type: 'start'; messageId: string }
   | { type: 'delta'; text: string }
-  | { type: 'tool_started'; id: string; label: string; code: ToolCode | null }
-  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'>; code: ToolCode | null }
+  | { type: 'tool_started'; id: string; label: string; code: ToolCode | null; at?: number | null; detail?: string | null }
+  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'>; code: ToolCode | null; at?: number | null; detail?: string | null }
   | ({ type: 'approval_required' } & ApprovalRequest)
   | ({ type: 'file'; messageId: string } & HelplyAttachment)
   | { type: 'done'; messageId: string; awaitingApproval: boolean; title: string }
