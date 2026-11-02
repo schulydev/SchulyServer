@@ -76,6 +76,8 @@ The backend logs `Helply's workspace sandbox is configured` once it sees both se
   timeout 10 minutes, maximum life 30 minutes. At most 2 VMs run at once (the third request gets
   "busy, try again"). Commands run as uid 1000 under `setpriv --no-new-privs`; at every boot setuid
   bits and `/dev/kvm` are stripped inside the guest and the result is checked.
+- Network: with `--no-net` (verified on a real VM) every outbound connection is refused; only
+  msb's own gateway DNS answers on port 53, with NXDOMAIN, so names never resolve.
 - The container: only `/dev/kvm`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit: 1g`,
   `pids_limit: 256`, on the `sandbox` network, which is `internal` (no internet) and shared with the
   backend alone. It gets `SANDBOX_API_KEY` and nothing else.

@@ -53,6 +53,7 @@ API reference (Scalar): <http://localhost:5033/scalar> - OpenAPI 3.0 doc generat
 | `Schuly.Application` | CQRS commands/queries + Mediator handlers. **Don't** reference Infrastructure from here. |
 | `Schuly.Domain` | Pure entities (`School`, `Class`, `Exam`, `Grade`, `Absence`, `AgendaEntry`, `ApplicationUser`, `SchoolUser`). Base type with `Id`, `CreatedAt`, `UpdatedAt`. |
 | `Schuly.Infrastructure` | `SchulyDbContext` (incl. sign-in tables), user services, repositories, plugin runtime (`PluginBackgroundTaskHost`). |
+| `Schuly.Sandbox` | Helply's sandbox sidecar (own image `ghcr.io/schulydev/schuly-sandbox`): microsandbox microVMs without network behind a keyed HTTP API. |
 | `Schuly.Tests` | TUnit. |
 
 `Schuly.Plugin.Abstractions` is a **NuGet `PackageReference`**, not a project ref - see the abstractions repo. Plugin projects live in a separate repo entirely.
@@ -92,14 +93,23 @@ Applied at startup by `ApplyMigrations()` in `Program.cs`.
 - Auth is our own OAuth 2.1 authorization server in `Schuly.Infrastructure/Mcp` (DCR, code + PKCE S256, rotating refresh tokens, opaque tokens hashed with SHA-256) plus user API keys (`schuly_mcp_...`). Both are accepted **only** by the `SchulyMcpToken` scheme on `/mcp`; `/api` JWTs are refused there and MCP tokens do nothing on `/api`.
 - Every tool carries `[McpAccess(area, level)]` (and `[McpDestructive]` for deletes). Permissions live on the grant/key and are read on every request, so edits apply live. A new tool without `[McpAccess]` is visible to every connection: always add one.
 - Consent page is the SPA route `/connect/authorize`; the decision API is `/api/mcp/*`. `Mcp:PublicUrl` and `Mcp:AllowedOrigins` (CORS + Origin check, no wildcard) are the only settings.
-- Helply hooks: `McpInternalTokens` (short-lived token with its own permission set) and `Helply:BaseUrl`/`ApiKey`/`Model` from env only; never log or return them.
+- Helply hooks: `McpInternalTokens` (short-lived token with its own permission set) and `Helply:BaseUrl`/`ApiKey`/`Model` from env only; never log or return them. Without `Helply:Model`, discovery probes the listed models with a tiny tool-call request and caches the first that answers.
+- Helply's internal MCP call goes over loopback http with `Host` + `X-Forwarded-Proto` of the public URL; loopback is always a trusted proxy. Set `Mcp:PublicUrl` in deployments anyway.
+
+## Helply files and workspace
+
+- Attachments: `HelplyAttachmentStore` (Infrastructure). Type from magic bytes only (`HelplyFileTypes`), 20 MB, 5 per message, encrypted with the Helply cipher bound to user, conversation and `attachment:{id}:{part}`. Deleted with the conversation; unsent uploads after 24 h.
+- The model gets attachments through markers in the session that `HelplyAttachmentExpander` expands on every request (`HelplyAttachmentStrategy`: native image/PDF, capped text, or a workspace pointer). Every tool call goes through `HelplyToolInvoker` (argument cap, repeat guard, result cap).
+- Workspace tools (`bash`, `read_file`, `write_file`, `share_file`) exist only when the user enabled "Workspace" and `Helply:Sandbox:BaseUrl`/`ApiKey` are set. The workspace is wiped when the reply ends. Approvals that carry copied file content are flagged high risk (`HelplyLeakDetector`).
+- microsandbox is beta and pinned (tag + digest) in `src/Schuly.Sandbox/Dockerfile`; change `Msb.CreateFlags` only with a real VM test. `--no-net` leaves only msb's own DNS answering (NXDOMAIN) on port 53.
 
 ## Versioning + release
 
 Single source of truth: `application.properties`. `src/Directory.Build.props` reads via `XmlPeek`. Cutting a release triggers `docker-publish-release.yaml`:
 
 1. `sync-version` job updates `application.properties` to match the tag via an auto-merged PR.
-2. `build-and-push-multiarch` builds the API container and pushes to:
+2. `build-and-push-sandbox` builds the sandbox sidecar (amd64) and pushes `ghcr.io/schulydev/schuly-sandbox` with the same tags.
+3. `build-and-push-multiarch` builds the API container and pushes to:
    - `ghcr.io/schulydev/schuly:<semver>` (+ `:latest`, `:<major>`, `:<major>.<minor>`)
    - `<DOCKERHUB_USERNAME>/schuly:<semver>` (best-effort)
 
