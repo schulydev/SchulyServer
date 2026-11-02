@@ -39,7 +39,7 @@ const MAX_TITLE = 120;
                 (click)="select.emit(conversation.id)"
               >
                 <span class="truncate text-sm font-medium">{{ conversation.title }}</span>
-                <span class="text-muted-foreground text-xs">{{ when(conversation.updatedAt) }}</span>
+                <span class="text-xs" [class.text-muted-foreground]="conversation.id !== activeId()" [class.text-accent-foreground]="conversation.id === activeId()">{{ when(conversation.updatedAt) }}</span>
               </button>
               <button
                 type="button"

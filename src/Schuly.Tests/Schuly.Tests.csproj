@@ -23,6 +23,7 @@
     <ProjectReference Include="../Schuly.Infrastructure/Schuly.Infrastructure.csproj" />
     <ProjectReference Include="../Schuly.API/Schuly.API.csproj" />
     <ProjectReference Include="..\Schuly.Tests.Plugin\Schuly.Tests.Plugin.csproj" />
+    <ProjectReference Include="..\Schuly.Sandbox\Schuly.Sandbox.csproj" />
   </ItemGroup>
 
 </Project>

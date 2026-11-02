@@ -63,6 +63,9 @@ services:
       - ./data/plugins:/app/plugins                        # downloaded plugin DLLs (host folder)
       - ./config/plugins.yml:/app/plugins.yml              # desired plugin set (writable: endpoints rewrite it)
       - ./config/plugins-config:/app/plugins-config:ro     # per-plugin config
+    networks:
+      - default
+      - sandbox                                             # reaches Helply's sandbox sidecar; nothing else is on it
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +73,31 @@ services:
         condition: service_completed_successfully
       schulymicrosoft:
         condition: service_healthy
+
+  # Helply's workspace: per-conversation microVMs (microsandbox, pinned, beta) with no network, behind a small HTTP API that
+  # only the backend can reach. Optional: it starts only with COMPOSE_PROFILES=sandbox and needs /dev/kvm on the host.
+  # mem_limit caps every VM together (2 VMs x 256 MB plus the sidecar); the kernel kills a VM inside it, never another
+  # service on the host. It gets its API key and nothing else - no database, mail or gateway secrets.
+  sandbox:
+    image: ghcr.io/schulydev/schuly-sandbox:${SCHULY_VERSION:-latest}
+    profiles: [sandbox]
+    restart: unless-stopped
+    devices:
+      - /dev/kvm
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 256
+    environment:
+      Sandbox__ApiKey: ${SANDBOX_API_KEY:-}
+      Sandbox__MaxSandboxes: "2"
+    volumes:
+      - ./data/sandbox:/root/.microsandbox                 # VM disks; removed with each VM, swept every 5 minutes
+    networks:
+      - sandbox
 
   caddy:
     image: caddy:2
@@ -85,3 +113,9 @@ services:
       - ./data/caddy-config:/config
     depends_on:
       - backend
+
+networks:
+  default:
+  # Private and internal: the backend and the sandbox sidecar only, with no route to the internet.
+  sandbox:
+    internal: true

@@ -135,3 +135,55 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
           provenance: false
           sbom: false
+
+  build-and-push-sandbox:
+    name: Build and Push the Sandbox Sidecar Image
+    needs: sync-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/schulydev/schuly-sandbox
+          tags: |
+            type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
+            type=semver,pattern={{major}},value=${{ github.event.release.tag_name }}
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+
+      # amd64 only: the sidecar runs microVMs on the host's KVM, and the sandbox image inside it is built for amd64.
+      - name: Build and push the sandbox image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src
+          file: ./src/Schuly.Sandbox/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          provenance: false
+          sbom: false

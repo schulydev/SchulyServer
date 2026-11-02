@@ -254,6 +254,9 @@ namespace Schuly.Infrastructure.Services
         // Helply conversations and settings cascade from ApplicationUser as well; explicit here for the same reason.
         private static async Task QueueHelplyDeletionAsync(SchulyDbContext dbContext, Guid applicationUserId, CancellationToken cancellationToken)
         {
+            var attachmentIds = await dbContext.HelplyAttachments.Where(a => a.ApplicationUserId == applicationUserId).Select(a => a.Id).ToListAsync(cancellationToken);
+            dbContext.HelplyAttachmentContents.RemoveRange(await dbContext.HelplyAttachmentContents.Where(c => attachmentIds.Contains(c.AttachmentId)).ToListAsync(cancellationToken));
+            dbContext.HelplyAttachments.RemoveRange(await dbContext.HelplyAttachments.Where(a => a.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
             dbContext.HelplyConversations.RemoveRange(await dbContext.HelplyConversations.Where(c => c.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
             dbContext.HelplySettings.RemoveRange(await dbContext.HelplySettings.Where(h => h.ApplicationUserId == applicationUserId).ToListAsync(cancellationToken));
         }

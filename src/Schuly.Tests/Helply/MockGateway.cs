@@ -8,7 +8,10 @@ namespace Schuly.Tests.Helply
     /// <summary>One request the mock gateway received: where it went and, for chat completions, what the model was offered and told.</summary>
     public sealed record MockRequest(string Method, string Path, string Body, IReadOnlyList<string> ToolNames, IReadOnlyList<MockMessage> Messages)
     {
-        public bool IsChat => Path.EndsWith("/chat/completions", StringComparison.Ordinal);
+        public bool IsChat => Path.EndsWith("/chat/completions", StringComparison.Ordinal) && !IsProbe;
+
+        /// <summary>A model probe made by discovery, not a turn.</summary>
+        public bool IsProbe => Path.EndsWith("/chat/completions", StringComparison.Ordinal) && Body.Contains("\"helply_probe\"", StringComparison.Ordinal);
     }
 
     public sealed record MockMessage(string Role, string? Content, IReadOnlyList<string> ToolCallNames);
@@ -40,6 +43,12 @@ namespace Schuly.Tests.Helply
         /// <summary>Model ids returned by <c>/models</c>, embeddings first like many real gateways.</summary>
         public List<string> Models { get; } = ["text-embedding-x", Model];
 
+        /// <summary>Listed models that answer 400 to everything, like a model the key has no access to.</summary>
+        public HashSet<string> BrokenModels { get; } = [];
+
+        /// <summary>Answer 400 to any chat request that carries an image or file part, like a text-only gateway.</summary>
+        public bool RejectFiles { get; set; }
+
         /// <summary>Fail every <c>/models</c> call, to see that discovery is retried.</summary>
         public bool ModelsFail { get; set; }
 
@@ -62,8 +71,18 @@ namespace Schuly.Tests.Helply
                 return Json(list);
             }
 
+            if (parsed.IsProbe)
+            {
+                var model = JsonNode.Parse(body)?["model"]?.GetValue<string>() ?? string.Empty;
+                return BrokenModels.Contains(model) ? new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":{\"message\":\"no access\"}}") } : Json(new JsonObject { ["id"] = "probe", ["choices"] = new JsonArray() });
+            }
+
             if (path.EndsWith("/chat/completions", StringComparison.Ordinal))
+            {
+                if (RejectFiles && (body.Contains("\"image_url\"", StringComparison.Ordinal) || body.Contains("\"file_data\"", StringComparison.Ordinal)))
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":{\"message\":\"image input is not supported\"}}", Encoding.UTF8, "application/json") };
                 return Reply(parsed);
+            }
 
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         }

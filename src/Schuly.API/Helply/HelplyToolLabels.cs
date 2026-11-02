@@ -14,6 +14,10 @@ namespace Schuly.API.Helply
 
         private static readonly Dictionary<string, (string Running, string Done)> Labels = new(StringComparer.Ordinal)
         {
+            ["bash"] = ("Running code", "Ran code"),
+            ["read_file"] = ("Reading a workspace file", "Read a workspace file"),
+            ["write_file"] = ("Writing a workspace file", "Wrote a workspace file"),
+            ["share_file"] = ("Sharing a file", "Shared a file"),
             ["get_profile"] = ("Reading your profile", "Read your profile"),
             ["list_school_accounts"] = ("Checking your school accounts", "Checked your school accounts"),
             ["list_grades"] = ("Looking up your grades", "Looked up your grades"),

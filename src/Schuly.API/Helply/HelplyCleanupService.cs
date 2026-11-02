@@ -2,7 +2,7 @@ using Schuly.Infrastructure.Helply;
 
 namespace Schuly.API.Helply
 {
-    /// <summary>Hourly removal of Helply conversations that have passed their 30-day expiry.</summary>
+    /// <summary>Hourly removal of Helply conversations that have passed their 30-day expiry (with their files), and of files attached but never sent within a day.</summary>
     public sealed class HelplyCleanupService(IServiceScopeFactory scopes, ILogger<HelplyCleanupService> logger) : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -24,9 +24,13 @@ namespace Schuly.API.Helply
                 try
                 {
                     using var scope = scopes.CreateScope();
-                    var removed = await scope.ServiceProvider.GetRequiredService<HelplyConversationStore>().SweepAsync(stoppingToken);
+                    var store = scope.ServiceProvider.GetRequiredService<HelplyConversationStore>();
+                    var removed = await store.SweepAsync(stoppingToken);
                     if (removed > 0)
                         logger.LogInformation("Removed {Count} expired Helply conversations", removed);
+                    var orphans = await store.Attachments.SweepOrphansAsync(stoppingToken);
+                    if (orphans > 0)
+                        logger.LogInformation("Removed {Count} Helply files that were attached but never sent", orphans);
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {

@@ -32,6 +32,25 @@ namespace Schuly.Infrastructure.Helply
         public DateTime CreatedAt { get; set; }
         public List<HelplyStoredTool> Tools { get; set; } = [];
         public bool Failed { get; set; }
+        /// <summary>Files on this message: the user's uploads, or the files Helply shared with its reply.</summary>
+        public List<HelplyStoredAttachment> Attachments { get; set; } = [];
+    }
+
+    /// <summary>What the chat shows of an attachment. The bytes stay in the attachment table; this is only the label.</summary>
+    public sealed class HelplyStoredAttachment
+    {
+        public Guid Id { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string MediaType { get; set; } = string.Empty;
+        public long SizeBytes { get; set; }
+    }
+
+    /// <summary>One command Helply ran in its workspace, as the user may inspect it: the command and the start of its output, both capped and redacted.</summary>
+    public sealed class HelplyStoredCodeRun
+    {
+        public string Command { get; set; } = string.Empty;
+        public string? Output { get; set; }
+        public int? ExitCode { get; set; }
     }
 
     public sealed class HelplyStoredTool
@@ -39,6 +58,8 @@ namespace Schuly.Infrastructure.Helply
         public string Id { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
         public string Status { get; set; } = HelplyToolStatus.Running;
+        /// <summary>Set for a workspace command (the bash tool).</summary>
+        public HelplyStoredCodeRun? Code { get; set; }
     }
 
     public sealed class HelplyStoredDetail

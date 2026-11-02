@@ -47,24 +47,51 @@ namespace Schuly.Application.Commands.Helply
     [AllowAuthenticated]
     public record DeleteHelplyConversationCommand(Guid Id) : ICommand<Result>;
 
-    public class DeleteHelplyConversationCommandHandler(HelplyConversationStore store, IUserService userService) : ICommandHandler<DeleteHelplyConversationCommand, Result>
+    public class DeleteHelplyConversationCommandHandler(HelplyConversationStore store, IHelplySandboxClient sandbox, IUserService userService) : ICommandHandler<DeleteHelplyConversationCommand, Result>
     {
         public async ValueTask<Result> Handle(DeleteHelplyConversationCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            return await store.DeleteAsync(userId, command.Id, cancellationToken) ? Result.Success() : Result.NotFound("Conversation not found");
+            if (!await store.DeleteAsync(userId, command.Id, cancellationToken))
+                return Result.NotFound("Conversation not found");
+            await HelplyWorkspaceCleanup.DeleteAsync(sandbox, [command.Id]);
+            return Result.Success();
+        }
+    }
+
+    /// <summary>Wipes the workspaces of deleted conversations. Best effort and bounded: the sidecar's own sweep removes anything left behind within minutes.</summary>
+    public static class HelplyWorkspaceCleanup
+    {
+        public static async Task DeleteAsync(IHelplySandboxClient sandbox, IEnumerable<Guid> conversationIds)
+        {
+            if (!sandbox.IsConfigured)
+                return;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            foreach (var id in conversationIds)
+            {
+                try
+                {
+                    await sandbox.DeleteAsync(id, timeout.Token);
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+            }
         }
     }
 
     [AllowAuthenticated]
     public record DeleteAllHelplyConversationsCommand() : ICommand<Result>;
 
-    public class DeleteAllHelplyConversationsCommandHandler(HelplyConversationStore store, IUserService userService) : ICommandHandler<DeleteAllHelplyConversationsCommand, Result>
+    public class DeleteAllHelplyConversationsCommandHandler(HelplyConversationStore store, IHelplySandboxClient sandbox, IUserService userService) : ICommandHandler<DeleteAllHelplyConversationsCommand, Result>
     {
         public async ValueTask<Result> Handle(DeleteAllHelplyConversationsCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var ids = (await store.ListAsync(userId, cancellationToken)).Select(c => c.Id).ToList();
             await store.DeleteAllAsync(userId, cancellationToken);
+            await HelplyWorkspaceCleanup.DeleteAsync(sandbox, ids);
             return Result.Success();
         }
     }
@@ -73,12 +100,59 @@ namespace Schuly.Application.Commands.Helply
     [AllowAuthenticated]
     public record UpdateHelplySettingsCommand(McpPermissionSet Permissions) : ICommand<Result<HelplySettingsDto>>;
 
-    public class UpdateHelplySettingsCommandHandler(HelplyConversationStore store, IUserService userService) : ICommandHandler<UpdateHelplySettingsCommand, Result<HelplySettingsDto>>
+    public class UpdateHelplySettingsCommandHandler(HelplyConversationStore store, IHelplySandboxClient sandbox, IUserService userService) : ICommandHandler<UpdateHelplySettingsCommand, Result<HelplySettingsDto>>
     {
         public async ValueTask<Result<HelplySettingsDto>> Handle(UpdateHelplySettingsCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            return Result.Success(HelplyDtoMapper.ToDto(await store.SetPermissionsAsync(userId, command.Permissions, cancellationToken)));
+            var permissions = await store.SetPermissionsAsync(userId, command.Permissions, cancellationToken);
+            return Result.Success(HelplyDtoMapper.ToDto(permissions, await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured));
+        }
+    }
+
+    /// <summary>Turns Helply's workspace (running code in a sandbox without network) on or off for the caller. Off by default; applies to the next message.</summary>
+    [AllowAuthenticated]
+    public record UpdateHelplyWorkspaceCommand(bool Enabled) : ICommand<Result<HelplySettingsDto>>;
+
+    public class UpdateHelplyWorkspaceCommandHandler(HelplyConversationStore store, IHelplySandboxClient sandbox, IUserService userService) : ICommandHandler<UpdateHelplyWorkspaceCommand, Result<HelplySettingsDto>>
+    {
+        public async ValueTask<Result<HelplySettingsDto>> Handle(UpdateHelplyWorkspaceCommand command, CancellationToken cancellationToken)
+        {
+            var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var enabled = await store.SetWorkspaceEnabledAsync(userId, command.Enabled, cancellationToken);
+            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), enabled, sandbox.IsConfigured));
+        }
+    }
+
+    /// <summary>
+    /// Stores a file the caller attaches to one of their conversations. The type comes from the bytes, never from the client; the name and contents are encrypted. The file waits
+    /// unsent until a message carries it, and is removed after a day otherwise.
+    /// </summary>
+    [AllowAuthenticated]
+    public record UploadHelplyAttachmentCommand(Guid ConversationId, string? FileName, string? ContentType, byte[] Data) : ICommand<Result<HelplyAttachmentDto>>;
+
+    public class UploadHelplyAttachmentCommandHandler(HelplyConversationStore store, IUserService userService) : ICommandHandler<UploadHelplyAttachmentCommand, Result<HelplyAttachmentDto>>
+    {
+        public async ValueTask<Result<HelplyAttachmentDto>> Handle(UploadHelplyAttachmentCommand command, CancellationToken cancellationToken)
+        {
+            var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var result = await store.Attachments.UploadAsync(userId, command.ConversationId, command.FileName, command.ContentType, command.Data, cancellationToken);
+            if (result.Attachment is { } attachment)
+                return Result.Success(HelplyDtoMapper.ToDto(attachment));
+            return result.Status == 404 ? Result.NotFound<HelplyAttachmentDto>(result.Error ?? "Conversation not found") : Result.Failure<HelplyAttachmentDto>(result.Error ?? "The file could not be attached.");
+        }
+    }
+
+    /// <summary>Removes a file the caller attached but has not sent yet.</summary>
+    [AllowAuthenticated]
+    public record DeleteHelplyAttachmentCommand(Guid ConversationId, Guid AttachmentId) : ICommand<Result>;
+
+    public class DeleteHelplyAttachmentCommandHandler(HelplyConversationStore store, IUserService userService) : ICommandHandler<DeleteHelplyAttachmentCommand, Result>
+    {
+        public async ValueTask<Result> Handle(DeleteHelplyAttachmentCommand command, CancellationToken cancellationToken)
+        {
+            var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            return await store.Attachments.DeletePendingAsync(userId, command.ConversationId, command.AttachmentId, cancellationToken) ? Result.Success() : Result.NotFound("File not found");
         }
     }
 }

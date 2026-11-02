@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OpenAI;
@@ -16,7 +17,7 @@ namespace Schuly.API.Helply
 
     /// <summary>
     /// The OpenAI-compatible gateway behind Helply. It builds the SDK client over the "Helply.Gateway" HTTP client (which has no logging) and, when <c>Helply:Model</c> is not
-    /// set, asks the gateway's <c>/models</c> for the first chat-capable model. A discovery failure is not remembered: the next run tries again. Neither the model id, the
+    /// set, asks the gateway's <c>/models</c> and probes the chat candidates in order with a tiny tool-call request, taking the first that answers 200. A discovery failure is not remembered: the next run tries again. Neither the model id, the
     /// URL nor the key is ever logged or returned from here.
     /// </summary>
     public sealed class HelplyGateway(IOptions<HelplyOptions> options, IHttpClientFactory clients)
@@ -101,7 +102,10 @@ namespace Schuly.API.Helply
                 var ids = document.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array
                     ? data.EnumerateArray().Select(m => m.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String ? id.GetString() : null).OfType<string>().ToList()
                     : [];
-                return PickChatModel(ids) ?? throw new HelplyUnavailableException();
+                foreach (var candidate in ChatCandidates(ids).Take(MaxProbes))
+                    if (await ProbeAsync(http, candidate, ct))
+                        return candidate;
+                throw new HelplyUnavailableException();
             }
             catch (OperationCanceledException)
             {
@@ -114,6 +118,43 @@ namespace Schuly.API.Helply
             catch (Exception)
             {
                 throw new HelplyUnavailableException();
+            }
+        }
+
+        /// <summary>How many listed models discovery tries before it gives up.</summary>
+        public const int MaxProbes = 8;
+
+        /// <summary>The tool name of the probe request; a gateway sees nothing else of Helply in it.</summary>
+        public const string ProbeTool = "helply_probe";
+
+        /// <summary>The listed ids that may be chat models, in the gateway's order.</summary>
+        public static IEnumerable<string> ChatCandidates(IEnumerable<string> ids) => ids.Where(id => !NotChatModels.Any(bad => id.Contains(bad, StringComparison.OrdinalIgnoreCase)));
+
+        /// <summary>
+        /// Asks one model a tiny question with one tool offered. Only a model that answers 200 to that can run Helply: a listed model may be unusable (no access, retired) or
+        /// refuse tools. The answer is not read beyond its status, and nothing about the attempt is logged.
+        /// </summary>
+        private async Task<bool> ProbeAsync(HttpClient http, string model, CancellationToken ct)
+        {
+            var body = new
+            {
+                model,
+                stream = false,
+                messages = new[] { new { role = "user", content = "Reply with the word ok." } },
+                tools = new[] { new { type = "function", function = new { name = ProbeTool, description = "Not used.", parameters = new { type = "object", properties = new { } } } } },
+            };
+            try
+            {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                using var request = new HttpRequestMessage(HttpMethod.Post, BaseUrl + "/chat/completions") { Content = JsonContent.Create(body) };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Settings.ApiKey);
+                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                return false;
             }
         }
 
