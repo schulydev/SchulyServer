@@ -162,11 +162,31 @@ for (const layout of ['schuly', 'explorer'] as const) {
     test('opens a team folder and goes back through the breadcrumb', async ({ page }) => {
       await nav(page).getByRole('button', { name: /BM23d ab 2025/ }).click();
       await expect(page.getByText('Pruefungen').first()).toBeVisible();
-      await page.getByText('Pruefungen').first().dblclick();
+      // The card view opens a folder on one click; the explorer selects on click and opens on a double click.
+      if (layout === 'schuly') await page.getByText('Pruefungen').first().click();
+      else await page.getByText('Pruefungen').first().dblclick();
       await expect(page.getByText('Mathe Pruefung.txt').first()).toBeVisible();
       expect(urls.some((u) => u.includes(`/drives/${encodeURIComponent(TEAM_DRIVE)}/items/${encodeURIComponent(FOLDER_ID)}/children`))).toBe(true);
       await page.getByRole('navigation', { name: 'Folder path' }).getByRole('button', { name: /BM23d ab 2025/ }).click();
       await expect(page.getByText('Stundenplan.txt').first()).toBeVisible();
+    });
+
+    test('keyboard: Enter on a focused folder opens it', async ({ page }) => {
+      test.skip(layout !== 'schuly', 'The explorer has its own keyboard tests');
+      await nav(page).getByRole('button', { name: /BM23d ab 2025/ }).click();
+      const folder = page.getByRole('option', { name: /Pruefungen/ });
+      await expect(folder).toBeVisible();
+      await folder.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByText('Mathe Pruefung.txt').first()).toBeVisible();
+    });
+
+    test('hovering a folder prefetches it', async ({ page }) => {
+      test.skip(layout !== 'schuly', 'The explorer is covered by its own prefetch');
+      await nav(page).getByRole('button', { name: /BM23d ab 2025/ }).click();
+      const children = `/items/${encodeURIComponent(FOLDER_ID)}/children`;
+      await page.getByRole('option', { name: /Pruefungen/ }).hover();
+      await expect.poll(() => urls.some((u) => u.includes(children))).toBe(true);
     });
 
     test('Everywhere search shows the location and opens the file; the query only travels in a POST body', async ({ page }) => {
