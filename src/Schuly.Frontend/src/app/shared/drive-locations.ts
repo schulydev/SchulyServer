@@ -62,26 +62,26 @@ const ITEM =
       <ul class="flex flex-col gap-0.5">
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'mine' })" (click)="nav.goTo({ kind: 'mine' })">
-            <ng-icon name="lucideHardDrive" size="16" aria-hidden="true" />
+            <ng-icon name="lucideHardDrive" size="16" class="shrink-0" aria-hidden="true" />
             My files
           </button>
         </li>
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'shared' })" (click)="nav.goTo({ kind: 'shared' })">
-            <ng-icon name="lucideShare2" size="16" aria-hidden="true" />
+            <ng-icon name="lucideShare2" size="16" class="shrink-0" aria-hidden="true" />
             Shared with me
           </button>
         </li>
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'recent' })" (click)="nav.goTo({ kind: 'recent' })">
-            <ng-icon name="lucideClock" size="16" aria-hidden="true" />
+            <ng-icon name="lucideClock" size="16" class="shrink-0" aria-hidden="true" />
             Recent
           </button>
         </li>
         @if (nav.location().kind === 'folder') {
           <li>
             <button type="button" [class]="item" aria-current="page">
-              <ng-icon name="lucideHardDrive" size="16" aria-hidden="true" />
+              <ng-icon name="lucideHardDrive" size="16" class="shrink-0" aria-hidden="true" />
               <span class="truncate">{{ nav.rootLabel() }}</span>
             </button>
           </li>
@@ -107,8 +107,8 @@ const ITEM =
               [attr.aria-expanded]="isOpen(team.id)"
               (click)="pickTeam(team)"
             >
-              <ng-icon [name]="isOpen(team.id) ? 'lucideChevronDown' : 'lucideChevronRight'" size="16" aria-hidden="true" />
-              <span class="truncate">{{ team.displayName }}</span>
+              <ng-icon [name]="isOpen(team.id) ? 'lucideChevronDown' : 'lucideChevronRight'" size="16" class="shrink-0" aria-hidden="true" />
+              <span class="truncate" [attr.title]="team.displayName">{{ team.displayName }}</span>
             </button>
             @if (isOpen(team.id)) {
               @let list = teams.channels()[team.id];
@@ -124,8 +124,8 @@ const ITEM =
                 @for (channel of list?.items ?? []; track channel.id) {
                   <li>
                     <button type="button" [class]="item" [attr.aria-current]="isChannel(team, channel)" (click)="pickChannel(team, channel)">
-                      <ng-icon name="lucideHash" size="16" aria-hidden="true" />
-                      <span class="truncate">{{ channel.displayName }}</span>
+                      <ng-icon name="lucideHash" size="16" class="shrink-0" aria-hidden="true" />
+                      <span class="truncate" [attr.title]="channel.displayName">{{ channel.displayName }}</span>
                     </button>
                   </li>
                 }

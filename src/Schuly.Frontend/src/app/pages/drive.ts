@@ -90,7 +90,7 @@ type DriveLayout = 'schuly' | 'explorer';
         <div class="flex min-w-0 flex-col gap-4">
           @if (!store.problem()) {
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <nav hlmBreadcrumb aria-label="Folder path" class="min-w-0 flex-1">
+              <nav hlmBreadcrumb aria-label="Folder path" class="w-full min-w-0 sm:w-auto sm:flex-1">
                 <ol hlmBreadcrumbList>
                   <li hlmBreadcrumbItem>
                     @if (nav.trail().length) {
