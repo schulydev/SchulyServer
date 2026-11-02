@@ -92,6 +92,9 @@ const kindOf = (item: DriveItem, name: string): DriveKind => {
   return extensionKinds[extensionOf(name)] ?? 'file';
 };
 
+/** The `path` parameter of a folder given as the names from the drive root. */
+const drivePath = (trail: string[]): string => (trail.length ? `root:/${trail.map(encodeURIComponent).join('/')}:` : 'root');
+
 export const DriveStore = signalStore(
   withAccountResource<DriveItem>('drive', 'files', { path: 'root' }, { pageSize: 100, max: 1000 }),
   withComputed((store) => ({
@@ -109,6 +112,7 @@ export const DriveStore = signalStore(
             size: i.size ?? 0,
             childCount: i.folder?.childCount ?? null,
             extension: extensionOf(name),
+            mime: i.file?.mimeType ?? null,
             modified: i.lastModifiedDateTime ?? null,
             link: i.webUrl ?? null,
             download: i.folder ? null : (i['@microsoft.graph.downloadUrl'] ?? null),
@@ -119,7 +123,11 @@ export const DriveStore = signalStore(
   })),
   withMethods((store) => ({
     /** Opens a folder given as the names from the drive root; an empty trail is the root. */
-    openFolder: (trail: string[]) =>
-      store.setParam('path', trail.length ? `root:/${trail.map(encodeURIComponent).join('/')}:` : 'root'),
+    openFolder: (trail: string[]) => store.setParam('path', drivePath(trail)),
+    /** Warms the cache for a folder (hover or focus) so opening it shows at once. */
+    prefetchFolder: (trail: string[]) => store.prefetch({ path: drivePath(trail) }),
   })),
 );
+
+/** One row of `DriveStore.entries()`. */
+export type DriveEntry = ReturnType<InstanceType<typeof DriveStore>['entries']>[number];
