@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, afterNextRender, computed, inject, output, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, afterNextRender, computed, inject, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDog, lucideFlag, lucideHash, lucideLightbulb, lucidePlane, lucideSearch, lucideSmile, lucideStar, lucideTrophy, lucideUsers, lucideUtensils } from '@ng-icons/lucide';
 import { HlmInput } from '@spartan-ng/helm/input';
@@ -7,8 +7,21 @@ import { HlmTabsImports } from '@spartan-ng/helm/tabs';
 import { PickerGroup, filterPickerEmoji, loadEmojiGroups } from '../core/emoji';
 import { allowedMediaUrl } from '../core/chat-media';
 import { Gif, ChatApi } from '../core/chat-api';
-import { Catalogue, CatalogueEmoji, EmojiRef, searchCatalogue } from '../core/chat-emoji';
+import { Catalogue, CatalogueEmoji, EmojiRef, SkinTone, searchCatalogue, toneEmoji, tonedChar } from '../core/chat-emoji';
+import { persistedChoice } from '../core/persisted';
 import { EmojiView } from '../shared/emoji-view';
+
+const TONE_KEYS = ['0', '1', '2', '3', '4', '5'] as const;
+type ToneKey = (typeof TONE_KEYS)[number];
+const TONE_OPTIONS: { key: ToneKey; label: string; color: string }[] = [
+  { key: '0', label: 'Default skin tone', color: '#FFC83D' },
+  { key: '1', label: 'Light skin tone', color: '#FADCBC' },
+  { key: '2', label: 'Medium-light skin tone', color: '#E0BB95' },
+  { key: '3', label: 'Medium skin tone', color: '#BF8F68' },
+  { key: '4', label: 'Medium-dark skin tone', color: '#9B643D' },
+  { key: '5', label: 'Dark skin tone', color: '#594539' },
+];
+const LONG_PRESS_MS = 500;
 
 const GROUP_ICONS: Record<string, string> = {
   'smileys-emotion': 'lucideSmile',
@@ -41,7 +54,42 @@ const GROUP_ICONS: Record<string, string> = {
 
       <div hlmTabsContent="emoji" class="mt-2 flex flex-col gap-2">
         <label class="sr-only" for="emoji-search">Search emoji</label>
-        <input hlmInput id="emoji-search" type="search" autocomplete="off" placeholder="Search emoji" [value]="query()" (input)="query.set($any($event.target).value)" />
+        <div class="flex items-center gap-2">
+          <input hlmInput id="emoji-search" type="search" autocomplete="off" placeholder="Search emoji" class="min-w-0 flex-1" [value]="query()" (input)="query.set($any($event.target).value)" />
+          @if (hasDiverse()) {
+            <div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Skin tone">
+              @for (o of toneOptions; track o.key) {
+                <button
+                  type="button"
+                  class="focus-visible:outline-ring flex size-6 items-center justify-center rounded-full focus-visible:outline-2"
+                  [attr.aria-pressed]="tone.value() === o.key"
+                  [attr.aria-label]="o.label"
+                  [title]="o.label"
+                  (click)="tone.set(o.key)"
+                >
+                  <span class="size-4 rounded-full border border-black/30" [style.background-color]="o.color" [class.ring-ring]="tone.value() === o.key" [class.ring-2]="tone.value() === o.key" [class.ring-offset-1]="tone.value() === o.key" aria-hidden="true"></span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        @if (toneFor(); as target) {
+          <div class="bg-muted flex items-center gap-1 rounded-md px-2 py-1" role="group" [attr.aria-label]="'Skin tone for ' + target.label" (keydown.escape)="toneFor.set(null)">
+            <span class="text-muted-foreground me-1 truncate text-xs">{{ target.label }}</span>
+            @for (o of toneOptions; track o.key) {
+              <button
+                type="button"
+                class="hover:bg-accent focus-visible:outline-ring flex size-8 items-center justify-center rounded-md text-xl focus-visible:outline-2"
+                [attr.aria-label]="o.label"
+                [title]="o.label"
+                (click)="pickTone(target, o.key)"
+              >
+                <span aria-hidden="true">{{ glyphIn(target, o.key) }}</span>
+              </button>
+            }
+            <button type="button" class="hover:bg-accent focus-visible:outline-ring ms-auto rounded-md px-2 py-1 text-xs focus-visible:outline-2" (click)="toneFor.set(null)">Close</button>
+          </div>
+        }
         @if (!query().trim() && categories().length > 1) {
           <div class="flex max-h-16 flex-wrap gap-1 overflow-y-auto" role="group" aria-label="Emoji categories">
             @for (c of categories(); track c.key) {
@@ -75,12 +123,19 @@ const GROUP_ICONS: Record<string, string> = {
                     type="button"
                     class="hover:bg-accent focus-visible:outline-ring flex size-9 items-center justify-center rounded-md focus-visible:outline-2"
                     [attr.aria-label]="t.label"
-                    [title]="t.label"
+                    [title]="t.diverse ? t.label + ' (right-click or long-press for skin tones)' : t.label"
                     (mouseenter)="hovered.set(t.id)"
                     (focus)="hovered.set(t.id)"
-                    (click)="pickTeams(t)"
+                    (click)="onTeamsClick(t)"
+                    (contextmenu)="onTeamsContext($event, t)"
+                    (pointerdown)="pressStart(t)"
+                    (pointerup)="pressEnd()"
+                    (pointerleave)="pressEnd()"
+                    (pointercancel)="pressEnd()"
                   >
-                    @if (hovered() === t.id) {
+                    @if (t.diverse && tone.value() !== '0') {
+                      <span aria-hidden="true" class="text-xl">{{ glyphIn(t, tone.value()) }}</span>
+                    } @else if (hovered() === t.id) {
                       <app-emoji [emoji]="{ kind: 'native', emoji: t }" [size]="28" />
                     } @else if (t.staticUrl) {
                       <img [src]="t.staticUrl" alt="" width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
@@ -133,7 +188,7 @@ const GROUP_ICONS: Record<string, string> = {
   `,
   host: { class: 'block w-full' },
 })
-export class EmojiPicker implements OnInit {
+export class EmojiPicker implements OnInit, OnDestroy {
   protected readonly api = inject(ChatApi);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -144,6 +199,15 @@ export class EmojiPicker implements OnInit {
 
   readonly emoji = output<EmojiRef>();
   readonly gif = output<Gif>();
+
+  protected readonly toneOptions = TONE_OPTIONS;
+  /** The chosen skin tone for diverse emojis, remembered in this browser; '0' is the default yellow. */
+  protected readonly tone = persistedChoice<ToneKey>('schuly.chat.emojiTone', TONE_KEYS, '0');
+  /** The emoji whose tone row is open (right-click or long-press). */
+  protected readonly toneFor = signal<CatalogueEmoji | null>(null);
+  protected readonly hasDiverse = computed(() => this.catalogue()?.all.some((e) => e.diverse) ?? false);
+  private pressTimer: ReturnType<typeof setTimeout> | undefined;
+  private pressed = false;
 
   protected readonly query = signal('');
   protected readonly active = signal('');
@@ -225,7 +289,55 @@ export class EmojiPicker implements OnInit {
     this.emoji.emit({ kind: 'unicode', char, label });
   }
 
+  ngOnDestroy(): void {
+    clearTimeout(this.pressTimer);
+    clearTimeout(this.gifTimer);
+  }
+
+  protected glyphIn(emoji: CatalogueEmoji, tone: ToneKey): string {
+    return tone === '0' ? emoji.alt : tonedChar(emoji.alt, Number(tone) as SkinTone);
+  }
+
+  protected pressStart(emoji: CatalogueEmoji): void {
+    clearTimeout(this.pressTimer);
+    if (!emoji.diverse) return;
+    this.pressTimer = setTimeout(() => {
+      this.pressed = true;
+      this.toneFor.set(emoji);
+    }, LONG_PRESS_MS);
+  }
+
+  protected pressEnd(): void {
+    clearTimeout(this.pressTimer);
+  }
+
+  protected onTeamsContext(event: Event, emoji: CatalogueEmoji): void {
+    if (!emoji.diverse) return;
+    event.preventDefault();
+    this.pressEnd();
+    this.toneFor.set(emoji);
+  }
+
+  protected onTeamsClick(emoji: CatalogueEmoji): void {
+    // The click that ends a long press only opened the tone row.
+    if (this.pressed) {
+      this.pressed = false;
+      return;
+    }
+    this.pickTeams(emoji);
+  }
+
   protected pickTeams(emoji: CatalogueEmoji): void {
-    this.emoji.emit({ kind: 'native', emoji });
+    this.emitTone(emoji, this.tone.value());
+  }
+
+  protected pickTone(emoji: CatalogueEmoji, tone: ToneKey): void {
+    this.toneFor.set(null);
+    this.emitTone(emoji, tone);
+  }
+
+  private emitTone(emoji: CatalogueEmoji, tone: ToneKey): void {
+    const chosen = emoji.diverse && tone !== '0' ? toneEmoji(emoji, Number(tone) as SkinTone) : emoji;
+    this.emoji.emit({ kind: 'native', emoji: chosen });
   }
 }
