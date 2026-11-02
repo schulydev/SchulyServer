@@ -3,7 +3,10 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Schuly.Domain.Helply;
+using Schuly.Infrastructure;
 using Schuly.Infrastructure.Helply;
+using Schuly.Plugin.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Schuly.API.Helply
 {
@@ -39,7 +42,7 @@ namespace Schuly.API.Helply
     /// read-only stop for the user's approval. The model id, gateway address and key never leave this class: only redacted text and tool labels become events, and a failure
     /// is logged by exception type alone.
     /// </summary>
-    public sealed class HelplyChatService(HelplyConversationStore store, HelplyGateway gateway, HelplyMcpConnector connector, HelplyRateLimiter limiter, HelplyTurnLocks locks, IOptions<HelplyLimits> limitOptions, TimeProvider time, ILogger<HelplyChatService> logger)
+    public sealed class HelplyChatService(HelplyConversationStore store, HelplyGateway gateway, HelplyMcpConnector connector, HelplyRateLimiter limiter, SchulyDbContext db, HelplyTurnLocks locks, IOptions<HelplyLimits> limitOptions, TimeProvider time, ILogger<HelplyChatService> logger)
     {
         public const string GenericError = "Helply couldn't answer right now.";
         public const int TitleLength = 60;
@@ -74,6 +77,10 @@ namespace Schuly.API.Helply
                 var answered = decisions!.Select(d => d.ApprovalId).ToHashSet(StringComparer.Ordinal);
                 if (answered.Count != decisions!.Count || !answered.SetEquals(pending))
                     return (null, new HelplyRefusal(StatusCodes.Status400BadRequest, "Answer every pending approval exactly once."));
+                // What would run must still be exactly what the user was shown.
+                foreach (var decision in decisions!.Where(d => d.Approved))
+                    if (!HelplyApprovalHash.Matches(transcript.Pending.First(p => p.ApprovalId == decision.ApprovalId), ContentJson))
+                        return (null, new HelplyRefusal(StatusCodes.Status400BadRequest, "This approval no longer matches the action. Ask Helply again."));
             }
             if (kind == HelplyTurnKind.Retry && !(transcript.Messages is [.., { Role: "user" }, { Role: "assistant", Failed: true }]))
                 return (null, new HelplyRefusal(StatusCodes.Status400BadRequest, "There is nothing to retry."));
@@ -188,7 +195,12 @@ namespace Schuly.API.Helply
                 var connection = await gateway.ConnectAsync(cts.Token);
                 redactor = connection.Redactor;
                 var permissions = await store.GetPermissionsAsync(turn.UserId, cts.Token);
-                await using var toolSet = await connector.ConnectAsync(turn.UserId, permissions, cts.Token);
+                var guard = new HelplyApprovalGuard();
+                if (turn.Kind == HelplyTurnKind.Approvals)
+                    foreach (var decision in turn.Decisions.Where(d => d.Approved))
+                        guard.Approve(original.Pending.First(p => p.ApprovalId == decision.ApprovalId).ArgumentsHash);
+                await using var toolSet = await connector.ConnectAsync(turn.UserId, permissions, guard, cts.Token);
+                IReadOnlyCollection<string>? ownDomains = null;
                 var agent = HelplyAgentFactory.Create(connection.Chat, Limits, HelplyPrompt.System(Now()), toolSet.Tools);
                 var session = await RestoreSessionAsync(agent, conversation, cts.Token);
 
@@ -225,7 +237,8 @@ namespace Schuly.API.Helply
                                 await Emit(new HelplyEvent("tool_finished", new { id = running.Id, label = running.Label, status = running.Status }));
                                 break;
                             case ToolApprovalRequestContent request when request.ToolCall is FunctionCallContent approvalCall:
-                                var approval = BuildApproval(request, approvalCall, toolSet, assistant.Id, redactor);
+                                ownDomains ??= await OwnDomainsAsync(turn.UserId, cts.Token);
+                                var approval = await BuildApprovalAsync(request, approvalCall, toolSet, assistant.Id, redactor, ownDomains, cts.Token);
                                 work.Pending.Add(approval);
                                 needsSeparator = true;
                                 await Emit(new HelplyEvent("approval_required", HelplyDtoShape(approval)));
@@ -276,7 +289,7 @@ namespace Schuly.API.Helply
             await Emit(new HelplyEvent("done", new { messageId = assistant.Id, awaitingApproval = awaiting, title }));
         }
 
-        private static object HelplyDtoShape(HelplyStoredApproval a) => new { approvalId = a.ApprovalId, toolLabel = a.ToolLabel, summary = a.Summary, details = a.Details.Select(d => new { label = d.Label, value = d.Value }).ToList(), destructive = a.Destructive };
+        private static object HelplyDtoShape(HelplyStoredApproval a) => new { approvalId = a.ApprovalId, toolLabel = a.ToolLabel, summary = a.Summary, details = a.Details.Select(d => new { label = d.Label, value = d.Value }).ToList(), destructive = a.Destructive, arguments = a.Arguments.Select(d => new { label = d.Label, value = d.Value }).ToList(), risk = a.Risk, riskReasons = a.RiskReasons };
 
         // What the transcript looks like after a turn that did not finish: the old conversation, the user's message, and the assistant's partial answer (flagged as failed unless the user stopped it).
         private static HelplyTranscript Survivor(HelplyTranscript original, HelplyTurn turn, HelplyStoredMessage? userMessage, HelplyStoredMessage assistant, bool failed)
@@ -329,14 +342,24 @@ namespace Schuly.API.Helply
             message?.Tools.Add(new HelplyStoredTool { Id = pending.ToolCallId, Label = pending.ToolLabel, Status = status });
         }
 
-        private HelplyStoredApproval BuildApproval(ToolApprovalRequestContent request, FunctionCallContent call, HelplyToolSet toolSet, Guid messageId, HelplyRedactor redactor)
+        /// <summary>The mail domains of the user's linked Microsoft accounts: addresses on them count as inside the school.</summary>
+        private async Task<IReadOnlyCollection<string>> OwnDomainsAsync(Guid userId, CancellationToken ct)
+        {
+            var emails = await db.LinkedAccounts.AsNoTracking().Where(a => a.ApplicationUserId == userId && a.Provider == LinkedProviders.Microsoft).Select(a => a.Email).ToListAsync(ct);
+            return emails.Select(HelplyApprovalRisk.DomainOf).Where(d => d.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private async Task<HelplyStoredApproval> BuildApprovalAsync(ToolApprovalRequestContent request, FunctionCallContent call, HelplyToolSet toolSet, Guid messageId, HelplyRedactor redactor, IReadOnlyCollection<string> ownDomains, CancellationToken ct)
         {
             toolSet.Info.TryGetValue(call.Name, out var info);
             var title = info?.Title ?? call.Name;
             var labels = HelplyToolLabels.For(call.Name, title);
-            var (toolLabel, summary, details) = HelplyToolLabels.Approval(call.Name, title, call.Arguments);
-            foreach (var detail in details)
-                detail.Value = redactor.Redact(detail.Value);
+            var target = await HelplyApprovalTargets.ResolveAsync(toolSet, call.Name, call.Arguments, ct);
+            var (toolLabel, summary, details) = HelplyToolLabels.Approval(call.Name, title, call.Arguments, target);
+            var arguments = HelplyToolLabels.AllArguments(call.Name, call.Arguments);
+            var (risk, reasons) = HelplyApprovalRisk.Assess(call.Name, call.Arguments, ownDomains);
+            foreach (var row in details.Concat(arguments))
+                row.Value = redactor.Redact(row.Value);
             return new HelplyStoredApproval
             {
                 ApprovalId = request.RequestId,
@@ -347,6 +370,10 @@ namespace Schuly.API.Helply
                 DoneLabel = labels.Done,
                 Summary = redactor.Redact(summary),
                 Details = details,
+                Arguments = arguments,
+                Risk = risk,
+                RiskReasons = reasons.Select(redactor.Redact).ToList(),
+                ArgumentsHash = HelplyApprovalHash.Compute(call.Name, call.Arguments),
                 Destructive = info?.Destructive ?? true,
                 MessageId = messageId,
                 Request = JsonSerializer.Serialize<AIContent>(request, ContentJson),

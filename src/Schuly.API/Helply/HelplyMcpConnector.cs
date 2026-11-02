@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using Schuly.API.Mcp;
 using Schuly.Domain.Mcp;
 
@@ -19,6 +20,22 @@ namespace Schuly.API.Helply
         public IList<AITool> Tools { get; } = tools;
         public IReadOnlyDictionary<string, HelplyToolInfo> Info { get; } = info;
 
+        /// <summary>Calls one tool of this run's MCP session, but only if MCP itself lists it as read-only. Returns its text, or null when it is not allowed, fails or answers with an error.</summary>
+        public async Task<string?> CallReadOnlyAsync(string name, IReadOnlyDictionary<string, object?> arguments, CancellationToken ct)
+        {
+            if (client is null || !Info.TryGetValue(name, out var tool) || !tool.ReadOnly)
+                return null;
+            try
+            {
+                var result = await client.CallToolAsync(name, arguments, cancellationToken: ct);
+                return result.IsError == true ? null : string.Concat(result.Content.OfType<TextContentBlock>().Select(t => t.Text));
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                return null;
+            }
+        }
+
         public ValueTask DisposeAsync() => client?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
 
@@ -30,7 +47,7 @@ namespace Schuly.API.Helply
     {
         public const string ClientName = "Helply.Mcp";
 
-        public async Task<HelplyToolSet> ConnectAsync(Guid applicationUserId, McpPermissionSet permissions, CancellationToken ct)
+        public async Task<HelplyToolSet> ConnectAsync(Guid applicationUserId, McpPermissionSet permissions, HelplyApprovalGuard guard, CancellationToken ct)
         {
             var (accessToken, publicEndpoint) = await tokens.IssueAsync(applicationUserId, permissions, ct);
             var (endpoint, host) = ResolveEndpoint(publicEndpoint, server.Features.Get<IServerAddressesFeature>()?.Addresses ?? []);
@@ -51,7 +68,7 @@ namespace Schuly.API.Helply
                     var annotations = tool.ProtocolTool.Annotations;
                     var readOnly = annotations?.ReadOnlyHint == true;
                     info[tool.Name] = new HelplyToolInfo(tool.Name, tool.ProtocolTool.Title ?? tool.Name, readOnly, annotations?.DestructiveHint == true);
-                    tools.Add(readOnly ? tool : new ApprovalRequiredAIFunction(tool));
+                    tools.Add(readOnly ? tool : new ApprovalRequiredAIFunction(new HelplyGuardedFunction(tool, guard)));
                 }
                 return new HelplyToolSet(client, tools, info);
             }

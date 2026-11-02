@@ -59,6 +59,13 @@ namespace Schuly.Infrastructure.Helply
         public string Summary { get; set; } = string.Empty;
         public List<HelplyStoredDetail> Details { get; set; } = [];
         public bool Destructive { get; set; }
+        /// <summary>Everything the call will send, labelled for people, in full (redacted like the rest).</summary>
+        public List<HelplyStoredDetail> Arguments { get; set; } = [];
+        /// <summary>"normal" or "high".</summary>
+        public string Risk { get; set; } = "normal";
+        public List<string> RiskReasons { get; set; } = [];
+        /// <summary>SHA-256 over the tool name and the canonical arguments the user is asked to approve; empty for approvals stored before this existed, which cannot be approved.</summary>
+        public string ArgumentsHash { get; set; } = string.Empty;
         public Guid MessageId { get; set; }
         public string Request { get; set; } = string.Empty;
     }

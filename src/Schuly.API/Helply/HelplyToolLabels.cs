@@ -4,6 +4,9 @@ using Schuly.Infrastructure.Helply;
 
 namespace Schuly.API.Helply
 {
+    /// <summary>What the ids of a call point to, looked up through the same MCP session: a phrase for the summary ("the email 'Exam dates' from Anna (28 Oct 2026)") and the rows shown on the card.</summary>
+    public sealed record HelplyTarget(string Description, List<HelplyStoredDetail> Rows);
+
     /// <summary>What the user is told about a tool call: plain-language labels while it runs and when it is done, and, for tools that act, the approval summary built from the call's arguments.</summary>
     public static class HelplyToolLabels
     {
@@ -53,11 +56,44 @@ namespace Schuly.API.Helply
             return string.IsNullOrWhiteSpace(title) ? ("Using a tool", "Used a tool") : ($"Using {title}", $"Used {title}");
         }
 
-        /// <summary>The approval card for a call: its heading, the one-line summary and the detail rows. Built from the arguments, so what the user approves is what will run.</summary>
-        public static (string ToolLabel, string Summary, List<HelplyStoredDetail> Details) Approval(string toolName, string? title, IDictionary<string, object?>? args)
+        /// <summary>The argument names each approval-required tool takes, in the order and with the labels the card shows. Arguments not listed here are still shown, under their own name.</summary>
+        private static readonly Dictionary<string, (string Name, string Label)[]> ArgumentLabels = new(StringComparer.Ordinal)
+        {
+            ["send_mail"] = [("to", "To"), ("cc", "Cc"), ("bcc", "Bcc"), ("subject", "Subject"), ("body", "Body")],
+            ["reply_mail"] = [("messageId", "Email id"), ("replyAll", "Reply to everyone"), ("comment", "Reply")],
+            ["forward_mail"] = [("messageId", "Email id"), ("to", "To"), ("comment", "Note")],
+            ["move_mail"] = [("messageId", "Email id"), ("folder", "Folder")],
+            ["flag_mail"] = [("messageId", "Email id"), ("status", "Flag")],
+            ["mark_mail_read"] = [("messageId", "Email id"), ("read", "Mark as read")],
+            ["delete_mail"] = [("messageId", "Email id")],
+            ["send_chat_message"] = [("chatId", "Chat id"), ("text", "Message")],
+            ["report_absence"] = [("dateFrom", "From date"), ("dateTo", "To date"), ("hourFrom", "From time"), ("hourTo", "To time"), ("reason", "Reason"), ("comment", "Comment")],
+            ["withdraw_absence_report"] = [("ids", "Report ids")],
+        };
+
+        /// <summary>Every argument of the call with a human label: what the "Show everything that will be sent" block lists. Nothing is shortened.</summary>
+        public static List<HelplyStoredDetail> AllArguments(string toolName, IDictionary<string, object?>? args)
+        {
+            var rows = new List<HelplyStoredDetail>();
+            if (args is null)
+                return rows;
+            var known = ArgumentLabels.TryGetValue(toolName, out var labels) ? labels : [];
+            foreach (var (name, label) in known)
+                if (Text(args, name) is { Length: > 0 } value)
+                    rows.Add(new HelplyStoredDetail { Label = label, Value = value });
+            foreach (var key in args.Keys.Except(known.Select(k => k.Name), StringComparer.Ordinal).OrderBy(k => k, StringComparer.Ordinal))
+                if (Text(args, key) is { Length: > 0 } value)
+                    rows.Add(new HelplyStoredDetail { Label = key == "accountId" ? "Account id" : key, Value = value });
+            return rows;
+        }
+
+        /// <summary>The approval card for a call: its heading, the one-line summary and the detail rows. Built from the arguments, so what the user approves is what will run. A resolved target (what the ids point to) goes into the summary and the first rows.</summary>
+        public static (string ToolLabel, string Summary, List<HelplyStoredDetail> Details) Approval(string toolName, string? title, IDictionary<string, object?>? args, HelplyTarget? target = null)
         {
             var heading = string.IsNullOrWhiteSpace(title) ? toolName : title;
             var details = new List<HelplyStoredDetail>();
+            if (target is not null)
+                details.AddRange(target.Rows);
 
             void Add(string label, string? value)
             {
@@ -66,6 +102,7 @@ namespace Schuly.API.Helply
             }
 
             string Arg(string name) => Text(args, name) ?? string.Empty;
+            var mail = target?.Description ?? "an email";
 
             string summary;
             switch (toolName)
@@ -79,30 +116,30 @@ namespace Schuly.API.Helply
                     Add("Body preview", Preview(Arg("body")));
                     break;
                 case "reply_mail":
-                    summary = Text(args, "replyAll") == "True" || Text(args, "replyAll") == "true" ? "Reply to everyone on an email" : "Reply to an email";
+                    summary = (Text(args, "replyAll") is "True" or "true" ? "Reply to everyone on " : "Reply to ") + mail;
                     Add("Reply", Preview(Arg("comment")));
                     break;
                 case "forward_mail":
-                    summary = $"Forward an email to {Or(Arg("to"), "the given recipients")}";
+                    summary = $"Forward {mail} to {Or(Arg("to"), "the given recipients")}";
                     Add("To", Arg("to"));
                     Add("Note", Preview(Arg("comment")));
                     break;
                 case "move_mail":
-                    summary = $"Move an email to the folder \"{Arg("folder")}\"";
+                    summary = $"Move {mail} to the folder \"{Arg("folder")}\"";
                     Add("Folder", Arg("folder"));
                     break;
                 case "flag_mail":
-                    summary = $"Set the flag of an email to \"{Arg("status")}\"";
+                    summary = $"Set the flag of {mail} to \"{Arg("status")}\"";
                     Add("Flag", Arg("status"));
                     break;
                 case "mark_mail_read":
-                    summary = Text(args, "read") is "False" or "false" ? "Mark an email as unread" : "Mark an email as read";
+                    summary = $"Mark {mail} as " + (Text(args, "read") is "False" or "false" ? "unread" : "read");
                     break;
                 case "delete_mail":
-                    summary = "Delete an email";
+                    summary = $"Delete {mail}";
                     break;
                 case "send_chat_message":
-                    summary = "Send a message in a Teams chat";
+                    summary = $"Send a message in {target?.Description ?? "a Teams chat"}";
                     Add("Message", Preview(Arg("text")));
                     break;
                 case "report_absence":
@@ -114,7 +151,7 @@ namespace Schuly.API.Helply
                     Add("Hours", string.IsNullOrWhiteSpace(Arg("hourFrom")) ? null : $"{Arg("hourFrom")} - {Arg("hourTo")}");
                     break;
                 case "withdraw_absence_report":
-                    summary = "Withdraw a reported absence";
+                    summary = "Withdraw " + (target?.Description ?? "a reported absence");
                     break;
                 default:
                     summary = $"Use {heading}";
@@ -122,6 +159,23 @@ namespace Schuly.API.Helply
             }
 
             return (heading, summary, details);
+        }
+
+        /// <summary>An argument as a list of strings: an array's items, or the single value.</summary>
+        public static List<string> Strings(IDictionary<string, object?>? args, string name)
+        {
+            if (args is null || !args.TryGetValue(name, out var value) || value is null)
+                return [];
+            return value switch
+            {
+                string s => [s],
+                JsonElement { ValueKind: JsonValueKind.String } e => [e.GetString() ?? string.Empty],
+                JsonElement { ValueKind: JsonValueKind.Array } e => e.EnumerateArray().Select(i => i.ValueKind == JsonValueKind.String ? i.GetString() ?? string.Empty : i.GetRawText()).ToList(),
+                JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined } => [],
+                JsonElement e => [e.GetRawText()],
+                IEnumerable list => list.Cast<object?>().Select(i => i?.ToString() ?? string.Empty).ToList(),
+                _ => [value.ToString() ?? string.Empty],
+            };
         }
 
         private static string Or(string value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;

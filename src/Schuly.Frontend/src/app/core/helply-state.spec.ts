@@ -32,7 +32,7 @@ describe('applyStreamEvent', () => {
     const paused = run([
       { type: 'start', messageId: 'a1' },
       { type: 'delta', text: 'Sure.' },
-      { type: 'approval_required', approvalId: 'p1', toolLabel: 'Send mail', summary: 's', details: [], destructive: false },
+      { type: 'approval_required', approvalId: 'p1', toolLabel: 'Send mail', summary: 's', details: [], destructive: false, arguments: [], risk: 'normal', riskReasons: [] },
       { type: 'done', messageId: 'a1', awaitingApproval: true, title: 'Mail' },
     ]);
     expect(paused.approvals).toHaveLength(1);

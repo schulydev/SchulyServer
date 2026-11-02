@@ -31,6 +31,10 @@ export interface ApprovalRequest {
   summary: string;
   details: ApprovalDetail[];
   destructive: boolean;
+  /** Every argument that will run, in full and labelled. */
+  arguments: ApprovalDetail[];
+  risk: 'normal' | 'high';
+  riskReasons: string[];
 }
 
 export interface HelplyMessage {

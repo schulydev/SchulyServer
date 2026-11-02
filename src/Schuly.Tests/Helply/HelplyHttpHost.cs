@@ -77,6 +77,9 @@ namespace Schuly.Tests.Helply
     /// <summary>Every message that reached the mediator, by type name. A tool that ran shows up here, which is how a test tells "approved and executed" from "waiting".</summary>
     public sealed class MediatorCalls
     {
+        /// <summary>The linked accounts the mediator reports for the signed-in user (the real handler needs the web sign-in, which the MCP token does not carry).</summary>
+        public List<Schuly.Application.Dtos.LinkedAccountDto> LinkedAccounts { get; } = [];
+
         private readonly ConcurrentQueue<string> _names = new();
 
         public void Add(string name) => _names.Enqueue(name);
@@ -84,6 +87,48 @@ namespace Schuly.Tests.Helply
         public int Count(string name) => _names.Count(n => n == name);
 
         public IReadOnlyList<string> All => _names.ToList();
+    }
+
+    /// <summary>Stands in for the in-process plugin pipeline: answers the Microsoft and Schulnetz paths from canned JSON and records every call (method, path and body), so a test can tell a lookup from a write.</summary>
+    public static class FakePluginApi
+    {
+        public const string SchulnetzAccount = "7c9d1a52-3f0e-4b8a-9d2e-5a6b7c8d9e01";
+
+        private static readonly ConcurrentDictionary<string, string> Responses = new();
+        private static readonly ConcurrentQueue<string> Log = new();
+        private static int _installed;
+
+        public static IReadOnlyList<string> Calls => Log.ToList();
+
+        public static void Answer(string method, string path, string json) => Responses[method + " " + path] = json;
+
+        public static void Install()
+        {
+            if (Interlocked.Exchange(ref _installed, 1) == 1)
+                return;
+            Answer("GET", "/api/plugins/schulware/accounts", $"[{{\"id\":\"{SchulnetzAccount}\"}}]");
+            RequestDelegate pipeline = async context =>
+            {
+                var request = context.Request;
+                var body = request.Body.CanRead ? await new StreamReader(request.Body).ReadToEndAsync() : string.Empty;
+                Log.Enqueue($"{request.Method} {request.Path.Value}{request.QueryString} {body}");
+                var key = request.Method + " " + request.Path.Value;
+                if (Responses.TryGetValue(key, out var json) || (request.Method != "GET" && Responses.TryGetValue("ANY " + request.Path.Value, out json)))
+                {
+                    context.Response.StatusCode = 200;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(json);
+                    return;
+                }
+                context.Response.StatusCode = request.Method == "GET" ? 404 : 200;
+                if (request.Method != "GET")
+                {
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync("{}");
+                }
+            };
+            typeof(Schuly.API.Mcp.InProcessPluginApi).GetField("_pipeline", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, pipeline);
+        }
     }
 
     /// <summary>Runs the Helply handlers for real and answers every school query the MCP tools make with empty data.</summary>
@@ -104,7 +149,14 @@ namespace Schuly.Tests.Helply
 
         public ValueTask<TResponse> Send<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default) => Dispatch(command, typeof(ICommandHandler<,>), () => _empty.Send(command, cancellationToken), cancellationToken);
 
-        public ValueTask<TResponse> Send<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default) => Dispatch(query, typeof(IQueryHandler<,>), () => _empty.Send(query, cancellationToken), cancellationToken);
+        public ValueTask<TResponse> Send<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default) => query is Schuly.Application.Queries.LinkedAccount.GetMyLinkedAccountsQuery linked && calls.LinkedAccounts.Count > 0 ? Linked<TResponse>(linked) : Dispatch(query, typeof(IQueryHandler<,>), () => _empty.Send(query, cancellationToken), cancellationToken);
+
+        private ValueTask<TResponse> Linked<TResponse>(Schuly.Application.Queries.LinkedAccount.GetMyLinkedAccountsQuery query)
+        {
+            calls.Add(query.GetType().Name);
+            var accounts = calls.LinkedAccounts.Where(a => query.Provider is null || a.Provider == query.Provider).ToList();
+            return new ValueTask<TResponse>((TResponse)(object)Schuly.Application.Models.Result<List<Schuly.Application.Dtos.LinkedAccountDto>>.Success(accounts));
+        }
 
         public ValueTask<object?> Send(object message, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
@@ -179,6 +231,7 @@ namespace Schuly.Tests.Helply
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
             builder.Logging.AddProvider(logs);
 
+            FakePluginApi.Install();
             var gateway = new MockGatewayHandler();
             var time = new MutableTimeProvider(DateTimeOffset.UtcNow);
             var calls = new MediatorCalls();
@@ -241,6 +294,21 @@ namespace Schuly.Tests.Helply
         {
             await using var scope = _app.Services.CreateAsyncScope();
             return await use(scope.ServiceProvider);
+        }
+
+        /// <summary>Links a Microsoft account to the user, in the database (for the risk check) and in what the MCP tools see.</summary>
+        public Guid LinkMicrosoft(Guid userId, string email)
+        {
+            var id = Guid.NewGuid();
+            Scoped(sp =>
+            {
+                var db = sp.GetRequiredService<SchulyDbContext>();
+                db.LinkedAccounts.Add(new Schuly.Domain.LinkedAccount { Id = id, ApplicationUserId = userId, Provider = Schuly.Plugin.Abstractions.LinkedProviders.Microsoft, ExternalId = id.ToString("N"), Email = email });
+                db.SaveChanges();
+                return 0;
+            });
+            Calls.LinkedAccounts.Add(new Schuly.Application.Dtos.LinkedAccountDto { Id = id, Provider = Schuly.Plugin.Abstractions.LinkedProviders.Microsoft, Email = email });
+            return id;
         }
 
         /// <summary>A new student with a Schuly sign-in token.</summary>

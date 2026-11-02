@@ -92,6 +92,9 @@ export function applyStreamEvent(state: ChatState, event: StreamEvent, now = '')
         summary: event.summary,
         details: event.details ?? [],
         destructive: event.destructive,
+        arguments: event.arguments ?? [],
+        risk: event.risk === 'high' ? 'high' : 'normal',
+        riskReasons: event.riskReasons ?? [],
       };
       return { ...state, approvals: [...state.approvals, approval] };
     }
@@ -151,6 +154,11 @@ export function parseStreamEvent(name: string, data: string): StreamEvent | null
           ? (o['details'] as Record<string, unknown>[]).map((d) => ({ label: text(d['label']), value: text(d['value']) }))
           : [],
         destructive: o['destructive'] === true,
+        arguments: Array.isArray(o['arguments'])
+          ? (o['arguments'] as Record<string, unknown>[]).map((d) => ({ label: text(d['label']), value: text(d['value']) }))
+          : [],
+        risk: o['risk'] === 'high' ? 'high' : 'normal',
+        riskReasons: Array.isArray(o['riskReasons']) ? (o['riskReasons'] as unknown[]).map(text) : [],
       };
     case 'done':
       return {

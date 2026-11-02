@@ -98,6 +98,12 @@ namespace Schuly.Tests.Helply
         /// <summary>The next this many chat requests fail with an error whose body names the model, the URL and the key.</summary>
         public int FailNextChats { get; set; }
 
+        /// <summary>The next chat request that follows a user message answers with this tool call instead of the keyword script. Used once.</summary>
+        public (string Id, string Name, string Arguments)? NextCall { get; set; }
+
+        /// <summary>The next chat request that follows a tool result answers with this tool call, as a model would that was steered into doing something else. Used once.</summary>
+        public (string Id, string Name, string Arguments)? ContinuationCall { get; set; }
+
         private HttpResponseMessage Reply(MockRequest request)
         {
             if (FailNextChats > 0)
@@ -107,6 +113,16 @@ namespace Schuly.Tests.Helply
             }
 
             var last = request.Messages.Last();
+            if (last.Role == "tool" && ContinuationCall is { } continuation)
+            {
+                ContinuationCall = null;
+                return Stream(ToolCall(continuation.Id, continuation.Name, continuation.Arguments));
+            }
+            if (last.Role != "tool" && NextCall is { } scripted)
+            {
+                NextCall = null;
+                return Stream(ToolCall(scripted.Id, scripted.Name, scripted.Arguments));
+            }
             if (last.Role == "tool")
             {
                 var earlier = request.Messages.LastOrDefault(m => m.ToolCallNames.Count > 0)?.ToolCallNames[0];
