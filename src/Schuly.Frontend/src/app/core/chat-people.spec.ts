@@ -31,7 +31,7 @@ describe('chatPeople', () => {
     expect(r.memberCount).toBe(3);
   });
   it('labels the notes-to-self chat', () => {
-    const r = chatPeople({ id: '48:notes', chatType: 'oneOnOne', members: [me] }, 'me', null);
+    const r = chatPeople({ id: 'Ab3_x-Z9', chatType: 'oneOnOne', isSelfChat: true, members: [me] }, 'me', null);
     expect(r.notes).toBe(true);
     expect(r.people[0].name).toBe('Notes (you)');
   });

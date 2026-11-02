@@ -25,6 +25,8 @@ export interface ChatSummary {
   id: string;
   topic?: string | null;
   chatType?: string | null;
+  /** True for the Notes (you) self chat; set by the server, never derived from the id. */
+  isSelfChat?: boolean | null;
   webUrl?: string | null;
   /** The chat's own picture, when the data carries one. */
   imageUrl?: string | null;

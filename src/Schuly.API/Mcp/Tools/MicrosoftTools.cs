@@ -13,6 +13,7 @@ namespace Schuly.API.Mcp.Tools
     /// <summary>
     /// Microsoft 365 through the Microsoft plugin's own endpoints, called in process with the caller's principal, so the plugin's ownership checks and
     /// sign-in handling apply exactly as for the web app. Every tool takes an optional account_id and is limited to the accounts the connection may use.
+    /// Microsoft ids (chat, message, folder, item, notebook, section, page) are opaque sealed strings: they are passed through untouched, never parsed or built.
     /// </summary>
     [McpServerToolType]
     public sealed class MicrosoftTools(IMediator mediator, IHttpContextAccessor accessor, InProcessPluginApi plugins, IHttpClientFactory httpClientFactory)
@@ -25,7 +26,7 @@ namespace Schuly.API.Mcp.Tools
         private static readonly string[] DownloadHosts = [".sharepoint.com", ".1drv.com", ".onedrive.com", ".livefilestore.com", ".sharepoint-df.com"];
 
         [McpServerTool(Name = "list_mail_folders", Title = "List mail folders", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Lists the mail folders of a linked Microsoft 365 account with ids and unread counts. Use a folder id or a well-known name (inbox, sentitems, drafts, deleteditems, archive, junkemail) with list_mail and move_mail.")]
+        [Description("Lists the mail folders of a linked Microsoft 365 account with ids and unread counts. Folder ids are opaque: pass them back exactly as returned. A well-known name (inbox, sentitems, drafts, deleteditems, archive, junkemail) also works with list_mail and move_mail.")]
         [McpAccess(McpArea.Mail, McpAccessLevel.Read)]
         public async Task<string> ListMailFolders([Description("Linked Microsoft account; defaults to the first one this connection may use.")] Guid? accountId = null, CancellationToken ct = default)
         {
@@ -37,7 +38,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "list_mail", Title = "List or search mail", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Lists messages in a mail folder, newest first, with sender, subject, date, read state and a short preview. With search, runs a Microsoft 365 mail search instead (offset is then not supported). Read a full message with read_mail.")]
         [McpAccess(McpArea.Mail, McpAccessLevel.Read)]
-        public async Task<string> ListMail(Guid? accountId = null, [Description("Folder id or well-known name. Default inbox.")] string folder = "inbox", [Description("Only unread messages.")] bool unreadOnly = false, [Description("Search text (KQL), for example from:anna subject:exam.")] string? search = null, [Description("Messages to skip, for paging. Not with search.")] int offset = 0, [Description("Messages per page, 1-50.")] int limit = 20, CancellationToken ct = default)
+        public async Task<string> ListMail(Guid? accountId = null, [Description("Folder id exactly as returned by list_mail_folders (opaque), or a well-known name. Default inbox.")] string folder = "inbox", [Description("Only unread messages.")] bool unreadOnly = false, [Description("Search text (KQL), for example from:anna subject:exam.")] string? search = null, [Description("Messages to skip, for paging. Not with search.")] int offset = 0, [Description("Messages per page, 1-50.")] int limit = 20, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             limit = Math.Clamp(limit, 1, 50);
@@ -49,7 +50,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "read_mail", Title = "Read mail", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Reads one message: sender, recipients, date, attachment names and the body as plain text. Long bodies are paged: call again with the returned nextOffset.")]
         [McpAccess(McpArea.Mail, McpAccessLevel.Read)]
-        public async Task<string> ReadMail([Description("Message id from list_mail.")] string messageId, Guid? accountId = null, [Description("Character offset into the body.")] int offset = 0, [Description("Body characters per page.")] int maxChars = DefaultMaxChars, CancellationToken ct = default)
+        public async Task<string> ReadMail([Description("Message id from list_mail, exactly as returned (opaque).")] string messageId, Guid? accountId = null, [Description("Character offset into the body.")] int offset = 0, [Description("Body characters per page.")] int maxChars = DefaultMaxChars, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var message = await ReadAsync($"{Base}/accounts/{account}/mail/{Uri.EscapeDataString(messageId)}", ct) ?? default;
@@ -90,7 +91,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "reply_mail", Title = "Reply to mail", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true)]
         [Description("Replies to a message (or replies to all) with the given text. Sends immediately.")]
         [McpAccess(McpArea.Mail, McpAccessLevel.ReadWrite)]
-        public async Task<string> ReplyMail(string messageId, [Description("The reply text.")] string comment, [Description("Reply to all recipients.")] bool replyAll = false, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> ReplyMail([Description("Message id exactly as returned by list_mail (opaque).")] string messageId, [Description("The reply text.")] string comment, [Description("Reply to all recipients.")] bool replyAll = false, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/mail/{Uri.EscapeDataString(messageId)}/reply", new { comment, replyAll }, ct);
@@ -100,7 +101,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "forward_mail", Title = "Forward mail", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true)]
         [Description("Forwards a message to new recipients with an optional note. Sends immediately.")]
         [McpAccess(McpArea.Mail, McpAccessLevel.ReadWrite)]
-        public async Task<string> ForwardMail(string messageId, [Description("Recipient addresses.")] string[] to, [Description("Note above the forwarded message.")] string? comment = null, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> ForwardMail([Description("Message id exactly as returned by list_mail (opaque).")] string messageId, [Description("Recipient addresses.")] string[] to, [Description("Note above the forwarded message.")] string? comment = null, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/mail/{Uri.EscapeDataString(messageId)}/forward", new { to, comment = comment ?? string.Empty }, ct);
@@ -108,9 +109,9 @@ namespace Schuly.API.Mcp.Tools
         }
 
         [McpServerTool(Name = "move_mail", Title = "Move mail", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Moves a message to another folder (folder id or well-known name such as archive or deleteditems). Returns the message's new id.")]
+        [Description("Moves a message to another folder (folder id or well-known name such as archive or deleteditems). Returns the message's new id (opaque, use it exactly as returned).")]
         [McpAccess(McpArea.Mail, McpAccessLevel.ReadWrite)]
-        public async Task<string> MoveMail(string messageId, [Description("Target folder id or well-known name.")] string folder, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> MoveMail([Description("Message id exactly as returned by list_mail (opaque).")] string messageId, [Description("Target folder id exactly as returned by list_mail_folders (opaque), or a well-known name.")] string folder, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var result = await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/mail/{Uri.EscapeDataString(messageId)}/move", new { folder }, ct);
@@ -149,7 +150,7 @@ namespace Schuly.API.Mcp.Tools
         }
 
         [McpServerTool(Name = "list_chats", Title = "List Teams chats", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Lists the user's Microsoft Teams chats, most recent first, with topic, members and the last message preview.")]
+        [Description("Lists the user's Microsoft Teams chats, most recent first, with topic, members and the last message preview. chatId is opaque: pass it back to read_chat_messages and send_chat_message exactly as returned. isSelfChat is true for the user's own Notes (you) chat.")]
         [McpAccess(McpArea.Teams, McpAccessLevel.Read)]
         public async Task<string> ListChats(Guid? accountId = null, [Description("Chats to return, 1-50.")] int limit = 20, CancellationToken ct = default)
         {
@@ -159,6 +160,7 @@ namespace Schuly.API.Mcp.Tools
                 chatId = Str(c, "id"),
                 topic = Str(c, "topic"),
                 chatType = Str(c, "chatType"),
+                isSelfChat = Prop(c, "isSelfChat") is { ValueKind: JsonValueKind.True },
                 members = Prop(c, "members") is { ValueKind: JsonValueKind.Array } m ? m.EnumerateArray().Select(x => Str(x, "displayName")).OfType<string>().Take(20).ToList() : null,
                 lastMessage = Prop(c, "lastMessagePreview") is { } p ? new { from = Prop(p, "from") is { } f && Prop(f, "user") is { } u ? Str(u, "displayName") : null, at = Str(p, "createdDateTime"), text = Cap(BodyText(Prop(p, "body")), 300) } : null,
                 updated = Str(c, "lastUpdatedDateTime"),
@@ -169,7 +171,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "read_chat_messages", Title = "Read Teams chat", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Reads the latest messages of a Teams chat as plain text, newest first.")]
         [McpAccess(McpArea.Teams, McpAccessLevel.Read)]
-        public async Task<string> ReadChatMessages([Description("chatId from list_chats.")] string chatId, Guid? accountId = null, [Description("Messages to return, 1-100.")] int limit = 30, CancellationToken ct = default)
+        public async Task<string> ReadChatMessages([Description("chatId from list_chats, exactly as returned (opaque).")] string chatId, Guid? accountId = null, [Description("Messages to return, 1-100.")] int limit = 30, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var messages = Items(await ReadAsync($"{Base}/accounts/{account}/chats/{Uri.EscapeDataString(chatId)}/messages?top={Math.Clamp(limit, 1, 100)}", ct))
@@ -181,7 +183,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "send_chat_message", Title = "Send Teams message", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = true)]
         [Description("Posts a plain-text message (up to 4000 characters) to a Teams chat as the user. Others see it immediately, so confirm with the user first.")]
         [McpAccess(McpArea.Teams, McpAccessLevel.ReadWrite)]
-        public async Task<string> SendChatMessage(string chatId, [Description("Message text.")] string text, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> SendChatMessage([Description("chatId from list_chats, exactly as returned (opaque).")] string chatId, [Description("Message text.")] string text, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var result = await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/chats/{Uri.EscapeDataString(chatId)}/messages", new { text }, ct);
@@ -203,7 +205,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "read_drive_file", Title = "Read OneDrive file", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Returns a small OneDrive file (up to 1 MB): text files as text (paged), others as base64 up to 256 KB. Give the folder path and the itemId from list_drive_items.")]
         [McpAccess(McpArea.Drive, McpAccessLevel.Read)]
-        public async Task<string> ReadDriveFile([Description("Folder the file is in, as for list_drive_items.")] string path, [Description("itemId from list_drive_items.")] string itemId, Guid? accountId = null, int offset = 0, int maxChars = DefaultMaxChars, CancellationToken ct = default)
+        public async Task<string> ReadDriveFile([Description("Folder the file is in, as for list_drive_items.")] string path, [Description("itemId from list_drive_items, exactly as returned (opaque).")] string itemId, Guid? accountId = null, int offset = 0, int maxChars = DefaultMaxChars, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var item = (await DriveFolderAsync(account, path, ct)).FirstOrDefault(i => Str(i, "id") == itemId);
@@ -252,7 +254,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "list_sections", Title = "List OneNote sections", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Lists the sections and section groups of a notebook as a flat list with their full path. Use a sectionId with list_pages and create_page.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
-        public async Task<string> ListSections([Description("notebookId from list_notebooks.")] string notebookId, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> ListSections([Description("notebookId from list_notebooks, exactly as returned (opaque).")] string notebookId, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var tree = await ReadAsync($"{Base}/accounts/{account}/onenote/notebooks/{Uri.EscapeDataString(notebookId)}/sections", ct) ?? default;
@@ -264,7 +266,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "list_pages", Title = "List OneNote pages", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Lists the pages of a OneNote section in order, with title, indent level (0 page, 1+ subpage) and last change. Read one with read_page. Page with offset and nextOffset.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
-        public async Task<string> ListPages([Description("sectionId from list_sections.")] string sectionId, Guid? accountId = null, [Description("Pages to skip, for paging.")] int offset = 0, [Description("Pages per call, 1-100.")] int limit = 50, CancellationToken ct = default)
+        public async Task<string> ListPages([Description("sectionId from list_sections, exactly as returned (opaque).")] string sectionId, Guid? accountId = null, [Description("Pages to skip, for paging.")] int offset = 0, [Description("Pages per call, 1-100.")] int limit = 50, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             offset = Math.Max(0, offset);
@@ -276,7 +278,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "read_page", Title = "Read OneNote page", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Reads one OneNote page: title, notebook, section, attachment names, number of images and the text of the page. Images, ink and drawings are not included. Long pages are paged: call again with the returned nextOffset.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
-        public async Task<string> ReadPage([Description("pageId from list_pages or search_pages.")] string pageId, Guid? accountId = null, [Description("Character offset into the text.")] int offset = 0, [Description("Characters per page.")] int maxChars = DefaultMaxChars, CancellationToken ct = default)
+        public async Task<string> ReadPage([Description("pageId from list_pages or search_pages, exactly as returned (opaque).")] string pageId, Guid? accountId = null, [Description("Character offset into the text.")] int offset = 0, [Description("Characters per page.")] int maxChars = DefaultMaxChars, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var page = await ReadAsync($"{Base}/accounts/{account}/onenote/pages/{Uri.EscapeDataString(pageId)}", ct) ?? default;
@@ -300,7 +302,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "search_pages", Title = "Search OneNote pages", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Searches OneNote pages by title (the page text is not searched). Optionally limited to one notebook. partial is true when a large notebook could only be searched in part.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.Read)]
-        public async Task<string> SearchPages([Description("Text to find in page titles, 1-100 characters.")] string query, [Description("Only search this notebook (notebookId from list_notebooks).")] string? notebookId = null, Guid? accountId = null, [Description("Hits to return, 1-50.")] int limit = 25, CancellationToken ct = default)
+        public async Task<string> SearchPages([Description("Text to find in page titles, 1-100 characters.")] string query, [Description("Only search this notebook (notebookId from list_notebooks, exactly as returned).")] string? notebookId = null, Guid? accountId = null, [Description("Hits to return, 1-50.")] int limit = 25, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             var url = $"{Base}/accounts/{account}/onenote/search?q={Uri.EscapeDataString(query)}&top={Math.Clamp(limit, 1, 50)}" + (string.IsNullOrWhiteSpace(notebookId) ? "" : $"&notebook={Uri.EscapeDataString(notebookId)}");
@@ -320,7 +322,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "create_page", Title = "Create OneNote page", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
         [Description("Creates a new page in a OneNote section of the user's real notebook, with a title and optional plain text (one paragraph per line). Formatting is not supported. Confirm with the user first.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.ReadWrite)]
-        public async Task<string> CreatePage([Description("sectionId from list_sections.")] string sectionId, [Description("Page title, 1-255 characters.")] string title, [Description("Plain-text content, one paragraph per line.")] string? content = null, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> CreatePage([Description("sectionId from list_sections, exactly as returned (opaque).")] string sectionId, [Description("Page title, 1-255 characters.")] string title, [Description("Plain-text content, one paragraph per line.")] string? content = null, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             if (content is { Length: > OneNoteText.MaxWriteChars })
@@ -333,7 +335,7 @@ namespace Schuly.API.Mcp.Tools
         [McpServerTool(Name = "update_page", Title = "Update OneNote page", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
         [Description("Edits a page in the user's real OneNote notebook: renames it and/or appends plain text as new paragraphs at the end. Existing content cannot be replaced or removed with this tool. Appending twice adds the text twice. Confirm with the user first.")]
         [McpAccess(McpArea.OneNote, McpAccessLevel.ReadWrite)]
-        public async Task<string> UpdatePage([Description("pageId from list_pages or search_pages.")] string pageId, [Description("New title, 1-255 characters.")] string? title = null, [Description("Plain text to append, one paragraph per line.")] string? appendText = null, Guid? accountId = null, CancellationToken ct = default)
+        public async Task<string> UpdatePage([Description("pageId from list_pages or search_pages, exactly as returned (opaque).")] string pageId, [Description("New title, 1-255 characters.")] string? title = null, [Description("Plain text to append, one paragraph per line.")] string? appendText = null, Guid? accountId = null, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
             if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(appendText))

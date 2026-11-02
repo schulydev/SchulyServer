@@ -41,7 +41,7 @@ namespace Schuly.Tests.Mcp
             Http = app.GetTestClient();
         }
 
-        public static async Task<McpHttpHost> StartAsync(string databaseName)
+        public static async Task<McpHttpHost> StartAsync(string databaseName, Action<IServiceCollection>? configureServices = null, Action<WebApplication>? mapPlugins = null)
         {
             var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
             builder.WebHost.UseTestServer();
@@ -58,6 +58,7 @@ namespace Schuly.Tests.Mcp
             });
             builder.Services.AddAuthorization(o => o.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
             builder.Services.AddSchulyMcp(builder.Configuration);
+            configureServices?.Invoke(builder.Services);
 
             var app = builder.Build();
             app.UseAuthentication();
@@ -67,6 +68,11 @@ namespace Schuly.Tests.Mcp
             app.MapGet("/api/ping", (HttpContext c) => c.User.FindFirst("sub")?.Value ?? "none");
             app.MapSchulyOAuthEndpoints();
             app.MapSchulyMcp();
+            if (mapPlugins is not null)
+            {
+                mapPlugins(app);
+                Schuly.API.Mcp.InProcessPluginApi.Build(app);
+            }
             await app.StartAsync();
             return new McpHttpHost(app);
         }
