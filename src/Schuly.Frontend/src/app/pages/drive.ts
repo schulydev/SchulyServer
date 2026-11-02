@@ -141,7 +141,7 @@ type DriveLayout = 'schuly' | 'explorer';
       }
 
       @if (layout.value() === 'explorer' && !store.problem()) {
-        <app-drive-explorer [trail]="trail()" (navigate)="go(null, $event)" (view)="view($event)" />
+        <app-drive-explorer [trail]="trail()" (navigate)="go(null, $event)" (view)="view($event.entry, $event.files)" />
       } @else if (store.waiting() || store.loading()) {
         <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-4">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
@@ -249,8 +249,10 @@ export class Drive {
   }
 
   /** Fetches the pre-authenticated download link as a blob; the viewer shows PDFs, images and text and offers a download for the rest. */
-  protected view(entry: DriveEntry | null = this.current()): void {
+  protected view(entry: DriveEntry | null = this.current(), order: DriveEntry[] | null = null): void {
     if (!entry?.download) return;
+    // The explorer passes its own (sorted) order; the card view uses the filtered list.
+    this.viewerOrder.set(order);
     this.viewing.set(this.viewerFiles().find((f) => f.key === this.keyOf(entry)) ?? null);
   }
 
@@ -259,10 +261,12 @@ export class Drive {
   }
 
   /** The files of the current folder (no folders) for the viewer; Office formats also get the server-side PDF rendering. */
+  private readonly viewerOrder = signal<DriveEntry[] | null>(null);
+
   protected readonly viewerFiles = computed<ViewerFile[]>(() => {
     const endpoint = this.accounts.endpoint('drive');
     if (!endpoint) return [];
-    return this.filtered()
+    return (this.viewerOrder() ?? this.filtered())
       .filter((e) => !e.isFolder && e.download)
       .map((entry) => {
         const url = entry.download as string;
