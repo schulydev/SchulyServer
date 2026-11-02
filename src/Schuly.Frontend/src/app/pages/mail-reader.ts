@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -27,6 +26,7 @@ import { MailBody } from '../shared/mail-body';
 import { ActionResult, MailAttachment, MailClient } from '../stores/mail-client';
 import { MailStore } from '../stores/capability-data.store';
 import { ComposeMode } from './mail-compose';
+import { AppDatePipe } from '../core/date-format';
 
 export interface MailSummary {
   id: string;
@@ -46,7 +46,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
 /** The reading pane: toolbar, header, attachments and the sandboxed body. Falls back to the list preview when the server cannot return full messages. */
 @Component({
   selector: 'app-mail-reader',
-  imports: [DatePipe, HlmButton, HlmDropdownMenuImports, HlmSkeletonImports, NgIcon, MailBody, FileViewer, SenderAvatar],
+  imports: [AppDatePipe, HlmButton, HlmDropdownMenuImports, HlmSkeletonImports, NgIcon, MailBody, FileViewer, SenderAvatar],
   providers: [
     provideIcons({
       lucideArrowLeft,
@@ -141,7 +141,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
           }
         </div>
         @if (detail()?.received ?? summary().received; as received) {
-          <time class="text-muted-foreground shrink-0 text-xs max-sm:ps-13" [attr.datetime]="received">{{ received | date: 'EEE d MMM y, HH:mm' }}</time>
+          <time class="text-muted-foreground shrink-0 text-xs max-sm:ps-13" [attr.datetime]="received">{{ received | appDate: 'weekdayDateTime' }}</time>
         }
       </div>
 

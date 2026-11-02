@@ -93,6 +93,8 @@ interface CatalogueEmojiRaw {
 export interface CatalogueEmoji extends ChatEmoji {
   shortcuts: string[];
   keywords: string[];
+  /** Has skin-tone variants, sent as `<id>-tone1` .. `<id>-tone5`. */
+  diverse: boolean;
   /** Lower-cased title, keywords and shortcuts, for search. */
   haystack: string;
 }
@@ -108,6 +110,23 @@ export interface Catalogue {
   /** Normalized shortcut ("laugh", "smile") to emoji. */
   byShortcut: Map<string, CatalogueEmoji>;
   all: CatalogueEmoji[];
+}
+
+export const SKIN_TONES = [1, 2, 3, 4, 5] as const;
+export type SkinTone = (typeof SKIN_TONES)[number];
+
+/** Unicode skin-tone modifiers (light to dark) for tone1 .. tone5. */
+const TONE_MODIFIERS = ['\u{1F3FB}', '\u{1F3FC}', '\u{1F3FD}', '\u{1F3FE}', '\u{1F3FF}'];
+
+/** The character with a skin tone applied after its first code point. */
+export function tonedChar(char: string, tone: SkinTone): string {
+  const [first, ...rest] = Array.from(char.replace(/\uFE0F/g, ''));
+  return first ? first + TONE_MODIFIERS[tone - 1] + rest.join('') : char;
+}
+
+/** The emoji in a skin tone: same emoji, id `<id>-tone<n>` as Teams expects, and the matching character as its fallback. */
+export function toneEmoji<T extends ChatEmoji>(emoji: T, tone: SkinTone): T {
+  return { ...emoji, id: `${emoji.id.replace(/-tone[1-5]$/, '')}-tone${tone}`, alt: tonedChar(emoji.alt, tone) };
 }
 
 /** `:smile:`, `(laugh)` and `laugh` all become `laugh`. */
@@ -128,7 +147,7 @@ export function parseCatalogue(raw: unknown): Catalogue | null {
       const base = fromMessageEmoji({ id: e.id, alt: e.unicode, title: e.title, animated: e.animated, staticUrl: e.staticUrl, animatedUrl: e.animatedUrl, frames: e.frames, frameMs: e.frameMs, firstFrame: e.firstFrame });
       const shortcuts = e.shortcuts ?? [];
       const keywords = e.keywords ?? [];
-      const emoji: CatalogueEmoji = { ...base, id: e.id, shortcuts, keywords, haystack: [e.title ?? '', ...keywords, ...shortcuts].join(' ').toLowerCase() };
+      const emoji: CatalogueEmoji = { ...base, id: e.id, shortcuts, keywords, diverse: e.diverse === true, haystack: [e.title ?? '', ...keywords, ...shortcuts].join(' ').toLowerCase() };
       emojis.push(emoji);
       all.push(emoji);
       for (const s of shortcuts) {

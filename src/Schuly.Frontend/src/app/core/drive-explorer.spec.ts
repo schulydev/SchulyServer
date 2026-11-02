@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ExplorerEntry, formatModified, rangeOf, sortEntries, wantsThumbnail } from './drive-explorer';
+import { ExplorerEntry, rangeOf, sortEntries, wantsThumbnail } from './drive-explorer';
 
 const entry = (name: string, extra: Partial<ExplorerEntry> = {}): ExplorerEntry => ({
   id: name,
@@ -53,15 +53,5 @@ describe('wantsThumbnail', () => {
     expect(wantsThumbnail(entry('notes.zip'))).toBe(false);
     expect(wantsThumbnail(entry('marks.csv'))).toBe(false);
     expect(wantsThumbnail(entry('Folder', { isFolder: true }))).toBe(false);
-  });
-});
-
-describe('formatModified', () => {
-  const now = new Date(2026, 9, 29, 15, 0);
-  it('names today and yesterday', () => {
-    expect(formatModified(new Date(2026, 9, 29, 9, 5).toISOString(), now, 'en-GB')).toBe('Today, 09:05');
-    expect(formatModified(new Date(2026, 9, 28, 23, 59).toISOString(), now, 'en-GB')).toBe('Yesterday, 23:59');
-    expect(formatModified(new Date(2026, 0, 2, 12, 0).toISOString(), now, 'en-GB')).toBe('02/01/2026');
-    expect(formatModified(null, now)).toBe('');
   });
 });

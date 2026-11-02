@@ -67,7 +67,7 @@ export interface BubbleSticker {
 
 export type CardBlock =
   | { kind: 'text'; text: string; bold: boolean; subtle: boolean; large: boolean }
-  | { kind: 'image'; url: string; alt: string }
+  | { kind: 'image'; url: string; alt: string; host: string; trusted: boolean }
   | { kind: 'facts'; facts: { title: string; value: string }[] };
 
 export interface CardView {
@@ -108,6 +108,31 @@ export function allowedMediaUrl(url: string | null | undefined): string | null {
     return u.protocol === 'https:' && !u.username && !u.password && !u.port && MEDIA_HOSTS.has(u.hostname) ? u.href : null;
   } catch {
     return null;
+  }
+}
+
+/** Hosts card images load from without asking: Microsoft's Teams and media CDNs, matched exactly or as a subdomain of these. */
+const CARD_IMAGE_HOSTS = new Set(['statics.teams.cdn.office.net', 'teams.public.onecdn.static.microsoft']);
+const CARD_IMAGE_DOMAINS = ['teams.microsoft.com', 'asm.skype.com'];
+
+/** Whether a card image on this https URL may load unprompted; anything else waits for a click, since the sender sees when it is fetched. */
+export function isTrustedCardImage(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' || u.username || u.password || u.port) return false;
+    const host = u.hostname.toLowerCase();
+    return CARD_IMAGE_HOSTS.has(host) || CARD_IMAGE_DOMAINS.some((d) => host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
+/** The host a card image comes from, for the "Show image" button; empty when the URL does not parse. */
+export function cardImageHost(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
   }
 }
 
@@ -152,7 +177,10 @@ export function cardView(card: MessageCard, index: number): CardView | null {
         }
         case 'Image': {
           const url = text(item['url']);
-          if (isHttps(url)) blocks.push({ kind: 'image', url, alt: text(item['altText']) });
+          // Images behind a Microsoft sign-in cannot load from a bare URL; those are left out rather than fetched without credentials.
+          if (isHttps(url) && !/graph\.microsoft\.com|hostedcontents/i.test(url)) {
+            blocks.push({ kind: 'image', url, alt: text(item['altText']), host: cardImageHost(url), trusted: isTrustedCardImage(url) });
+          }
           break;
         }
         case 'FactSet': {

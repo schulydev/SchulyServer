@@ -1,13 +1,14 @@
 import { Component, computed, input, model } from '@angular/core';
+import { formatWhen, uiLocale } from '../core/date-format';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { HlmDatePickerImports, provideHlmDatePickerConfig } from '@spartan-ng/helm/date-picker';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { fromIsoDate, toIsoDate } from '../core/dates';
 
-const LOCALE = 'en-GB';
-const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const LOCALE = uiLocale();
+const DATE_FORMAT = { format: (date: Date) => formatWhen(date, 'weekdayDate', LOCALE) };
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) => formatWhen(new Date(2023, 0, 1 + i), 'weekday', LOCALE).replace('.', '').slice(0, 2));
 const longMonth = (month: number, year = 2000) => new Date(year, month).toLocaleDateString(LOCALE, { month: 'long' });
 
 /** Local date and time as the app's date picker plus a time input. `date` is yyyy-mm-dd, `time` is HH:mm. */

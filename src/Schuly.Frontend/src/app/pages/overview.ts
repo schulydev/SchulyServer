@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -24,6 +24,7 @@ import { AbsencesStore } from '../stores/absences.store';
 import { AgendaStore } from '../stores/agenda.store';
 import { GradesStore } from '../stores/grades.store';
 import { UserStore } from '../stores/user.store';
+import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-overview',
@@ -36,7 +37,7 @@ import { UserStore } from '../stores/user.store';
     HlmSkeletonImports,
     NgIcon,
     RouterLink,
-    DatePipe,
+    AppDatePipe,
     DecimalPipe,
     GradeBadge,
     AgendaTypeBadge,
@@ -113,7 +114,7 @@ import { UserStore } from '../stores/user.store';
             </div>
             <div class="text-muted-foreground">
               @if (upcoming()[0]?.date; as date) {
-                {{ date | date: 'EEEE, d MMMM' }}
+                {{ date | appDate: 'weekdayDayMonthLong' }}
               } @else {
                 Enjoy the quiet
               }
@@ -203,7 +204,7 @@ import { UserStore } from '../stores/user.store';
                           {{ grade.subject }}
                         </td>
                         <td hlmTd class="text-muted-foreground hidden md:table-cell">
-                          {{ grade.date | date: 'd MMM y' }}
+                          {{ grade.date | appDate: 'date' }}
                         </td>
                         <td hlmTd class="text-right"><app-grade-badge [score]="grade.score" /></td>
                       </tr>
@@ -237,16 +238,16 @@ import { UserStore } from '../stores/user.store';
               <div class="flex items-start gap-3">
                 <div class="bg-muted flex w-12 shrink-0 flex-col items-center rounded-md py-1.5">
                   <span class="text-muted-foreground text-[10px] font-medium uppercase">{{
-                    entry.start | date: 'MMM'
+                    entry.start | appDate: 'month'
                   }}</span>
                   <span class="text-lg leading-none font-semibold tabular-nums">{{
-                    entry.start | date: 'd'
+                    entry.start | appDate: 'day'
                   }}</span>
                 </div>
                 <div class="grid flex-1 gap-0.5">
                   <span class="truncate text-sm font-medium">{{ entry.title }}</span>
                   <span class="text-muted-foreground truncate text-xs"
-                    >@if (entry.end) {{{ entry.start | date: 'EEE, d MMM' }} - {{ entry.end | date: 'EEE, d MMM' }}} @else if (entry.allDay) {{{ entry.start | date: 'EEEE' }}, all day} @else {{{ entry.start | date: 'EEEE, HH:mm' }}}{{ entry.place ? ' - ' + entry.place : '' }}</span
+                    >@if (entry.end) {{{ entry.start | appDate: 'weekdayDayMonth' }} - {{ entry.end | appDate: 'weekdayDayMonth' }}} @else if (entry.allDay) {{{ entry.start | appDate: 'weekdayLong' }}, all day} @else {{{ entry.start | appDate: 'weekdayLongTime' }}}{{ entry.place ? ' - ' + entry.place : '' }}</span
                   >
                 </div>
                 <app-agenda-type-badge [type]="entry.entryType" />

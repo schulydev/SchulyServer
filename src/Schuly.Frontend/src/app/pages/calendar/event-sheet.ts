@@ -1,5 +1,4 @@
-import { formatDate } from '@angular/common';
-import { Component, LOCALE_ID, computed, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideClock,
@@ -11,6 +10,7 @@ import {
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { addDays, sameDay } from '../../core/calendar';
+import { formatWhen } from '../../core/date-format';
 import { CalendarStore } from '../../stores/calendar.store';
 
 @Component({
@@ -103,7 +103,6 @@ import { CalendarStore } from '../../stores/calendar.store';
 })
 export class EventSheet {
   protected readonly calendar = inject(CalendarStore);
-  private readonly locale = inject(LOCALE_ID);
   protected readonly source = computed(() => {
     const item = this.calendar.selected();
     return item
@@ -114,8 +113,8 @@ export class EventSheet {
   protected readonly when = computed(() => {
     const item = this.calendar.selected();
     if (!item) return '';
-    const date = (d: Date) => formatDate(d, 'EEEE, d MMMM y', this.locale);
-    const time = (d: Date) => formatDate(d, 'HH:mm', this.locale);
+    const date = (d: Date) => formatWhen(d, 'weekdayDateLong');
+    const time = (d: Date) => formatWhen(d, 'time');
     if (item.allDay) {
       const last = addDays(item.end, -1);
       return sameDay(item.start, last) || last < item.start

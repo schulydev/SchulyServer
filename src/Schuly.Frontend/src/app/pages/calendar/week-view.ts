@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import {
   HOUR_HEIGHT,
@@ -11,10 +10,11 @@ import {
 } from '../../core/calendar';
 import { CalendarStore } from '../../stores/calendar.store';
 import { tint } from './tint';
+import { AppDatePipe } from '../../core/date-format';
 
 @Component({
   selector: 'app-week-view',
-  imports: [DatePipe],
+  imports: [AppDatePipe],
   template: `
     <div class="overflow-x-auto rounded-lg border">
       <div class="min-w-[44rem]">
@@ -27,7 +27,7 @@ import { tint } from './tint';
               [attr.aria-pressed]="day.selected"
               (click)="calendar.selectDay(day.date)"
             >
-              <span class="text-muted-foreground text-xs">{{ day.date | date: 'EEE' }}</span>
+              <span class="text-muted-foreground text-xs">{{ day.date | appDate: 'weekday' }}</span>
               <span
                 [class]="
                   day.today
@@ -103,8 +103,8 @@ import { tint } from './tint';
                     <span class="block truncate font-medium">{{ placed.item.title }}</span>
                     @if (placed.height > 34) {
                       <span class="text-muted-foreground block truncate tabular-nums">
-                        {{ placed.item.start | date: 'HH:mm' }} -
-                        {{ placed.item.end | date: 'HH:mm' }}
+                        {{ placed.item.start | appDate: 'time' }} -
+                        {{ placed.item.end | appDate: 'time' }}
                       </span>
                     }
                   </button>

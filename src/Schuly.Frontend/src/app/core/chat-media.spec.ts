@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allowedMediaUrl, cardView, formatSize } from './chat-media';
+import { allowedMediaUrl, cardView, formatSize, isTrustedCardImage } from './chat-media';
 
 describe('cardView', () => {
   it('flattens title, text, images and facts and ignores actions', () => {
@@ -53,5 +53,26 @@ describe('allowedMediaUrl', () => {
     expect(allowedMediaUrl('/api/plugins/microsoft/accounts/x/chats')).toBeNull();
     expect(allowedMediaUrl('javascript:alert(1)')).toBeNull();
     expect(allowedMediaUrl(null)).toBeNull();
+  });
+});
+
+describe('isTrustedCardImage', () => {
+  it('trusts only Microsoft and Teams hosts over plain https', () => {
+    expect(isTrustedCardImage('https://statics.teams.cdn.office.net/a.png')).toBe(true);
+    expect(isTrustedCardImage('https://eu-api.asyncgw.teams.microsoft.com/v1/objects/x/views/imgo')).toBe(true);
+    expect(isTrustedCardImage('https://eu-api.asm.skype.com/v1/objects/x')).toBe(true);
+  });
+  it('does not trust lookalikes, other hosts or odd URLs', () => {
+    expect(isTrustedCardImage('https://teams.microsoft.com.evil.test/a.png')).toBe(false);
+    expect(isTrustedCardImage('https://evilteams.microsoft.com.test/a.png')).toBe(false);
+    expect(isTrustedCardImage('https://nottracker.test/pixel.gif')).toBe(false);
+    expect(isTrustedCardImage('http://statics.teams.cdn.office.net/a.png')).toBe(false);
+    expect(isTrustedCardImage('https://user:pw@statics.teams.cdn.office.net/a.png')).toBe(false);
+    expect(isTrustedCardImage('https://statics.teams.cdn.office.net:8443/a.png')).toBe(false);
+    expect(isTrustedCardImage('nonsense')).toBe(false);
+  });
+  it('marks card images by trust and drops sign-in-gated ones', () => {
+    const view = cardView({ content: { body: [{ type: 'Image', url: 'https://t.example/p.gif' }, { type: 'Image', url: 'https://graph.microsoft.com/v1.0/x' }, { type: 'Image', url: 'https://statics.teams.cdn.office.net/a.png' }] } }, 0);
+    expect(view?.blocks.map((b) => (b.kind === 'image' ? b.trusted : null))).toEqual([false, true]);
   });
 });

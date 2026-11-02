@@ -34,7 +34,7 @@ import { AppSidebar } from './app-sidebar';
   template: `
     <div hlmSidebarWrapper>
       <app-sidebar />
-      <main hlmSidebarInset [class]="fullHeight() ? 'h-svh min-h-0 overflow-hidden' : ''">
+      <div hlmSidebarInset [class]="fullHeight() ? 'h-svh min-h-0 overflow-hidden' : ''">
         <header
           class="bg-background/90 sticky top-0 z-10 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur transition-[width,height] ease-linear"
         >
@@ -49,10 +49,10 @@ import { AppSidebar } from './app-sidebar';
             </div>
           </div>
         </header>
-        <div class="@container/main flex min-h-0 flex-1 flex-col" [class.overflow-hidden]="fullHeight()">
+        <main class="@container/main flex min-h-0 flex-1 flex-col" [class.overflow-hidden]="fullHeight()">
           <router-outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   `,
 })

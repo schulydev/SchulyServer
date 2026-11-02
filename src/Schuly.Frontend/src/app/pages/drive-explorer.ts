@@ -343,7 +343,7 @@ export class DriveExplorer {
       return {
         entry,
         type,
-        when: formatModified(entry.modified, now, this.locale),
+        when: formatModified(entry.modified, now),
         size: entry.isFolder ? items : size,
         meta: entry.isFolder ? (items ? `${items} · Folder` : 'Folder') : `${size} · ${type}`,
       };
