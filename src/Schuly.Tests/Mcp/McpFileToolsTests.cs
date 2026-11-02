@@ -122,7 +122,7 @@ namespace Schuly.Tests.Mcp
                 await Assert.That(request.Method).IsEqualTo("POST");
                 await Assert.That(request.Path).IsEqualTo("search");
                 var body = JsonDocument.Parse(request.Body).RootElement;
-                await Assert.That(body.GetProperty("types").EnumerateArray().Select(t => t.GetString())).IsEquivalentTo(cases[i].Types);
+                await Assert.That(body.GetProperty("types").EnumerateArray().Select(t => t.GetString() ?? "")).IsEquivalentTo(cases[i].Types);
                 await Assert.That(body.GetProperty("q").GetString()).IsEqualTo("Masterplan");
                 await Assert.That(body.GetProperty("teamId").GetString()).IsEqualTo("t1");
 
@@ -201,7 +201,7 @@ namespace Schuly.Tests.Mcp
 
             await CallAsync(client, "search_channel_messages", new() { ["query"] = "Plan" });
             var body = JsonDocument.Parse(seen.Last().Body).RootElement;
-            await Assert.That(body.GetProperty("types").EnumerateArray().Select(t => t.GetString())).IsEquivalentTo(new[] { "channels" });
+            await Assert.That(body.GetProperty("types").EnumerateArray().Select(t => t.GetString() ?? "")).IsEquivalentTo(new[] { "channels" });
         }
 
         private sealed class LinkedMicrosoftMediator : IMediator
