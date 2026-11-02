@@ -150,6 +150,7 @@ export class ChatMedia {
   protected viewFile(f: BubbleFile): void {
     const path = f.path;
     if (!path) return;
-    this.view.emit({ name: f.name, load: () => this.api.blob(path) });
+    // Office files convert to PDF where they live (SharePoint / OneDrive); the viewer only asks for that when the type needs it.
+    this.view.emit({ name: f.name, load: () => this.api.blob(path), pdf: () => this.api.blob(`${path}/pdf`), key: `chat|${path}` });
   }
 }

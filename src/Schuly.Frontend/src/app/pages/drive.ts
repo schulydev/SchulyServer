@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { Component, ElementRef, computed, inject, signal, viewChildren } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -27,6 +29,7 @@ import { LoadMore } from '../shared/load-more';
 import { AccountPicker } from '../shared/account-picker';
 import { AccountProblem } from '../shared/account-problem';
 import { SearchField } from '../shared/search-field';
+import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { DriveEntry, DriveKind, DriveStore } from '../stores/capability-data.store';
 import { DriveExplorer } from './drive-explorer';
 
@@ -138,7 +141,7 @@ type DriveLayout = 'schuly' | 'explorer';
       }
 
       @if (layout.value() === 'explorer' && !store.problem()) {
-        <app-drive-explorer [trail]="trail()" (navigate)="go(null, $event)" (view)="view($event)" />
+        <app-drive-explorer [trail]="trail()" (navigate)="go(null, $event)" (view)="view($event.entry, $event.files)" />
       } @else if (store.waiting() || store.loading()) {
         <div class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-4">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
@@ -186,7 +189,7 @@ type DriveLayout = 'schuly' | 'explorer';
         <app-empty-state icon="lucideHardDrive" title="This folder is empty" description="Files and folders from OneDrive appear here." />
       }
 
-      <app-file-viewer [file]="viewing()" (closed)="viewing.set(null)" />
+      <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
 
       <app-load-more
         label="Load more files"
@@ -201,6 +204,8 @@ type DriveLayout = 'schuly' | 'explorer';
 })
 export class Drive {
   protected readonly store = inject(DriveStore);
+  private readonly accounts = inject(LinkedAccountsStore);
+  private readonly http = inject(HttpClient);
 
   /** Which Drive layout is shown; remembered per browser. */
   protected readonly layout = persistedChoice<DriveLayout>('schuly.drive.layout', ['schuly', 'explorer'], 'schuly');
@@ -244,18 +249,39 @@ export class Drive {
   }
 
   /** Fetches the pre-authenticated download link as a blob; the viewer shows PDFs, images and text and offers a download for the rest. */
-  protected view(entry: DriveEntry | null = this.current()): void {
-    const url = entry?.download;
-    if (!entry || !url) return;
-    this.viewing.set({
-      name: entry.name,
-      load: async () => {
-        const response = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' });
-        if (!response.ok) throw new Error('download failed');
-        return response.blob();
-      },
-    });
+  protected view(entry: DriveEntry | null = this.current(), order: DriveEntry[] | null = null): void {
+    if (!entry?.download) return;
+    // The explorer passes its own (sorted) order; the card view uses the filtered list.
+    this.viewerOrder.set(order);
+    this.viewing.set(this.viewerFiles().find((f) => f.key === this.keyOf(entry)) ?? null);
   }
+
+  private keyOf(entry: { id: string; modified: string | null }): string {
+    return `drive:${this.accounts.selectedId('drive')}:${entry.id}:${entry.modified ?? ''}`;
+  }
+
+  /** The files of the current folder (no folders) for the viewer; Office formats also get the server-side PDF rendering. */
+  private readonly viewerOrder = signal<DriveEntry[] | null>(null);
+
+  protected readonly viewerFiles = computed<ViewerFile[]>(() => {
+    const endpoint = this.accounts.endpoint('drive');
+    if (!endpoint) return [];
+    return (this.viewerOrder() ?? this.filtered())
+      .filter((e) => !e.isFolder && e.download)
+      .map((entry) => {
+        const url = entry.download as string;
+        return {
+          name: entry.name,
+          key: this.keyOf(entry),
+          load: async () => {
+            const response = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+            if (!response.ok) throw new Error('download failed');
+            return response.blob();
+          },
+          pdf: () => firstValueFrom(this.http.get(`${endpoint}/files/${encodeURIComponent(entry.id)}/pdf`, { responseType: 'blob' })),
+        };
+      });
+  });
 
   protected setLayout(value: unknown): void {
     if (value === 'schuly' || value === 'explorer') this.layout.set(value);

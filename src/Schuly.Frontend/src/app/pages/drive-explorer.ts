@@ -309,8 +309,8 @@ export class DriveExplorer {
   readonly trail = input.required<string[]>();
   /** Open a folder: the full trail of names. */
   readonly navigate = output<string[]>();
-  /** Show a file in the viewer. */
-  readonly view = output<DriveEntry>();
+  /** Show a file in the viewer, with the files in their on-screen order for previous / next. */
+  readonly view = output<{ entry: DriveEntry; files: DriveEntry[] }>();
 
   protected readonly mode = persistedChoice<Mode>('schuly.drive.explorer.mode', ['list', 'grid'], 'list');
   private readonly sortChoice = persistedChoice<SortChoice>('schuly.drive.explorer.sort', SORT_CHOICES, 'name:asc');
@@ -576,7 +576,7 @@ export class DriveExplorer {
     if (entry.isFolder) {
       this.navigate.emit([...this.trail(), entry.name]);
     } else if (entry.download) {
-      this.view.emit(entry);
+      this.view.emit({ entry, files: this.rows().map((r) => r.entry).filter((e) => !e.isFolder && e.download) });
     } else if (entry.link) {
       window.open(entry.link, '_blank', 'noopener');
     }

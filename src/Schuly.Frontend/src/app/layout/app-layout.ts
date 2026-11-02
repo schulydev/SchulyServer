@@ -11,6 +11,8 @@ import { AbsencesStore } from '../stores/absences.store';
 import { AgendaStore } from '../stores/agenda.store';
 import { DataRefresh } from '../stores/data-refresh';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
+import { DrivePdfConverter } from '../stores/drive-pdf-converter';
+import { PDF_CONVERTER } from '../shared/file-viewer';
 import { ClassesStore } from '../stores/classes.store';
 import { DocumentsStore } from '../stores/documents.store';
 import { GradesStore } from '../stores/grades.store';
@@ -22,7 +24,7 @@ import { AppSidebar } from './app-sidebar';
 @Component({
   selector: 'app-layout',
   imports: [HlmSidebarImports, HlmButton, HlmSeparator, NgIcon, RouterOutlet, AppSidebar],
-  providers: [provideIcons({ lucideMoon, lucideSun }), UserStore, ClassesStore, GradesStore, AgendaStore, AbsencesStore, DocumentsStore, SecurityStore, DataRefresh, LinkedAccountsStore],
+  providers: [provideIcons({ lucideMoon, lucideSun }), UserStore, ClassesStore, GradesStore, AgendaStore, AbsencesStore, DocumentsStore, SecurityStore, DataRefresh, LinkedAccountsStore, { provide: PDF_CONVERTER, useClass: DrivePdfConverter }],
   styles: `
     [hlmSidebarWrapper] {
       --sidebar-width: calc(var(--spacing) * 64);
