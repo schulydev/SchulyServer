@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.ClientModel;
 using System.Text.Json;
 using Microsoft.Agents.AI;
@@ -344,7 +345,7 @@ namespace Schuly.API.Helply
                 var aborted = requestAborted.IsCancellationRequested || clientGone;
                 var timedOut = !aborted && ex is OperationCanceledException or TimeoutException && cts.IsCancellationRequested;
                 if (!aborted)
-                    logger.LogWarning("Helply turn failed ({Error}) in conversation {ConversationId}", ex.GetType().Name, conversation.Id);
+                    logger.LogWarning("Helply turn failed ({Error}, HTTP status {Status}) in conversation {ConversationId}", ex.GetType().Name, StatusOf(ex)?.ToString() ?? "none", conversation.Id);
 
                 // The session is only saved by a turn that finished, so the model-side history never holds half a turn.
                 var survivor = turn.Kind == HelplyTurnKind.Approvals ? original : Survivor(original, turn, userMessage, assistant, failed: !aborted);
@@ -413,6 +414,19 @@ namespace Schuly.API.Helply
             if (contents.Count == 0)
                 contents.Add(new TextContent(string.Empty));
             return new ChatMessage(ChatRole.User, contents);
+        }
+
+        /// <summary>The HTTP status behind a failure (an MCP connect or a gateway call), for the log. Only the number: never a body, URL, model or key.</summary>
+        public static int? StatusOf(Exception? ex)
+        {
+            for (var current = ex; current is not null; current = current.InnerException)
+            {
+                if (current is HttpRequestException { StatusCode: { } status })
+                    return (int)status;
+                if (current is ClientResultException { Status: > 0 } client)
+                    return client.Status;
+            }
+            return null;
         }
 
         private static string Shown(HelplyRedactor redactor, string text, int max) => redactor.Redact(text.Length <= max ? text : text[..max] + "\n...");
@@ -523,10 +537,10 @@ namespace Schuly.API.Helply
         {
             var size = HelplyToolInvoker.ArgumentChars(call.Arguments);
             if (size > maxArgumentChars)
-                yield return $"Too large to send ({size:N0} characters, the limit is {maxArgumentChars:N0}); it will not run even if you approve it";
+                yield return string.Create(CultureInfo.InvariantCulture, $"Too large to send ({size:N0} characters, the limit is {maxArgumentChars:N0}); it will not run even if you approve it");
             var copied = leaks.CopiedChars(string.Join("\n", arguments.Select(a => a.Value)));
             if (copied >= HelplyLeakDetector.FlagAtChars)
-                yield return $"Contains a long passage (about {copied:N0} characters) copied from your files or Helply's workspace";
+                yield return string.Create(CultureInfo.InvariantCulture, $"Contains a long passage (about {copied:N0} characters) copied from your files or Helply's workspace");
         }
 
         private static ToolApprovalResponseContent Response(HelplyStoredApproval pending, bool approved)

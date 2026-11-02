@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
@@ -71,7 +72,7 @@ namespace Schuly.API.Helply
             return await AsToolResult(async () =>
             {
                 if (command.Length > MaxCommandChars)
-                    return $"Error: the command is {command.Length:N0} characters; write long scripts to a file with write_file and run that.";
+                    return string.Create(CultureInfo.InvariantCulture, $"Error: the command is {command.Length:N0} characters; write long scripts to a file with write_file and run that.");
                 var left = quota.RemainingSeconds(userId);
                 if (left < 1)
                     return "Error: the user's workspace time for today is used up. Tell them it resets tomorrow and answer without running code.";
@@ -107,7 +108,7 @@ namespace Schuly.API.Helply
                 if (content is null)
                     return error!;
                 if (content.AsSpan(0, Math.Min(content.Length, 8192)).Contains((byte)0))
-                    return $"'{safe}' is a binary file ({content.Length:N0} bytes); inspect it with bash (file, python) instead.";
+                    return string.Create(CultureInfo.InvariantCulture, $"'{safe}' is a binary file ({content.Length:N0} bytes); inspect it with bash (file, python) instead.");
 
                 var lines = Encoding.UTF8.GetString(content).Split('\n');
                 var first = Math.Max(1, offset);

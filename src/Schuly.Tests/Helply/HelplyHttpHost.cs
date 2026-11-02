@@ -212,7 +212,7 @@ namespace Schuly.Tests.Helply
             Http = app.GetTestClient();
         }
 
-        public static async Task<HelplyHttpHost> StartAsync(string databaseName, bool enabled = true, Dictionary<string, string?>? settings = null)
+        public static async Task<HelplyHttpHost> StartAsync(string databaseName, bool enabled = true, Dictionary<string, string?>? settings = null, Action<IServiceCollection>? configure = null, bool behindProxy = false)
         {
             var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
             builder.WebHost.UseTestServer();
@@ -255,6 +255,9 @@ namespace Schuly.Tests.Helply
             builder.Services.AddSchulyMcp(builder.Configuration);
             builder.Services.AddSchulyHelply(builder.Configuration);
             builder.Services.AddSingleton<TimeProvider>(time);
+            configure?.Invoke(builder.Services);
+            if (behindProxy)
+                builder.Services.AddSchulyForwardedHeaders(builder.Configuration);
 
             builder.Services.AddHttpClient(HelplyGateway.ClientName).ConfigurePrimaryHttpMessageHandler(() => gateway);
             builder.Services.AddHttpClient(HelplyMcpConnector.ClientName).ConfigurePrimaryHttpMessageHandler(sp => ((TestServer)sp.GetRequiredService<IServer>()).CreateHandler());
@@ -264,6 +267,16 @@ namespace Schuly.Tests.Helply
                 .ConfigureApplicationPartManager(m => m.FeatureProviders.Add(new OnlyHelplyController()));
 
             var app = builder.Build();
+            if (behindProxy)
+            {
+                // Kestrel reports loopback for Helply's own MCP calls; the test server reports no address at all.
+                app.Use((context, next) =>
+                {
+                    context.Connection.RemoteIpAddress ??= System.Net.IPAddress.Loopback;
+                    return next(context);
+                });
+                app.UseForwardedHeaders();
+            }
             app.UseAuthentication();
             app.UseSchulyMcpGuards();
             app.UseRateLimiter();
@@ -272,7 +285,18 @@ namespace Schuly.Tests.Helply
             app.MapSchulyOAuthEndpoints();
             app.MapSchulyMcp();
             await app.StartAsync();
-            return new HelplyHttpHost(app, gateway, logs, time, calls);
+            if (behindProxy)
+            {
+                // Like production: the server listens on plain http, so Helply's MCP client goes to http://127.0.0.1 with the public host in the Host header.
+                var server = (TestServer)app.Services.GetRequiredService<IServer>();
+                var addresses = new Microsoft.AspNetCore.Hosting.Server.Features.ServerAddressesFeature();
+                addresses.Addresses.Add("http://0.0.0.0:8080");
+                server.Features.Set<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>(addresses);
+            }
+            var host = new HelplyHttpHost(app, gateway, logs, time, calls);
+            if (behindProxy)
+                host.Http.BaseAddress = new Uri("https://app.schuly.test");
+            return host;
         }
 
         private sealed class OnlyHelplyController : IApplicationFeatureProvider<ControllerFeature>
@@ -358,6 +382,31 @@ namespace Schuly.Tests.Helply
         }
 
         public Task<SseResult> SendMessageAsync(string token, Guid conversationId, string text) => StreamAsync(token, $"/api/helply/conversations/{conversationId}/messages", new { text });
+
+        public Task<SseResult> SendMessageAsync(string token, Guid conversationId, string text, params Guid[] attachmentIds) => StreamAsync(token, $"/api/helply/conversations/{conversationId}/messages", new { text, attachmentIds });
+
+        /// <summary>Uploads a file as the browser would: multipart, field "file", with the given name and declared content type.</summary>
+        public async Task<(int Status, JsonElement Json, string Body)> UploadAsync(string token, Guid conversationId, string fileName, string? contentType, byte[] data)
+        {
+            using var form = new MultipartFormDataContent();
+            var part = new ByteArrayContent(data);
+            if (contentType is not null)
+                part.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            form.Add(part, "file", fileName);
+            using var request = Request(HttpMethod.Post, $"/api/helply/conversations/{conversationId}/attachments", token);
+            request.Content = form;
+            using var response = await Http.SendAsync(request);
+            var text = await response.Content.ReadAsStringAsync();
+            return ((int)response.StatusCode, text.StartsWith('{') ? JsonDocument.Parse(text).RootElement.Clone() : default, text);
+        }
+
+        public async Task<Guid> UploadIdAsync(string token, Guid conversationId, string fileName, string? contentType, byte[] data)
+        {
+            var (status, json, body) = await UploadAsync(token, conversationId, fileName, contentType, data);
+            if (status != 200)
+                throw new InvalidOperationException($"Upload failed ({status}): {body}");
+            return json.GetProperty("id").GetGuid();
+        }
 
         public Task<SseResult> AnswerAsync(string token, Guid conversationId, params (string ApprovalId, bool Approved)[] decisions) =>
             StreamAsync(token, $"/api/helply/conversations/{conversationId}/approvals", new { decisions = decisions.Select(d => new { approvalId = d.ApprovalId, approved = d.Approved }).ToArray() });

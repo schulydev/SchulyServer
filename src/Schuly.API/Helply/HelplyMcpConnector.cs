@@ -71,7 +71,12 @@ namespace Schuly.API.Helply
 
             var headers = new Dictionary<string, string> { ["Authorization"] = "Bearer " + accessToken };
             if (host is not null)
+            {
+                // The loopback call is plain http, but the token's resource carries the public scheme (https behind the proxy). Without this the server derives
+                // http://host/mcp for the audience check and refuses the token.
                 headers["Host"] = host;
+                headers["X-Forwarded-Proto"] = publicEndpoint.Scheme;
+            }
 
             var transport = new HttpClientTransport(new HttpClientTransportOptions { Endpoint = endpoint, TransportMode = HttpTransportMode.StreamableHttp, AdditionalHeaders = headers }, clients.CreateClient(ClientName), ownsHttpClient: false);
             var client = await McpClient.CreateAsync(transport, cancellationToken: ct);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
@@ -23,7 +24,7 @@ namespace Schuly.API.Helply
         {
             var size = ArgumentChars(context.Arguments);
             if (size > maxArgumentChars)
-                return Error($"Refused: the arguments are {size:N0} characters long and a tool call may carry at most {maxArgumentChars:N0}. Send less content, or work with the file in the workspace and share it instead.");
+                return Error(string.Create(CultureInfo.InvariantCulture, $"Refused: the arguments are {size:N0} characters long and a tool call may carry at most {maxArgumentChars:N0}. Send less content, or work with the file in the workspace and share it instead."));
 
             var result = await context.Function.InvokeAsync(context.Arguments, cancellationToken);
 
@@ -46,7 +47,7 @@ namespace Schuly.API.Helply
             var text = ResultText(result);
             if (text.Length <= max)
                 return result;
-            return text[..max] + $"\n[Cut: the result was {text.Length:N0} characters and only the first {max:N0} are shown. Ask for less, or page through it.]";
+            return text[..max] + string.Create(CultureInfo.InvariantCulture, $"\n[Cut: the result was {text.Length:N0} characters and only the first {max:N0} are shown. Ask for less, or page through it.]");
         }
 
         /// <summary>How many identical calls end with <paramref name="call"/>, itself included, walking back through every tool call of the conversation so far.</summary>

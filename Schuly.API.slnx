@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Schuly.Sandbox/Schuly.Sandbox.csproj" />
     <Project Path="src/Schuly.Tests.Plugin/Schuly.Tests.Plugin.csproj" />
   </Folder>
   <Project Path="src/Schuly.API/Schuly.API.csproj" />
