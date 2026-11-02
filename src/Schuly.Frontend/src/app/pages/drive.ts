@@ -23,6 +23,7 @@ import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
 import { formatSize } from '../core/drive-explorer';
 import { DriveThumbnails } from '../core/drive-thumbnails';
 import { persistedChoice } from '../core/persisted';
+import { DriveThumb } from '../shared/drive-thumb';
 import { EmptyState } from '../shared/empty-state';
 import { FileViewer, ViewerFile } from '../shared/file-viewer';
 import { LoadMore } from '../shared/load-more';
@@ -30,25 +31,14 @@ import { AccountPicker } from '../shared/account-picker';
 import { AccountProblem } from '../shared/account-problem';
 import { SearchField } from '../shared/search-field';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
-import { DriveEntry, DriveKind, DriveStore } from '../stores/capability-data.store';
+import { DriveEntry, DriveStore } from '../stores/capability-data.store';
 import { DriveExplorer } from './drive-explorer';
-
-const kindIcons: Record<DriveKind, string> = {
-  folder: 'lucideFolder',
-  document: 'lucideFileText',
-  spreadsheet: 'lucideFileSpreadsheet',
-  presentation: 'lucidePresentation',
-  pdf: 'lucideFileType',
-  image: 'lucideImage',
-  archive: 'lucideFileArchive',
-  file: 'lucideFile',
-};
 
 type DriveLayout = 'schuly' | 'explorer';
 
 @Component({
   selector: 'app-drive',
-  imports: [HlmBreadcrumbImports, HlmButton, HlmSkeletonImports, HlmToggleGroupImports, NgIcon, DriveExplorer, EmptyState, FileViewer, LoadMore, AccountPicker, AccountProblem, SearchField],
+  imports: [HlmBreadcrumbImports, HlmButton, HlmSkeletonImports, HlmToggleGroupImports, NgIcon, DriveExplorer, DriveThumb, EmptyState, FileViewer, LoadMore, AccountPicker, AccountProblem, SearchField],
   providers: [
     provideIcons({
       lucideDownload,
@@ -170,13 +160,14 @@ type DriveLayout = 'schuly' | 'explorer';
               (click)="select(entry.id)"
               (dblclick)="select(entry.id); open()"
             >
-              <div
-                class="bg-muted text-muted-foreground flex aspect-4/3 items-center justify-center rounded-lg border border-transparent group-hover:border-border"
+              <app-drive-thumb
+                [entry]="entry"
+                size="medium"
+                iconSize="36"
+                class="bg-muted text-muted-foreground group-hover:border-border aspect-4/3 w-full rounded-lg border border-transparent"
                 [class.border-ring]="entry.id === selectedId()"
                 [class.text-foreground]="entry.id === selectedId()"
-              >
-                <ng-icon [name]="icon(entry.kind)" size="36" aria-hidden="true" />
-              </div>
+              />
               <div class="line-clamp-2 text-center text-sm leading-snug font-medium break-words" aria-hidden="true">{{ entry.name }}</div>
               <div class="text-muted-foreground text-center text-xs" aria-hidden="true">{{ meta(entry) }}</div>
             </div>
@@ -236,10 +227,6 @@ export class Drive {
     parts.push(`${files} ${files === 1 ? 'file' : 'files'}`, formatSize(total));
     return parts.join(' · ');
   });
-
-  protected icon(kind: DriveKind): string {
-    return kindIcons[kind];
-  }
 
   protected meta(entry: { isFolder: boolean; childCount: number | null; size: number; extension: string }): string {
     if (entry.isFolder) {
