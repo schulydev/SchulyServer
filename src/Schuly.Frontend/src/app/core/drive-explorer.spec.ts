@@ -51,6 +51,7 @@ describe('wantsThumbnail', () => {
     expect(wantsThumbnail(entry('deck.pptx'))).toBe(true);
     expect(wantsThumbnail(entry('logo.svg'))).toBe(false);
     expect(wantsThumbnail(entry('notes.zip'))).toBe(false);
+    expect(wantsThumbnail(entry('marks.csv'))).toBe(false);
     expect(wantsThumbnail(entry('Folder', { isFolder: true }))).toBe(false);
   });
 });

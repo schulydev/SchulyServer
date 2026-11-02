@@ -187,7 +187,7 @@ const PREFETCH_DELAY_MS = 120;
         @for (row of rows(); track row.entry.id; let i = $index) {
           <div
             role="row"
-            class="focus-visible:outline-ring grid min-h-10 cursor-default grid-cols-[minmax(0,1fr)_10rem_10rem_6rem] items-center border-b select-none focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 @max-[44rem]/explorer:grid-cols-[minmax(0,1fr)_7.5rem_4.5rem] @max-[30rem]/explorer:grid-cols-[minmax(0,1fr)_4.5rem] hover:bg-muted/60 aria-selected:bg-accent aria-selected:hover:bg-accent"
+            class="group focus-visible:outline-ring grid min-h-10 cursor-default grid-cols-[minmax(0,1fr)_10rem_10rem_6rem] items-center border-b select-none focus:outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 @max-[44rem]/explorer:grid-cols-[minmax(0,1fr)_7.5rem_4.5rem] @max-[30rem]/explorer:grid-cols-[minmax(0,1fr)_4.5rem] hover:bg-muted/60 aria-selected:bg-accent aria-selected:hover:bg-accent"
             [attr.aria-rowindex]="i + 2"
             [attr.aria-selected]="selected(row.entry.id)"
             [attr.data-entry-id]="row.entry.id"
@@ -205,9 +205,9 @@ const PREFETCH_DELAY_MS = 120;
               <app-drive-thumb [entry]="row.entry" size="small" iconSize="18" class="bg-muted/60 size-7 shrink-0 rounded-sm" />
               <span class="truncate" [title]="row.entry.name">{{ row.entry.name }}</span>
             </div>
-            <div role="gridcell" class="text-muted-foreground truncate px-2 text-sm @max-[30rem]/explorer:hidden">{{ row.when }}</div>
-            <div role="gridcell" class="text-muted-foreground truncate px-2 text-sm @max-[44rem]/explorer:hidden">{{ row.type }}</div>
-            <div role="gridcell" class="text-muted-foreground truncate px-2 text-right text-sm tabular-nums">{{ row.size }}</div>
+            <div role="gridcell" class="text-muted-foreground group-aria-selected:text-accent-foreground truncate px-2 text-sm @max-[30rem]/explorer:hidden">{{ row.when }}</div>
+            <div role="gridcell" class="text-muted-foreground group-aria-selected:text-accent-foreground truncate px-2 text-sm @max-[44rem]/explorer:hidden">{{ row.type }}</div>
+            <div role="gridcell" class="text-muted-foreground group-aria-selected:text-accent-foreground truncate px-2 text-right text-sm tabular-nums">{{ row.size }}</div>
           </div>
         }
       </div>
@@ -247,7 +247,7 @@ const PREFETCH_DELAY_MS = 120;
             </span>
             <app-drive-thumb [entry]="row.entry" size="medium" iconSize="40" class="bg-muted h-24 w-full rounded-md" />
             <span class="line-clamp-2 max-w-full leading-snug font-medium wrap-anywhere">{{ row.entry.name }}</span>
-            <span class="text-muted-foreground text-xs whitespace-nowrap tabular-nums">{{ row.meta }}</span>
+            <span class="text-muted-foreground group-aria-selected:text-accent-foreground text-xs whitespace-nowrap tabular-nums">{{ row.meta }}</span>
           </div>
         }
       </div>

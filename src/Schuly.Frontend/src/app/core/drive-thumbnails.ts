@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Service, effect, inject, untracked } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { createQueue } from './request-queue';
@@ -13,10 +13,10 @@ const MAX_KEPT = 400;
 
 /**
  * OneDrive preview images as object URLs, fetched with the signed-in session and only when asked
- * (a tile or row that became visible). Cached per account, item, version and size; a request whose
+ * (a tile or row that became visible). Provided by the Drive page. Cached per account, item, version and size; a request whose
  * tile left the page before its turn is skipped rather than sent.
  */
-@Service()
+@Injectable()
 export class DriveThumbnails {
   private readonly http = inject(HttpClient);
   private readonly accounts = inject(LinkedAccountsStore);

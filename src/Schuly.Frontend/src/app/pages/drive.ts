@@ -19,6 +19,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
 import { formatSize } from '../core/drive-explorer';
+import { DriveThumbnails } from '../core/drive-thumbnails';
 import { persistedChoice } from '../core/persisted';
 import { EmptyState } from '../shared/empty-state';
 import { FileViewer, ViewerFile } from '../shared/file-viewer';
@@ -61,6 +62,7 @@ type DriveLayout = 'schuly' | 'explorer';
       lucideSquareArrowOutUpRight,
     }),
     DriveStore,
+    DriveThumbnails,
   ],
   template: `
     <div class="flex flex-col gap-4 p-4 lg:p-6">

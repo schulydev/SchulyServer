@@ -33,7 +33,7 @@ const thumbnailKinds = new Set<FileKind>(['image', 'video', 'pdf', 'word', 'exce
 
 /** Whether OneDrive is likely to render a preview image; other kinds keep their icon without asking. */
 export function wantsThumbnail(entry: Pick<ExplorerEntry, 'name' | 'isFolder' | 'mime'>): boolean {
-  if (entry.isFolder || /\.svg$/i.test(entry.name)) return false;
+  if (entry.isFolder || /\.(svg|csv)$/i.test(entry.name)) return false;
   const kind = explorerKind(entry);
   return kind !== 'folder' && thumbnailKinds.has(kind);
 }
