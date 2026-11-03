@@ -1,5 +1,6 @@
 import { swrCache } from '../core/swr-cache';
-import { HttpErrorResponse } from '@angular/common/http';
+import { clearBrowserCaches } from '../core/browser-cache';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
@@ -26,7 +27,7 @@ export type SignInResult = 'signedIn' | 'challenge' | 'email';
 export const AuthStore = signalStore(
   { providedIn: 'root' },
   withState<AuthState>({ accessToken: null, status: 'unknown', challenge: null, emailChallenge: null }),
-  withMethods((store, api = inject(AuthApi), router = inject(Router)) => {
+  withMethods((store, api = inject(AuthApi), router = inject(Router), http = inject(HttpClient)) => {
     let refreshing: Observable<string | null> | null = null;
 
     const accept = (tokens: TokenResponse) => {
@@ -51,8 +52,10 @@ export const AuthStore = signalStore(
       accept(response);
       return 'signedIn';
     };
+    // Every way of ending up signed out passes here, so saved mail and chats can't outlast a session on a shared computer.
     const clear = () => {
       swrCache.clear();
+      void clearBrowserCaches();
       saveSession(null);
       patchState(store, { accessToken: null, status: 'signedOut', challenge: null, emailChallenge: null });
     };
@@ -119,8 +122,11 @@ export const AuthStore = signalStore(
         patchState(store, { challenge: null });
       },
       async signOut(): Promise<void> {
+        // Plugins get no sign-out event, and this needs the session that logout ends. A server without the plugin answers 404.
+        await firstValueFrom(http.delete('/api/plugins/microsoft/cached')).catch(() => undefined);
         await firstValueFrom(api.logout()).catch(() => undefined);
         clear();
+        await clearBrowserCaches();
         await router.navigateByUrl('/login');
       },
       signedOutElsewhere(): void {

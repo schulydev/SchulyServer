@@ -1,7 +1,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, effect, inject, untracked } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
+import { ResponseCache } from '../core/response-cache';
 import { Importance, MessageCard, MessageFile, MessageMedia } from '../core/chat-media';
 import { MessageEmoji } from '../core/chat-emoji';
 import { NOTES_TITLE, chatPeople } from '../core/chat-people';
@@ -245,9 +246,10 @@ export const ChatStore = signalStore(
       openChat: computed(() => chatItems().find((c) => c.id === store.openId()) ?? null),
     };
   }),
-  withMethods((store, http = inject(HttpClient), accounts = inject(LinkedAccountsStore)) => {
+  withMethods((store, http = inject(HttpClient), accounts = inject(LinkedAccountsStore), responses = inject(ResponseCache)) => {
     const base = (_id: string) => accounts.endpoint('chat') ?? '';
     const chatUrl = (id: string, chatId: string) => `${base(id)}/chats/${encodeURIComponent(chatId)}`;
+    const cachedChatUrl = (id: string, chatId: string) => `${base(id)}/cached/chats/${encodeURIComponent(chatId)}`;
 
     const photoQueue: (() => void)[] = [];
     let photoActive = 0;
@@ -308,19 +310,26 @@ export const ChatStore = signalStore(
         else patchState(store, { chatsLoading: !store.chats().length, problem: null });
       }
       try {
-        const items = await firstValueFrom(http.get<ChatSummary[]>(`${base(accountId)}/chats`, { params: { top } }));
-        if (accounts.selectedId('chat') !== accountId || seq !== chatsSeq) return;
-        const chats = Array.isArray(items) ? items : [];
-        if (top === CHATS_PAGE) swrCache.set(key, chats);
-        patchState(store, {
-          chats,
-          chatsLoading: false,
-          problem: null,
-          chatsMore: chats.length >= top && top < CHATS_MAX,
-          chatsLoadingMore: false,
-          chatsMoreFailed: false,
-          chatsLoadedMore: mode === 'more' ? { count: Math.max(0, chats.length - store.chats().length) } : store.chatsLoadedMore(),
-        });
+        await lastValueFrom(
+          responses.swr<ChatSummary[]>(`${base(accountId)}/cached/chats`, { top }, `${base(accountId)}/chats`).pipe(
+            tap((items) => {
+              if (accounts.selectedId('chat') !== accountId || seq !== chatsSeq) return;
+              const chats = Array.isArray(items) ? items : [];
+              if (top === CHATS_PAGE) swrCache.set(key, chats);
+              patchState(store, {
+                chats,
+                chatsLoading: false,
+                problem: null,
+                chatsMore: chats.length >= top && top < CHATS_MAX,
+                chatsLoadingMore: false,
+                chatsMoreFailed: false,
+                chatsLoadedMore: mode === 'more' ? { count: Math.max(0, chats.length - store.chats().length) } : store.chatsLoadedMore(),
+              });
+            }),
+          ),
+          { defaultValue: null },
+        );
+        if (accounts.selectedId('chat') === accountId && seq === chatsSeq) patchState(store, { chatsLoading: false, chatsLoadingMore: false });
       } catch (error) {
         if (accounts.selectedId('chat') !== accountId || seq !== chatsSeq) return;
         if (mode === 'more' || store.chatsLoadingMore()) {
@@ -352,22 +361,27 @@ export const ChatStore = signalStore(
         else patchState(store, { messagesLoading: !store.messages().length, messagesProblem: null });
       }
       try {
-        const items = await firstValueFrom(
-          http.get<ChatMessage[]>(`${chatUrl(accountId, chatId)}/messages`, { params: { top } }),
+        await lastValueFrom(
+          responses.swr<ChatMessage[]>(`${cachedChatUrl(accountId, chatId)}/messages`, { top }, `${chatUrl(accountId, chatId)}/messages`).pipe(
+            tap((items) => {
+              if (accounts.selectedId('chat') !== accountId || store.openId() !== chatId || seq !== messagesSeq) return;
+              const messages = (Array.isArray(items) ? items : []).slice().reverse();
+              if (top === MESSAGES_PAGE) swrCache.set(key, messages);
+              patchState(store, {
+                messages,
+                messagesLoading: false,
+                messagesProblem: null,
+                messagesMore: messages.length >= top && top < MESSAGES_MAX,
+                messagesLoadingMore: false,
+                messagesMoreFailed: false,
+                messagesLoadedMore:
+                  mode === 'more' ? { count: Math.max(0, messages.length - store.messages().length) } : store.messagesLoadedMore(),
+              });
+            }),
+          ),
+          { defaultValue: null },
         );
-        if (accounts.selectedId('chat') !== accountId || store.openId() !== chatId || seq !== messagesSeq) return;
-        const messages = (Array.isArray(items) ? items : []).slice().reverse();
-        if (top === MESSAGES_PAGE) swrCache.set(key, messages);
-        patchState(store, {
-          messages,
-          messagesLoading: false,
-          messagesProblem: null,
-          messagesMore: messages.length >= top && top < MESSAGES_MAX,
-          messagesLoadingMore: false,
-          messagesMoreFailed: false,
-          messagesLoadedMore:
-            mode === 'more' ? { count: Math.max(0, messages.length - store.messages().length) } : store.messagesLoadedMore(),
-        });
+        if (accounts.selectedId('chat') === accountId && store.openId() === chatId && seq === messagesSeq) patchState(store, { messagesLoading: false, messagesLoadingMore: false });
       } catch (error) {
         if (accounts.selectedId('chat') !== accountId || store.openId() !== chatId || seq !== messagesSeq) return;
         if (mode === 'more' || store.messagesLoadingMore()) {
@@ -388,16 +402,17 @@ export const ChatStore = signalStore(
       const accountId = accounts.selectedId('chat');
       const chatId = store.openId();
       if (!accountId || !chatId) return;
+      const now = new Date().toISOString();
+      const read = (chats: ChatSummary[]) => chats.map((c) => (c.id === chatId ? { ...c, viewpoint: { ...c.viewpoint, lastMessageReadDateTime: now } } : c));
+      const before = store.chats();
+      patchState(store, { chats: read(before) });
+      const undo = await responses.patch<ChatSummary[]>(`${base(accountId)}/cached/chats`, { top: store.chatsTop() }, read);
       try {
         await firstValueFrom(http.post(`${chatUrl(accountId, chatId)}/read`, {}));
-        const now = new Date().toISOString();
-        patchState(store, {
-          chats: store
-            .chats()
-            .map((c) => (c.id === chatId ? { ...c, viewpoint: { ...c.viewpoint, lastMessageReadDateTime: now } } : c)),
-        });
       } catch {
-        // Marking as read is best effort.
+        // Marking as read is best effort: the chat simply shows as unread again.
+        patchState(store, { chats: before });
+        await undo();
       }
     }
 
@@ -433,7 +448,7 @@ export const ChatStore = signalStore(
         const key = `${accountId}|chat|${chatId}`;
         const hit = swrCache.get(key);
         if (hit && hit.age < 30_000) return;
-        firstValueFrom(http.get<ChatMessage[]>(`${chatUrl(accountId, chatId)}/messages`, { params: { top: MESSAGES_PAGE } }))
+        lastValueFrom(responses.swr<ChatMessage[]>(`${cachedChatUrl(accountId, chatId)}/messages`, { top: MESSAGES_PAGE }, `${chatUrl(accountId, chatId)}/messages`), { defaultValue: null })
           .then((items) => Array.isArray(items) && swrCache.set(key, items.slice().reverse()))
           .catch(() => undefined);
       },

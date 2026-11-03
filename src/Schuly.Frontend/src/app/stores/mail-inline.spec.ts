@@ -55,7 +55,8 @@ describe('MailClient inline images', () => {
     const http = TestBed.inject(HttpTestingController);
 
     const opened = client.open('m1');
-    http.expectOne(`${BASE}/m1`).flush({ id: 'm1', subject: 'ahahahahahahah', hasAttachments: false, body: { contentType: 'html', content: `<p>das crazy</p><img src="cid:${CID}">` } });
+    await new Promise((r) => setTimeout(r));
+    http.expectOne('/api/plugins/microsoft/accounts/acc1/cached/mail/m1').flush({ id: 'm1', subject: 'ahahahahahahah', hasAttachments: false, body: { contentType: 'html', content: `<p>das crazy</p><img src="cid:${CID}">` } });
     await opened;
     await Promise.resolve();
     http.expectOne(`${BASE}/m1/attachments`).flush([{ id: 'a1', name: 'shot.png', contentType: 'image/png', size: PNG.length, isInline: true, contentId: CID }]);

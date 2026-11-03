@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -11,6 +11,7 @@ import { AbsencesStore } from '../stores/absences.store';
 import { AgendaStore } from '../stores/agenda.store';
 import { DataRefresh } from '../stores/data-refresh';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
+import { ResponseCache } from '../core/response-cache';
 import { DrivePdfConverter } from '../stores/drive-pdf-converter';
 import { PDF_CONVERTER } from '../shared/file-viewer';
 import { ClassesStore } from '../stores/classes.store';
@@ -59,6 +60,18 @@ import { AppSidebar } from './app-sidebar';
 export class AppLayout {
   private readonly router = inject(Router);
   protected readonly theme = inject(ThemeStore);
+  private readonly accounts = inject(LinkedAccountsStore);
+  private readonly responses = inject(ResponseCache);
+  private readonly started = new Set<string>();
+
+  // The first screen in one request, once per account per visit: mail and chats then draw at once.
+  private readonly startup = effect(() => {
+    const base = this.accounts.endpoint('mail');
+    if (base && !this.started.has(base)) {
+      this.started.add(base);
+      untracked(() => this.responses.bootstrap(base));
+    }
+  });
 
   private readonly leaf = toSignal(
     this.router.events.pipe(

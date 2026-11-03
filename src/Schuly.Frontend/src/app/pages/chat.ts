@@ -15,8 +15,9 @@ import { ChatApi } from '../core/chat-api';
 import { ChatStore } from '../stores/chat.store';
 import { ChatConversation } from './chat-conversation';
 
+import { keepFresh } from '../core/response-cache';
+
 const MESSAGE_POLL_MS = 15_000;
-const CHAT_POLL_MS = 60_000;
 
 @Component({
   selector: 'app-chat',
@@ -157,23 +158,13 @@ export class Chat {
   });
 
   constructor() {
-    const visible = () => document.visibilityState === 'visible';
-    const messages = setInterval(() => {
-      if (visible() && this.store.openId()) void this.store.refreshMessages();
-    }, MESSAGE_POLL_MS);
-    const chats = setInterval(() => {
-      if (visible()) void this.store.loadChats(true);
-    }, CHAT_POLL_MS);
-    const onVisible = () => {
-      if (!visible()) return;
-      void this.store.loadChats(true);
+    const stopMessages = keepFresh(() => {
       if (this.store.openId()) void this.store.refreshMessages();
-    };
-    document.addEventListener('visibilitychange', onVisible);
+    }, MESSAGE_POLL_MS);
+    const stopChats = keepFresh(() => void this.store.loadChats(true));
     inject(DestroyRef).onDestroy(() => {
-      clearInterval(messages);
-      clearInterval(chats);
-      document.removeEventListener('visibilitychange', onVisible);
+      stopMessages();
+      stopChats();
     });
   }
 
