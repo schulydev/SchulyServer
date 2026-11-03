@@ -286,6 +286,7 @@ Endpoints opt out with `[AllowAnonymous]`. These need no token:
 
 - The anonymous `/api/app` surface, such as the school-systems catalog and the static logo assets under
   `wwwroot`, so the app can load its login catalog.
+- School logos at `/api/schools/{id}/logo`. The server fetches each logo itself, so the logo host never sees a user.
 - Register, login, and the other public sign-in endpoints under `/auth`.
 
 ## Plugins

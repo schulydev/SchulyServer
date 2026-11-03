@@ -28,6 +28,9 @@ builder.Services.AddSchulyDatabase(builder.Configuration);
 builder.Services.AddSchulyPushNotifications(builder.Configuration);
 
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient(SchoolLogoProxy.ClientName, client => client.Timeout = TimeSpan.FromSeconds(5)).ConfigurePrimaryHttpMessageHandler(SchoolLogoProxy.Handler).RemoveAllLoggers();
+builder.Services.AddSingleton<SchoolLogoProxy>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IOidcService, OidcService>();

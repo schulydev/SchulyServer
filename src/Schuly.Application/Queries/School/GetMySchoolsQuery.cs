@@ -40,7 +40,7 @@ namespace Schuly.Application.Queries.School
                 Name = r.Name,
                 Email = r.Email,
                 FullName = (r.FirstName + " " + r.LastName).Trim(),
-                LogoUrl = r.LogoUrl,
+                LogoUrl = SchoolLogoPath.For(r.SchoolId, r.LogoUrl),
                 SchoolSystemKey = r.SchoolSystemKey,
                 ProfilePictureUrl = avatarSigner.ToPublicUrl(r.Id, r.ProfilePictureUrl),
             }).ToList();
