@@ -27,7 +27,7 @@ const MARKDOWN =
   '[&_.pk-code-container>pre]:bg-muted [&_.pk-code-container>pre]:my-3 [&_.pk-code-container>pre]:overflow-x-auto [&_.pk-code-container>pre]:rounded-md [&_.pk-code-container>pre]:border [&_.pk-code-container>pre]:p-3 [&_.pk-code-container>pre]:text-[13px] ' +
   '[&_.pk-code-block]:bg-card [&_.pk-code-copy]:rounded-sm [&_.pk-code-copy]:outline-none [&_.pk-code-copy:focus-visible]:ring-ring/50 [&_.pk-code-copy:focus-visible]:ring-3 ' +
   '[&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground ' +
-  '[&_table]:my-2 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border ' +
+  '[&_table]:my-2 [&_table]:block [&_table]:w-fit [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:rounded-lg [&_table]:border ' +
   '[&_table]:w-full [&_table]:text-xs [&_th]:bg-muted [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border-t [&_td]:px-2 [&_td]:py-1 [&_hr]:my-3';
 
 @Component({
