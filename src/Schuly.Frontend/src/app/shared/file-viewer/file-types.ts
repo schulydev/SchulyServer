@@ -84,6 +84,12 @@ export function viewerSupports(name: string): boolean {
   );
 }
 
+/** Video or audio by file name alone, so it can be played from a stream before any byte is fetched. */
+export function streamKindOf(name: string): 'video' | 'audio' | null {
+  const ext = extensionOf(name);
+  return ext in VIDEO_TYPES ? 'video' : ext in AUDIO_TYPES ? 'audio' : null;
+}
+
 /** The kind of Office document judged by file name alone, so a server-side conversion can start before the original is fetched. */
 export function officeFamilyOf(name: string): OfficeFamily | null {
   return OFFICE[extensionOf(name)] ?? null;

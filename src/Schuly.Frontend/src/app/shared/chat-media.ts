@@ -167,6 +167,6 @@ export class ChatMedia {
     const path = f.path;
     if (!path) return;
     // Office files convert to PDF where they live (SharePoint / OneDrive); the viewer only asks for that when the type needs it.
-    this.view.emit({ name: f.name, load: () => this.api.blob(path), pdf: () => this.api.blob(`${path}/pdf`), key: `chat|${path}` });
+    this.view.emit({ name: f.name, load: () => this.api.blob(path), pdf: () => this.api.blob(`${path}/pdf`), stream: () => this.api.streamUrl(path), key: `chat|${path}` });
   }
 }

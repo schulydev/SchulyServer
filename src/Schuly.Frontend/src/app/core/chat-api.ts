@@ -3,7 +3,9 @@ import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { Importance } from './chat-media';
+import { openMediaStream } from './media-stream';
 import { createQueue } from './request-queue';
+import { ThrottledError, throttleWait } from './throttle';
 import { Catalogue, catalogueLocale, parseCatalogue } from './chat-emoji';
 
 export interface Gif {
@@ -35,7 +37,9 @@ export interface MeetingResult {
 
 export type GifResult = { status: 'ok'; items: Gif[] } | { status: 'unavailable' } | { status: 'error' };
 
-const MAX_CONCURRENT_MEDIA = 4;
+const MAX_CONCURRENT_MEDIA = 3;
+/** How many times a thumbnail waits out a throttle before the card shows no preview; opening the chat again asks again. */
+const MAX_IMAGE_WAITS = 4;
 
 /**
  * Turns a path into an authenticated request URL under this account's API, or null when it is not safe to send the session to.
@@ -72,6 +76,8 @@ export class ChatApi {
 
   private readonly queue = createQueue(MAX_CONCURRENT_MEDIA);
   private readonly urls = new Map<string, Promise<string | null>>();
+  /** Until when Microsoft asked to wait: nothing is asked of it sooner, since that only extends the wait. */
+  private blockedUntil = 0;
   private catalogueCache: { account: string; promise: Promise<Catalogue | null> } | null = null;
 
   constructor() {
@@ -112,7 +118,44 @@ export class ChatApi {
   blob(path: string): Promise<Blob> {
     const url = safeApiPath(path, this.require());
     if (!url) return Promise.reject(new Error('Refusing to fetch an unsafe path.'));
-    return firstValueFrom(this.http.get(url, { responseType: 'blob' }));
+    const left = this.blockedUntil - Date.now();
+    if (left > 0) return Promise.reject(new ThrottledError(left));
+    return firstValueFrom(this.http.get(url, { responseType: 'blob' })).catch((error: unknown) => {
+      this.noteThrottle(error);
+      throw error;
+    });
+  }
+
+  /** A URL a `<video>` can play for a file behind an API path. */
+  async streamUrl(path: string): Promise<string> {
+    const url = safeApiPath(`${path}/stream`, this.require());
+    if (!url) throw new Error('Refusing to fetch an unsafe path.');
+    const left = this.blockedUntil - Date.now();
+    if (left > 0) throw new ThrottledError(left);
+    try {
+      return await openMediaStream(this.http, url);
+    } catch (error) {
+      this.noteThrottle(error);
+      throw error;
+    }
+  }
+
+  private noteThrottle(error: unknown): void {
+    const wait = throttleWait(error);
+    if (wait !== null) this.blockedUntil = Math.max(this.blockedUntil, Date.now() + wait);
+  }
+
+  /** The image's bytes, waiting out a throttle in the meantime without holding a place in the queue. */
+  private async imageBlob(path: string): Promise<Blob> {
+    for (let waits = 0; ; waits++) {
+      const left = this.blockedUntil - Date.now();
+      if (left > 0) await new Promise((resolve) => setTimeout(resolve, left));
+      try {
+        return await this.queue(() => this.blob(path));
+      } catch (error) {
+        if (throttleWait(error) === null || waits >= MAX_IMAGE_WAITS) throw error;
+      }
+    }
   }
 
   /** An object URL for an image behind an API path, de-duplicated and fetched at most four at a time; null when it has none. */
@@ -120,9 +163,13 @@ export class ChatApi {
     const key = `${this.accounts.selectedId('chat')}|${path}`;
     let found = this.urls.get(key);
     if (!found) {
-      found = this.queue(() => this.blob(path))
+      found = this.imageBlob(path)
         .then((blob) => (blob.size > 0 ? URL.createObjectURL(blob) : null))
-        .catch(() => null);
+        .catch((error: unknown) => {
+          // A picture that isn't there stays remembered; one that was only throttled is asked for again next time.
+          if (throttleWait(error) !== null) this.urls.delete(key);
+          return null;
+        });
       this.urls.set(key, found);
     }
     return found;

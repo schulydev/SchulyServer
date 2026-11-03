@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { ViewerFile } from '../shared/file-viewer';
 import { DriveEntry } from '../stores/capability-data.store';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
+import { openMediaStream } from './media-stream';
 
 /** Bytes of drive files for the viewer and for saving. Own OneDrive files use their pre-authenticated link, all others the plugin's drive item routes. */
 @Injectable()
@@ -27,6 +28,7 @@ export class DriveContent {
         key,
         load: () => firstValueFrom(this.http.get(`${item}/content`, { responseType: 'blob' })),
         pdf: () => firstValueFrom(this.http.get(`${item}/pdf`, { responseType: 'blob' })),
+        stream: () => openMediaStream(this.http, `${item}/stream`),
       };
     }
     const url = entry.download as string;

@@ -2,11 +2,13 @@ import { Component, DestroyRef, ViewEncapsulation, computed, effect, inject, inp
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronLeft, lucideChevronRight, lucideDownload, lucideExternalLink, lucideFileX, lucideX } from '@ng-icons/lucide';
+import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { errorStatus, throttleWait } from '../../core/throttle';
 import { Sheet, detectDelimiter, parseCsv } from './csv';
-import { Detected, canOpenInTab, detect, isPdfBytes, officeFamilyOf } from './file-types';
+import { Detected, canOpenInTab, detect, isPdfBytes, officeFamilyOf, streamKindOf } from './file-types';
 import { getCachedPdf, putCachedPdf } from './pdf-cache';
 import { PDF_CONVERTER } from './pdf-converter';
 import { ViewerFile } from './viewer-file';
@@ -26,6 +28,15 @@ type Rendered =
 const MAX_TEXT = 1024 * 1024;
 const MAX_PARSE = 5 * 1024 * 1024;
 
+/** How many times the viewer waits out a throttle on its own before it asks the user. */
+const MAX_THROTTLE_WAITS = 5;
+
+/** The dialog's size for what it shows: a picture or video brings its own, and only documents, which have none, get the large one. Below sm it is always the whole screen. */
+const DIALOG_BASE = 'h-dvh max-h-none w-screen max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-none p-0 sm:rounded-xl';
+const DIALOG_LARGE = 'sm:h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-none';
+const DIALOG_MEDIA = 'sm:h-fit sm:w-fit sm:min-w-lg sm:max-h-[calc(100dvh-2rem)] sm:max-w-[calc(100vw-2rem)]';
+const DIALOG_MODEST = 'sm:h-80 sm:w-lg sm:max-w-[calc(100vw-2rem)]';
+
 const decode = (bytes: Uint8Array, max: number) => new TextDecoder('utf-8').decode(bytes.subarray(0, max));
 
 async function isPdfBlob(blob: Blob): Promise<boolean> {
@@ -44,7 +55,7 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
         *hlmDialogPortal="let ctx"
         [showCloseButton]="false"
         (keydown)="onKeydown($event)"
-        class="h-dvh max-h-none w-screen max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-none p-0 sm:h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] sm:max-w-none sm:rounded-xl"
+        [class]="dialogClass()"
       >
         <header class="flex min-h-14 flex-wrap items-center gap-2 border-b px-4 py-2">
           @if (position(); as p) {
@@ -58,7 +69,7 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
               </button>
             </div>
           }
-          <h2 hlmDialogTitle class="min-w-0 flex-1 truncate text-base font-semibold">{{ current()?.name }}</h2>
+          <h2 hlmDialogTitle class="w-0 min-w-0 flex-1 truncate text-base font-semibold">{{ current()?.name }}</h2>
           <p hlmDialogDescription class="sr-only">File preview</p>
           <button hlmBtn variant="ghost" size="sm" type="button" [disabled]="phase() !== null || downloading()" (click)="download()">
             <ng-icon name="lucideDownload" class="text-base" aria-hidden="true" />
@@ -83,12 +94,25 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
               <hlm-spinner aria-hidden="true" />
               @if (phase === 'converting') {
                 Converting {{ current()?.name }} to PDF…
+              } @else if (phase === 'waiting') {
+                <span>
+                  Microsoft is limiting requests right now. Trying again by itself<span aria-hidden="true"> in {{ waitSeconds() }} s</span>.
+                </span>
               } @else {
                 Loading {{ current()?.name }}
               }
             </div>
           } @else if (failed()) {
-            <p class="text-muted-foreground m-auto text-sm" role="alert">Could not load this file. Try again.</p>
+            <div class="m-auto flex flex-col items-center gap-3 p-6 text-center" role="alert">
+              <p class="text-muted-foreground text-sm">
+                @if (failedThrottled()) {
+                  Microsoft is still limiting requests. Try again in a moment.
+                } @else {
+                  Could not load this file.
+                }
+              </p>
+              <button hlmBtn variant="outline" size="sm" type="button" (click)="retry()">Try again</button>
+            </div>
           } @else {
             @switch (shownKind()) {
               @case ('pdf') {
@@ -98,17 +122,17 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
               }
               @case ('image') {
                 <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
-                  <img [src]="mediaUrl()" [alt]="'Preview of ' + current()?.name" class="max-h-full max-w-full object-contain" (error)="mediaFailed.set(true)" />
+                  <img [src]="mediaUrl()" [alt]="'Preview of ' + current()?.name" class="max-h-full max-w-full object-contain sm:max-h-[calc(100dvh-7.5rem)] sm:max-w-[calc(100vw-4rem)]" (error)="mediaFailed.set(true)" />
                 </div>
               }
               @case ('video') {
                 <div class="flex min-h-0 flex-1 items-center justify-center p-4">
-                  <video controls preload="metadata" class="max-h-full max-w-full" [src]="mediaUrl()" [attr.aria-label]="'Video: ' + current()?.name" (error)="mediaFailed.set(true)"></video>
+                  <video controls preload="metadata" class="max-h-full max-w-full sm:max-h-[calc(100dvh-7.5rem)] sm:max-w-[calc(100vw-4rem)]" [src]="mediaUrl()" [attr.aria-label]="'Video: ' + current()?.name" (error)="mediaFailed.set(true)"></video>
                 </div>
               }
               @case ('audio') {
                 <div class="flex min-h-0 flex-1 items-center justify-center p-4">
-                  <audio controls preload="metadata" class="w-full max-w-xl" [src]="mediaUrl()" [attr.aria-label]="'Audio: ' + current()?.name" (error)="mediaFailed.set(true)"></audio>
+                  <audio controls preload="metadata" class="w-full max-w-xl sm:min-w-lg" [src]="mediaUrl()" [attr.aria-label]="'Audio: ' + current()?.name" (error)="mediaFailed.set(true)"></audio>
                 </div>
               }
               @case ('text') {
@@ -231,8 +255,10 @@ export class FileViewer {
 
   protected readonly current = linkedSignal<ViewerFile | null>(() => this.file());
 
-  protected readonly phase = signal<'loading' | 'converting' | null>(null);
+  protected readonly phase = signal<'loading' | 'converting' | 'waiting' | null>(null);
+  protected readonly waitSeconds = signal(0);
   protected readonly failed = signal(false);
+  protected readonly failedThrottled = signal(false);
   protected readonly mediaFailed = signal(false);
   protected readonly downloading = signal(false);
   protected readonly rendered = signal<Rendered | null>(null);
@@ -241,6 +267,12 @@ export class FileViewer {
   private readonly openable = signal(false);
 
   protected readonly shownKind = computed(() => (this.mediaFailed() ? 'none' : (this.rendered()?.kind ?? 'none')));
+  protected readonly dialogClass = computed(() => {
+    if (this.phase() !== null || this.failed()) return `${DIALOG_BASE} ${DIALOG_MODEST}`;
+    const kind = this.shownKind();
+    const size = kind === 'image' || kind === 'video' || kind === 'audio' ? DIALOG_MEDIA : kind === 'none' ? DIALOG_MODEST : DIALOG_LARGE;
+    return `${DIALOG_BASE} ${size}`;
+  });
   protected readonly pdf = computed(() => {
     const r = this.rendered();
     return r?.kind === 'pdf' ? r.safe : null;
@@ -298,6 +330,7 @@ export class FileViewer {
     this.original.set(null);
     this.openable.set(false);
     this.failed.set(false);
+    this.failedThrottled.set(false);
     this.mediaFailed.set(false);
     this.phase.set(null);
   }
@@ -306,23 +339,73 @@ export class FileViewer {
     this.reset();
     if (!file) return;
     const seq = this.seq;
-    this.phase.set('loading');
-    try {
-      if (file.pdf && officeFamilyOf(file.name)) {
-        if (await this.showConverted(file, seq, file.pdf)) return;
-        const raw = await file.load();
+    for (let waits = 0; seq === this.seq; waits++) {
+      this.phase.set('loading');
+      try {
+        await this.showOnce(file, seq);
+        break;
+      } catch (error) {
         if (seq !== this.seq) return;
-        await this.showOriginal(file, raw, seq, false);
-        return;
+        const wait = throttleWait(error);
+        if (wait !== null && waits < MAX_THROTTLE_WAITS) {
+          // Asked to wait: nothing else is requested for this file until the wait is over.
+          await this.waitOut(wait, seq);
+          continue;
+        }
+        if (errorStatus(error) === 413) this.rendered.set({ kind: 'none' });
+        else {
+          this.failed.set(true);
+          this.failedThrottled.set(wait !== null);
+        }
+        break;
       }
+    }
+    if (seq === this.seq) this.phase.set(null);
+  }
+
+  private async showOnce(file: ViewerFile, seq: number): Promise<void> {
+    if (file.stream && (await this.showStream(file, seq))) return;
+    if (seq !== this.seq) return;
+    if (file.pdf && officeFamilyOf(file.name)) {
+      if (await this.showConverted(file, seq, file.pdf)) return;
       const raw = await file.load();
       if (seq !== this.seq) return;
-      await this.showOriginal(file, raw, seq, true);
-    } catch {
-      if (seq === this.seq) this.failed.set(true);
-    } finally {
-      if (seq === this.seq) this.phase.set(null);
+      await this.showOriginal(file, raw, seq, false);
+      return;
     }
+    const raw = await file.load();
+    if (seq !== this.seq) return;
+    await this.showOriginal(file, raw, seq, true);
+  }
+
+  /** Plays video and audio from their URL, so a long one is never held whole. False when it should be fetched instead: another type, or a server that doesn't stream it. */
+  private async showStream(file: ViewerFile, seq: number): Promise<boolean> {
+    const kind = streamKindOf(file.name);
+    if (!kind || !file.stream) return false;
+    try {
+      const url = await file.stream();
+      if (seq === this.seq) this.rendered.set({ kind, url });
+      return true;
+    } catch (error) {
+      const status = errorStatus(error);
+      if (throttleWait(error) !== null || status === 413) throw error;
+      return false;
+    }
+  }
+
+  private async waitOut(ms: number, seq: number): Promise<void> {
+    this.phase.set('waiting');
+    const until = Date.now() + ms;
+    while (seq === this.seq) {
+      const left = until - Date.now();
+      if (left <= 0) return;
+      this.waitSeconds.set(Math.ceil(left / 1000));
+      await new Promise((resolve) => setTimeout(resolve, Math.min(1000, left)));
+    }
+  }
+
+  protected retry(): void {
+    void this.show(this.current());
   }
 
   private async showOriginal(file: ViewerFile, raw: Blob, seq: number, mayConvert: boolean): Promise<void> {
@@ -352,7 +435,9 @@ export class FileViewer {
         if (!(await isPdfBlob(result))) return false;
         pdf = new Blob([result], { type: 'application/pdf' });
         putCachedPdf(file.key, pdf);
-      } catch {
+      } catch (error) {
+        // Throttled, the original file would only be asked for in vain: everything waits instead.
+        if (throttleWait(error) !== null) throw error;
         return seq !== this.seq;
       }
     }
@@ -468,8 +553,9 @@ export class FileViewer {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch {
-      if (this.current() === file) this.failed.set(true);
+    } catch (error) {
+      if (throttleWait(error) !== null) toast.error('Microsoft is limiting requests. Try the download again in a minute.');
+      else if (this.current() === file) this.failed.set(true);
     } finally {
       this.downloading.set(false);
     }
