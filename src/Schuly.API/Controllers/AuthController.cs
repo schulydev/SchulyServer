@@ -55,6 +55,24 @@ namespace Schuly.API.Controllers
             return File(bytes, "application/json", "schuly-export.json");
         }
 
+        [HttpGet("me/privacy-notice")]
+        [ProducesResponseType(typeof(PrivacyNoticeStatusDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetPrivacyNotice(CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(new GetPrivacyNoticeStatusQuery(), cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPost("me/privacy-notice")]
+        [ProducesResponseType(typeof(PrivacyNoticeStatusDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AcceptPrivacyNotice([FromBody] AcceptPrivacyNoticeCommand command, CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(command, cancellationToken);
+            return result.ToActionResult();
+        }
+
         [HttpGet("sync")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

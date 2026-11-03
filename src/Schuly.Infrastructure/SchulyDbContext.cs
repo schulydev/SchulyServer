@@ -70,6 +70,7 @@ namespace Schuly.Infrastructure
                 // not unique to avoid a login-time collision.
                 entity.HasIndex(au => au.Email);
                 entity.Property(au => au.Email).HasMaxLength(255);
+                entity.Property(au => au.PolicyVersionAccepted).HasMaxLength(50);
                 entity.Property(au => au.DisplayName).HasMaxLength(200);
 
                 entity.HasMany(au => au.SchoolUsers)

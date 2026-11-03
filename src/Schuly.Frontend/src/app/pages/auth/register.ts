@@ -6,6 +6,7 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { PRIVACY_NOTICE } from '../../core/privacy-notice';
 import { takeReturnUrl } from '../../core/return-url';
 import { AuthStore, authErrorMessage } from '../../stores/auth.store';
 import { AuthLayout } from './auth-layout';
@@ -79,6 +80,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
               }
               Create account
             </button>
+            <p class="text-muted-foreground text-sm">{{ notice }}</p>
             <p class="text-muted-foreground text-center text-sm">
               By creating an account you agree to our
               <a
@@ -126,6 +128,7 @@ export class Register {
     void this.router.navigateByUrl('/login');
   }
 
+  protected readonly notice = PRIVACY_NOTICE;
   private readonly model = signal({ userName: '', email: '', password: '' });
   protected readonly account = form(
     this.model,

@@ -201,8 +201,18 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("PolicyAcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PolicyVersionAccepted")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SwissSchoolConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

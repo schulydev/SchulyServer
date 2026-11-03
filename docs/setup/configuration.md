@@ -268,6 +268,15 @@ The server exposes MCP at `/mcp`, so users can connect AI apps.
 
 You normally set only these two. Token lifetimes and limits also live under `Mcp:` and have working defaults (`McpOAuthOptions`).
 
+## Privacy notice
+
+| Key | Purpose |
+|---|---|
+| `Privacy:PolicyVersion` | Version of the current privacy policy (default `2026-11-03`). Change it to ask every user once more. |
+| `Privacy:PolicyUrl` | Where the notice links to (default `https://schuly.dev/privacy`). Point it at your own policy if you self-host. |
+
+The web app and the mobile app show the sign-up notice, including that absence reasons can reveal health information. After sign-in, a user who hasn't confirmed the current version sees it once more, and the server stores the version and time on the account. Older app versions don't show the prompt and keep working.
+
 ## Limit sign-ups to Switzerland
 
 Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `config/backend.env`) to accept new accounts only from Swiss networks. It's off by default.
@@ -275,6 +284,7 @@ Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `confi
 - Password sign-ups from other networks get an error. The server only compares the address with a built-in list, and doesn't store or log it.
 - OIDC providers can't create accounts, whatever `AllowSignUp` says. Accounts that already linked a provider keep using it.
 - Existing accounts keep working from anywhere. Private mode has no account, so this doesn't affect it.
+- Users also confirm "I attend a school in Switzerland." The server stores the time on the account, and private mode stores it on the device. With the setting off, nobody is asked. The confirmation doesn't replace the network check.
 - A Swiss address must reach the server. Set `ForwardedHeaders:KnownNetworks` correctly behind a proxy, or every sign-up is refused.
 
 The list comes from RIPE registry data, which shows where a network is registered, so it isn't exact. A VPN can get around it. To refresh the list before a release, run `scripts/update-swiss-networks.sh`.
