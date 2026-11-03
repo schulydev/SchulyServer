@@ -1,40 +1,45 @@
 # Migrations
 
-EF Core migrations live in `Schuly.Infrastructure`, with `Schuly.API` as the startup
-project. Helper scripts in `scripts/` wrap the `dotnet ef` commands.
+Use this page to add and manage EF Core migrations. They live in `Schuly.Infrastructure`, with
+`Schuly.API` as the startup project. The scripts in `scripts/` wrap the `dotnet ef` commands.
 
-## Add / manage migrations (bash)
+## Prerequisites
 
-`scripts/migration.sh` uses subcommands:
+- Install the tool: `dotnet tool install --global dotnet-ef`.
+- Run a Postgres that the `SchulyDatabase` connection string can reach. See
+  [Configuration](setup/configuration.md). For local work, run
+  `docker compose -f compose.dev.yml up -d`.
+
+## Add and manage migrations
 
 ```sh
 ./scripts/migration.sh add <Name>      # add a new migration
 ./scripts/migration.sh remove          # remove the last migration
 ./scripts/migration.sh list            # list all migrations
-./scripts/migration.sh update [Name]   # apply migrations (optionally up to <Name>)
+./scripts/migration.sh update [Name]   # apply migrations, optionally up to <Name>
 ./scripts/migration.sh drop            # drop the database
 ```
 
-Each subcommand targets `--project src/Schuly.Infrastructure --startup-project
-src/Schuly.API`.
+Each subcommand uses `--project src/Schuly.Infrastructure --startup-project src/Schuly.API`.
 
-## Windows
+On Windows, use `scripts/migration.ps1` or `scripts/migration.bat` with the same subcommands.
 
-- `scripts/migration.ps1` / `scripts/migration.bat` - PowerShell / batch equivalents.
-- `scripts/DbScript.ps1` - wraps DB lifecycle helpers (start/stop/recreate the dev
-  database, add migration, delete migrations, full reset). Run with `-help` for the
-  command list.
+## Manage the dev database on Windows
+
+`scripts/DbScript.ps1` controls the database in `compose.dev.yml`. Run it with `-help` for the command
+list.
+
+| Command | What it does |
+|---|---|
+| `-start-db` | Starts the compose stack |
+| `-stop-db` | Stops the compose stack |
+| `-recreate-db` | Stops the stack, runs `docker volume prune -f`, and starts it again |
+
+Don't use its `-add-migration`, `-delete-migrations`, or `-full-reset` commands. They point at
+`src\DockiUp.Infrastructure`, which doesn't exist in this repo. Use the migration scripts instead.
 
 ## Applied at startup
 
-Migrations are applied automatically when the API starts: `ApplyMigrations()` in
-`Program.cs` calls `db.Database.Migrate()`. The school-systems catalog is seeded
-afterward (seed-if-missing). No manual apply step is needed in development or
-production.
-
-## Prerequisites
-
-- The `dotnet-ef` tool: `dotnet tool install --global dotnet-ef`.
-- A running Postgres reachable via the `SchulyDatabase` connection string (see
-  [Configuration](setup/configuration.md)). For local work, start it with
-  `docker compose -f compose.dev.yml up -d`.
+The API applies migrations when it starts: `ApplyMigrations()` in `Program.cs` calls
+`db.Database.Migrate()`. It then seeds the school-systems catalog if entries are missing. You don't need
+a manual apply step in development or production.

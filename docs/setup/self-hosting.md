@@ -102,6 +102,7 @@ In the Schuly app, choose **Self-hosted** on the server screen and enter
 | Push notifications | Set `FIREBASE_SERVICE_ACCOUNT_JSON` in `.env`. See [Configuration](configuration.md#push-notifications-firebase). |
 | Microsoft password sign-in in the web app | Set `MICROSOFT_SERVICE_KEY` in `.env` to the output of `openssl rand -hex 32`. |
 | Single sign-on | See [Configuration](configuration.md#single-sign-on-oidc-providers). |
+| Helply, the AI assistant | Add `Helply__BaseUrl` and `Helply__ApiKey` to `config/backend.env`. See [Configuration](configuration.md#helply). |
 | Helply's code workspace | See the [deploy README](https://github.com/schulydev/SchulyServer/blob/main/deploy/README.md). |
 
 To choose which school systems your server offers, see [Plugin management](../plugin-management.md).
