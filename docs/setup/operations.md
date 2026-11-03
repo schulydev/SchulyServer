@@ -35,11 +35,13 @@ Once a day, Schuly removes expired data:
 
 | Data | Removed after | Setting |
 |---|---|---|
-| School data of a student who left | 6 months after the leave date | `Retention__MonthsAfterLeave` |
-| Schuly data of an inactive account | 12 months without a request | `Retention__MonthsInactive` |
+| School data and school logins of a student who left | 6 months after the leave date | `Retention__MonthsAfterLeave` |
+| An inactive account, including its sign-in | 12 months without a request | `Retention__MonthsInactive` |
 
-Change these in `config/backend.env`, or turn the sweep off with `Retention__Enabled`. The sign-in
-account stays, so someone whose data expired can sign in and sync again.
+Change these in `config/backend.env`, or turn the sweep off with `Retention__Enabled`. Owners of an
+inactive account with a verified address get a warning mail 30 days ahead (`Retention__InactivityWarningDays`,
+at least 14), so keep SMTP working: without the mail, those accounts aren't deleted. Failed deletions are
+retried daily. Watch the logs for `Retention sweep is incomplete`.
 
 When users delete their account, Schuly erases their school data, documents, and sign-in details
 immediately.

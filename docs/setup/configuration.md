@@ -161,14 +161,42 @@ same purge code as `DELETE /api/auth/me`, so a swept row leaves nothing behind i
 | Key | Purpose |
 |---|---|
 | `Retention:Enabled` | Whether the sweep runs at all (default `true`). |
-| `Retention:MonthsAfterLeave` | Drops cached school data for school users whose `LeaveDate` is older than this (default `6`). |
-| `Retention:MonthsInactive` | Deletes the Schuly data of accounts with no authenticated request for this long, not the sign-in account (default `12`). |
+| `Retention:MonthsAfterLeave` | Drops cached school data and notification rows of school users whose `LeaveDate` is older than this, and the owning plugin's accounts and secrets (default `6`). |
+| `Retention:MonthsInactive` | Deletes accounts with no authenticated request for this long, including the sign-in account (default `12`). |
+| `Retention:InactivityWarningDays` | How long before that deletion a verified address is warned (default `30`, minimum `14`; a lower value is raised to `14`). |
+| `Retention:SweepOrphanBlobs` | Whether objects no row points at are deleted (default `true`). |
+| `Retention:OrphanBlobGraceDays` | How old such an object must be first, so uploads on their way to a row are safe (default `7`). |
 
-`ApplicationUser.LastSeenAt` measures inactivity. The JWT validation pipeline stamps it at most once per
-hour, so a busy client doesn't write on every request. An account that was never stamped falls back to its
+`ApplicationUser.LastSeenAt` measures inactivity. JWT validation and MCP authentication stamp it at most once
+per hour, so a busy client doesn't write on every request. An account that was never stamped falls back to its
 `CreatedAt`.
 
-The sign-in account stays, so a swept account can sign in again and resync from scratch.
+**Warnings.** An account with a verified address gets one mail, and is never deleted before the date in it. An
+account already overdue when the warning goes out gets the full warning period. If the mail can't be sent, the
+sweep logs an error, keeps the account, and tries again the next day, so a broken mail server delays deletions.
+Accounts without a verified address are deleted on schedule, without mail.
+
+**Leavers.** The plugin that synced the student loses all of that user's data, unless the user is still at
+another school through the same plugin. In that case the Schulnetz plugin removes the one account itself on
+its next sync. An account whose sign-in has expired can't reach that step, so it stays until the inactivity
+deletion.
+
+**Failures.** A deletion step that fails (a blob, linked account secrets, a plugin's purge) doesn't stop the
+deletion. It stays in the `PendingPurges` table and is retried on every sweep until it works. While any step
+fails, the sweep logs at Error level.
+
+**Orphans.** Every sweep also cleans up what earlier deletions left, so the first sweep after an upgrade may
+remove a lot, and later ones little:
+
+- **Plugin data.** The host reads each loaded plugin's database, read-only, for uuid columns named
+  `ApplicationUserId`. For each id with no `ApplicationUsers` row, it sends the plugin's purge event. Skipped
+  while the host has no users at all.
+- **Accounts without a sign-in.** Removes `ApplicationUsers` rows whose version 7 `ExternalId` has no sign-in
+  row. Accounts from before the built-in sign-in have other ids and only age out. Skipped while there are no
+  sign-in rows at all.
+- **Blobs.** Deletes objects with a Schuly key, older than the grace period, that no document or picture row
+  points at. Skipped while no row points at any object. If a custom plugin keeps object keys only in its own
+  database, set `Retention:SweepOrphanBlobs` to `false`.
 
 ## Push notifications (Firebase)
 
@@ -181,7 +209,7 @@ through Firebase Cloud Messaging.
 | `Firebase:ServiceAccountPath` | Path to the service-account JSON file, as an alternative to the inline value. |
 
 With neither set, the backend logs once at startup that push notifications are off and sends nothing, so
-deployments without Firebase keep working. It still drains the outbox, so the table stays bounded.
+deployments without Firebase keep working. It still drains the outbox, so the table stays bounded. Handled rows are deleted, and rows never hold a grade value or an absence reason: a grade value is read from the grade when the push goes out.
 
 ## Helply
 
