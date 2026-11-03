@@ -11,7 +11,7 @@ namespace Schuly.Tests
         private static School NewSchool() => new() { Id = Guid.NewGuid(), Name = "Test School" };
 
         private static RetentionSweeper NewSweeper(Schuly.Infrastructure.SchulyDbContext ctx, RetentionOptions options) =>
-            new(ctx, new AccountPurger(ctx, new FakeDocumentStorage(), TestVault.Factory(), NullPluginUserDataPurger.Instance, NullLogger<AccountPurger>.Instance), Options.Create(options), NullLogger<RetentionSweeper>.Instance);
+            new(ctx, new AccountPurger(ctx, new FakeDocumentStorage(), TestVault.Factory(), NullPluginUserDataPurger.Instance, NullLogger<AccountPurger>.Instance), NullPluginUserDataPurger.Instance, new FakeUserStore(), new FakeDocumentStorage(), new FakeWarningSender(), Options.Create(options), NullLogger<RetentionSweeper>.Instance);
 
         private static RetentionOptions DefaultOptions() => new() { Enabled = true, MonthsAfterLeave = 6, MonthsInactive = 12 };
 

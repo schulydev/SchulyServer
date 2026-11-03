@@ -46,9 +46,6 @@ namespace Schuly.Application.Commands.User
             return Result.Success();
         }
 
-        public static bool IsStoredKey(string? value) =>
-            !string.IsNullOrWhiteSpace(value) &&
-            !value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
-            !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        public static bool IsStoredKey(string? value) => BlobKeys.IsStored(value);
     }
 }

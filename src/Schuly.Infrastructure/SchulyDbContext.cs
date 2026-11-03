@@ -27,6 +27,8 @@ namespace Schuly.Infrastructure
         public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<NotificationPreference> NotificationPreferences { get; set; }
         public DbSet<NotificationOutbox> NotificationOutbox { get; set; }
+        public DbSet<PendingPurge> PendingPurges { get; set; }
+        public DbSet<InactivityWarning> InactivityWarnings { get; set; }
         public DbSet<VaultEntry> VaultEntries { get; set; }
         public DbSet<LinkedAccount> LinkedAccounts { get; set; }
         public DbSet<PluginTask> PluginTasks { get; set; }
@@ -552,10 +554,21 @@ namespace Schuly.Infrastructure
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<PendingPurge>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Target).HasMaxLength(1024).IsRequired();
+                entity.Property(p => p.PluginSource).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<InactivityWarning>(entity =>
+            {
+                entity.HasKey(w => w.LoginId);
+            });
+
             modelBuilder.Entity<NotificationOutbox>(entity =>
             {
                 entity.HasKey(o => o.Id);
-                entity.Property(o => o.Score).HasPrecision(4, 2);
                 entity.Property(o => o.SubjectName).HasMaxLength(200);
                 entity.Property(o => o.Summary).HasMaxLength(300);
                 entity.Property(o => o.LastError).HasMaxLength(1000);

@@ -16,6 +16,15 @@ namespace Schuly.Tests.TestHelpers
             return Task.CompletedTask;
         }
 
+        public List<StoredBlob> Stored { get; } = [];
+
+        public async IAsyncEnumerable<StoredBlob> ListAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        {
+            foreach (var blob in Stored)
+                yield return blob;
+            await Task.CompletedTask;
+        }
+
         public Task<UploadedBlob> UploadAsync(Stream content, string fileName, string? contentType, CancellationToken ct) =>
             throw new NotSupportedException();
 

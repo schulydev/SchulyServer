@@ -7,7 +7,8 @@ using Schuly.Infrastructure;
 namespace Schuly.API.Services.Notifications
 {
     // Turns pending NotificationOutbox rows into pushes. Split out from the hosted loop so
-    // one drain pass is directly unit-testable.
+    // one drain pass is directly unit-testable. A row leaves the table as soon as it is
+    // handled: the outbox is a queue, not a record of what was sent.
     public sealed class NotificationDispatcher(SchulyDbContext dbContext, IPushSender sender, ILogger<NotificationDispatcher> logger)
     {
         private const int BatchSize = 100;
@@ -33,7 +34,7 @@ namespace Schuly.API.Services.Notifications
                     // Startup already logged that push is disabled; this repeats per poll,
                     // so keep it at Debug.
                     logger.LogDebug("Push sender is not configured; draining the notification outbox without sending");
-                    MarkSent(rows, now);
+                    dbContext.NotificationOutbox.RemoveRange(rows);
                     await dbContext.SaveChangesAsync(cancellationToken);
                     return rows.Count;
                 }
@@ -62,16 +63,17 @@ namespace Schuly.API.Services.Notifications
                 .ToListAsync(cancellationToken);
 
             var tokensByUser = tokens.GroupBy(t => t.ApplicationUserId).ToDictionary(g => g.Key, g => g.ToList());
+            var scores = await GradeValuesAsync(rows, preferences, cancellationToken);
             var unregisteredTokens = new HashSet<string>();
 
             foreach (var userGroup in rows.GroupBy(r => r.ApplicationUserId))
-                await DeliverForUserAsync(userGroup.Key, userGroup.ToList(), preferences.GetValueOrDefault(userGroup.Key), tokensByUser.GetValueOrDefault(userGroup.Key), unregisteredTokens, now, cancellationToken);
+                await DeliverForUserAsync(userGroup.Key, userGroup.ToList(), preferences.GetValueOrDefault(userGroup.Key), tokensByUser.GetValueOrDefault(userGroup.Key), scores, unregisteredTokens, now, cancellationToken);
 
             if (unregisteredTokens.Count > 0)
                 dbContext.DeviceTokens.RemoveRange(tokens.Where(t => unregisteredTokens.Contains(t.Token)));
         }
 
-        private async Task DeliverForUserAsync(Guid userId, List<NotificationOutbox> userRows, NotificationPreference? preference, List<DeviceToken>? userTokens, HashSet<string> unregisteredTokens, DateTime now, CancellationToken cancellationToken)
+        private async Task DeliverForUserAsync(Guid userId, List<NotificationOutbox> userRows, NotificationPreference? preference, List<DeviceToken>? userTokens, Dictionary<Guid, decimal> scores, HashSet<string> unregisteredTokens, DateTime now, CancellationToken cancellationToken)
         {
             var grades = preference?.Grades ?? true;
             var absences = preference?.Absences ?? true;
@@ -85,7 +87,7 @@ namespace Schuly.API.Services.Notifications
                 if (IsCategoryEnabled(row.Type, grades, absences, agenda))
                     deliverable.Add(row);
                 else
-                    MarkSent(row, now);
+                    dbContext.NotificationOutbox.Remove(row);
             }
 
             if (deliverable.Count == 0)
@@ -93,7 +95,7 @@ namespace Schuly.API.Services.Notifications
 
             if (userTokens is null || userTokens.Count == 0)
             {
-                MarkSent(deliverable, now);
+                dbContext.NotificationOutbox.RemoveRange(deliverable);
                 return;
             }
 
@@ -110,7 +112,7 @@ namespace Schuly.API.Services.Notifications
                         var localeTokens = localeGroup.Select(t => t.Token).ToList();
                         var message = groupRows.Count > 1
                             ? NotificationMessageFactory.CreateAggregate(typeGroup.Key, localeGroup.Key, groupRows.Count)
-                            : NotificationMessageFactory.Create(groupRows[0], localeGroup.Key, includeGradeValue);
+                            : NotificationMessageFactory.Create(groupRows[0], localeGroup.Key, includeGradeValue, scores.TryGetValue(groupRows[0].EntityId, out var score) ? score : null);
 
                         var result = await sender.SendAsync(localeTokens, message, cancellationToken);
 
@@ -118,7 +120,7 @@ namespace Schuly.API.Services.Notifications
                             unregisteredTokens.Add(deadToken);
                     }
 
-                    MarkSent(groupRows, now);
+                    dbContext.NotificationOutbox.RemoveRange(groupRows);
                 }
                 catch (Exception ex)
                 {
@@ -136,20 +138,20 @@ namespace Schuly.API.Services.Notifications
             _ => true,
         };
 
-        private static void MarkSent(List<NotificationOutbox> rows, DateTime now)
+        // Grade values are read when the push goes out, and only for users who asked to see them, so the outbox never holds one.
+        private async Task<Dictionary<Guid, decimal>> GradeValuesAsync(List<NotificationOutbox> rows, Dictionary<Guid, NotificationPreference> preferences, CancellationToken cancellationToken)
         {
-            foreach (var row in rows)
-                MarkSent(row, now);
+            var gradeIds = rows
+                .Where(r => r.Type is NotificationType.GradeAdded or NotificationType.GradeChanged && preferences.GetValueOrDefault(r.ApplicationUserId)?.IncludeGradeValue == true)
+                .Select(r => r.EntityId)
+                .ToList();
+
+            return gradeIds.Count == 0
+                ? []
+                : await dbContext.Grades.Where(g => gradeIds.Contains(g.Id)).ToDictionaryAsync(g => g.Id, g => g.Score, cancellationToken);
         }
 
-        private static void MarkSent(NotificationOutbox row, DateTime now)
-        {
-            row.Status = NotificationOutboxStatus.Sent;
-            row.SentAt = now;
-            row.UpdatedAt = now;
-        }
-
-        private static void MarkFailedAttempt(List<NotificationOutbox> rows, Exception ex, DateTime now)
+        private void MarkFailedAttempt(List<NotificationOutbox> rows, Exception ex, DateTime now)
         {
             var errorMessage = Truncate(ex.Message, 1000);
 
@@ -160,7 +162,10 @@ namespace Schuly.API.Services.Notifications
                 row.UpdatedAt = now;
 
                 if (row.RetryCount >= MaxRetryCount)
-                    row.Status = NotificationOutboxStatus.Failed;
+                {
+                    logger.LogWarning("Dropped a {Type} notification after {Attempts} failed attempts", row.Type, row.RetryCount);
+                    dbContext.NotificationOutbox.Remove(row);
+                }
                 else
                     row.NextAttemptAt = now + TimeSpan.FromMinutes(Math.Min(MaxRetryDelayMinutes, Math.Pow(2, row.RetryCount)));
             }

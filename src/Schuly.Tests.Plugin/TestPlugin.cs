@@ -25,6 +25,14 @@ namespace Schuly.Tests.Plugin
             File.WriteAllTextAsync(path, greeter.Greet(), cancellationToken);
     }
 
+    public sealed class TestPurgeHandler : IPluginEventHandler<PluginUserPurgeEvent>
+    {
+        public static readonly Guid FailFor = new("0a11ed00-0000-4000-8000-000000000001");
+
+        public Task HandleAsync(PluginUserPurgeEvent command, CancellationToken cancellationToken = default) =>
+            command.ApplicationUserId == FailFor ? throw new InvalidOperationException("Simulated purge failure") : Task.CompletedTask;
+    }
+
     /// <summary>
     /// Leaves a file behind when the child container that built it is disposed, so a test
     /// on the host side can tell whether a failed load actually tore its provider down.
@@ -52,6 +60,7 @@ namespace Schuly.Tests.Plugin
             services.AddScoped<TestGreeter>();
             services.AddSingleton<IPluginBackgroundTask, TestBackgroundTask>();
             services.AddScoped<IPluginEventHandler<string>, TestEventHandler>();
+            services.AddScoped<IPluginEventHandler<PluginUserPurgeEvent>, TestPurgeHandler>();
             // Factory-registered, not instance-registered: the container only disposes what
             // it built itself, and the probe is worthless unless the container owns it.
             if (directory is not null)

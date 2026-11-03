@@ -38,6 +38,8 @@ namespace Schuly.Infrastructure.Storage
             return new UploadedBlob(uploaded.Key, encryptingStream.PlaintextBytesRead);
         }
 
+        public IAsyncEnumerable<StoredBlob> ListAsync(CancellationToken ct) => inner.ListAsync(ct);
+
         public async Task<DocumentStream> OpenReadAsync(string key, CancellationToken ct)
         {
             var raw = await inner.OpenReadAsync(key, ct);

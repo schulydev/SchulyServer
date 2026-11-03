@@ -10,15 +10,15 @@ namespace Schuly.API.Services.Notifications
         private const string DateFormatDe = "dd.MM.yyyy";
         private const string DateFormatEn = "MM/dd/yyyy";
 
-        public static PushMessage Create(NotificationOutbox row, string locale, bool includeGradeValue)
+        public static PushMessage Create(NotificationOutbox row, string locale, bool includeGradeValue, decimal? score = null)
         {
             var isGerman = Normalize(locale) == "de";
             var data = new Dictionary<string, string> { ["type"] = CamelCase(row.Type), ["entityId"] = row.EntityId.ToString() };
 
             return row.Type switch
             {
-                NotificationType.GradeAdded => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: false), GradeBody(isGerman, row.Score, includeGradeValue), data),
-                NotificationType.GradeChanged => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: true), GradeBody(isGerman, row.Score, includeGradeValue), data),
+                NotificationType.GradeAdded => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: false), GradeBody(isGerman, score, includeGradeValue), data),
+                NotificationType.GradeChanged => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: true), GradeBody(isGerman, score, includeGradeValue), data),
                 NotificationType.AbsenceAdded => new PushMessage(isGerman ? "Neue Absenz" : "New absence", AbsenceBody(isGerman, row), data),
                 NotificationType.AgendaAdded => new PushMessage(isGerman ? "Neuer Termin" : "New agenda entry", AgendaBody(isGerman, row), data),
                 NotificationType.AgendaChanged => new PushMessage(isGerman ? "Termin geändert" : "Agenda entry changed", AgendaBody(isGerman, row), data),

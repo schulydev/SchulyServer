@@ -12,7 +12,7 @@ namespace Schuly.Infrastructure.Services
     // NotificationOriginBehavior for why the app's own writes are excluded.
     public sealed class NotificationOutboxInterceptor(INotificationOriginContext origin, ILogger<NotificationOutboxInterceptor> logger) : SaveChangesInterceptor
     {
-        private sealed record Candidate(NotificationType Type, Guid EntityId, Guid? SchoolUserId, Guid? ClassId, Guid? ExamId, Exam? Exam, decimal? Score, string? Summary, DateTime? OccursAt);
+        private sealed record Candidate(NotificationType Type, Guid EntityId, Guid? SchoolUserId, Guid? ClassId, Guid? ExamId, Exam? Exam, string? Summary, DateTime? OccursAt);
 
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
         {
@@ -76,15 +76,16 @@ namespace Schuly.Infrastructure.Services
             foreach (var entry in context.ChangeTracker.Entries<Grade>())
             {
                 if (entry.State == EntityState.Added)
-                    candidates.Add(new Candidate(NotificationType.GradeAdded, entry.Entity.Id, entry.Entity.SchoolUserId, null, entry.Entity.ExamId, entry.Entity.Exam, entry.Entity.Score, null, null));
+                    candidates.Add(new Candidate(NotificationType.GradeAdded, entry.Entity.Id, entry.Entity.SchoolUserId, null, entry.Entity.ExamId, entry.Entity.Exam, null, null));
                 else if (entry.State == EntityState.Modified && (entry.Property(g => g.Score).IsModified || entry.Property(g => g.Weighting).IsModified))
-                    candidates.Add(new Candidate(NotificationType.GradeChanged, entry.Entity.Id, entry.Entity.SchoolUserId, null, entry.Entity.ExamId, entry.Entity.Exam, entry.Entity.Score, null, null));
+                    candidates.Add(new Candidate(NotificationType.GradeChanged, entry.Entity.Id, entry.Entity.SchoolUserId, null, entry.Entity.ExamId, entry.Entity.Exam, null, null));
             }
 
             foreach (var entry in context.ChangeTracker.Entries<Absence>())
             {
                 if (entry.State == EntityState.Added)
-                    candidates.Add(new Candidate(NotificationType.AbsenceAdded, entry.Entity.Id, entry.Entity.SchoolUserId, null, null, null, null, entry.Entity.Reason, entry.Entity.From));
+                    // Only the date: the reason can be health data and must not get a second copy here.
+                    candidates.Add(new Candidate(NotificationType.AbsenceAdded, entry.Entity.Id, entry.Entity.SchoolUserId, null, null, null, null, entry.Entity.From));
             }
 
             foreach (var entry in context.ChangeTracker.Entries<AgendaEntry>())
@@ -103,7 +104,7 @@ namespace Schuly.Infrastructure.Services
                 if (entry.Entity.SchoolId is not null)
                     continue;
 
-                candidates.Add(new Candidate(type.Value, entry.Entity.Id, entry.Entity.SchoolUserId, entry.Entity.ClassId, null, null, null, entry.Entity.Title, entry.Entity.Date));
+                candidates.Add(new Candidate(type.Value, entry.Entity.Id, entry.Entity.SchoolUserId, entry.Entity.ClassId, null, null, entry.Entity.Title, entry.Entity.Date));
             }
 
             return candidates;
@@ -287,7 +288,6 @@ namespace Schuly.Infrastructure.Services
                 Type = candidate.Type,
                 EntityId = candidate.EntityId,
                 SubjectName = subjectName,
-                Score = candidate.Score,
                 Summary = candidate.Summary,
                 OccursAt = candidate.OccursAt,
                 Status = NotificationOutboxStatus.Pending,

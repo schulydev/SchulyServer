@@ -8,12 +8,17 @@ namespace Schuly.Infrastructure.Services
     /// </summary>
     public interface IPluginUserDataPurger
     {
-        Task PurgeAsync(Guid applicationUserId, CancellationToken cancellationToken = default);
+        /// <summary>Asks every plugin, or only <paramref name="pluginSource"/>, to wipe the user. Returns the sources of the plugins that failed.</summary>
+        Task<IReadOnlyList<string>> PurgeAsync(Guid applicationUserId, string? pluginSource = null, CancellationToken cancellationToken = default);
+
+        /// <summary>The application user ids the loaded plugins hold data for, to find owners that no longer exist.</summary>
+        Task<IReadOnlyCollection<Guid>> ListOwnersAsync(CancellationToken cancellationToken = default);
     }
 
     public sealed class NullPluginUserDataPurger : IPluginUserDataPurger
     {
         public static readonly NullPluginUserDataPurger Instance = new();
-        public Task PurgeAsync(Guid applicationUserId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<string>> PurgeAsync(Guid applicationUserId, string? pluginSource = null, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
+        public Task<IReadOnlyCollection<Guid>> ListOwnersAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<Guid>>([]);
     }
 }

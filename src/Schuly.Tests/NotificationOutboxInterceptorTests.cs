@@ -34,7 +34,6 @@ namespace Schuly.Tests
             await Assert.That(rows[0].ApplicationUserId).IsEqualTo(schoolUser.ApplicationUserId);
             await Assert.That(rows[0].EntityId).IsEqualTo(gradeId);
             await Assert.That(rows[0].SubjectName).IsEqualTo("Math Test");
-            await Assert.That(rows[0].Score).IsEqualTo(5);
             await Assert.That(rows[0].Status).IsEqualTo(NotificationOutboxStatus.Pending);
         }
 
@@ -89,7 +88,7 @@ namespace Schuly.Tests
             var rows = ctx.NotificationOutbox.ToList();
             await Assert.That(rows.Count).IsEqualTo(1);
             await Assert.That(rows[0].Type).IsEqualTo(NotificationType.AbsenceAdded);
-            await Assert.That(rows[0].Summary).IsEqualTo("Sick");
+            await Assert.That(rows[0].Summary).IsNull();
             await Assert.That(rows[0].OccursAt).IsEqualTo(from);
         }
 

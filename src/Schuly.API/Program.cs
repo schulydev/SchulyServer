@@ -40,6 +40,7 @@ builder.Services.AddSchulyDocumentStorage(builder.Configuration, builder.Environ
 
 builder.Services.Configure<RetentionOptions>(builder.Configuration.GetSection(RetentionOptions.SectionName));
 builder.Services.AddScoped<RetentionSweeper>();
+builder.Services.AddSingleton<IInactivityWarningSender, Schuly.API.Email.SmtpInactivityWarningSender>();
 builder.Services.AddHostedService<RetentionHostedService>();
 
 builder.Services.AddSchulyVault(builder.Configuration, builder.Environment.IsDevelopment());

@@ -81,17 +81,17 @@ namespace Schuly.API.Email
                 ? $"{link.GetLeftPart(UriPartial.Authority)}/email-logo.png"
                 : "https://app.schuly.dev/email-logo.png";
 
-        private static string Text(string title, string intro, string action, string footer) =>
+        internal static string Text(string title, string intro, string action, string footer) =>
             $"{title}\n\n{intro}\n\n{action}\n\n{footer}\n\nSchuly\n";
 
-        private static string Button(string link, string label) =>
+        internal static string Button(string link, string label) =>
             $"<a href=\"{WebUtility.HtmlEncode(link)}\" class=\"btn\" target=\"_blank\">{WebUtility.HtmlEncode(label)}</a>";
 
         private static string Duration(TimeSpan period) => period.TotalHours < 1
             ? Math.Ceiling(period.TotalMinutes) is 1 ? "1 minute" : $"{Math.Ceiling(period.TotalMinutes)} minutes"
             : Math.Ceiling(period.TotalHours) is 1 ? "1 hour" : $"{Math.Ceiling(period.TotalHours)} hours";
 
-        private static string Html(string logo, string preheader, string title, string intro, string action, string footer) => $$"""
+        internal static string Html(string logo, string preheader, string title, string intro, string action, string footer) => $$"""
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
             <html xmlns="http://www.w3.org/1999/xhtml">
               <head>

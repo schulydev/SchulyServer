@@ -25,6 +25,8 @@ namespace Schuly.Tests.TestHelpers
             return new UploadedBlob(key, bytes.Length);
         }
 
+        public IAsyncEnumerable<StoredBlob> ListAsync(CancellationToken ct) => Objects.Keys.Select(k => new StoredBlob(k, DateTime.UtcNow)).ToAsyncEnumerable();
+
         public Task<DocumentStream> OpenReadAsync(string key, CancellationToken ct)
         {
             var bytes = Objects[key];

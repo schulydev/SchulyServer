@@ -38,6 +38,8 @@ namespace Schuly.Tests
 
         private sealed class RewindingStorage : IDocumentStorage
         {
+            public IAsyncEnumerable<StoredBlob> ListAsync(CancellationToken ct) => throw new NotSupportedException();
+
             public long CapturedLength { get; private set; }
             public byte[] FirstRead { get; private set; } = [];
             public byte[] SecondRead { get; private set; } = [];
