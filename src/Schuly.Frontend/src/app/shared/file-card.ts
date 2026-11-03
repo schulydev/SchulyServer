@@ -1,4 +1,3 @@
-import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -18,6 +17,7 @@ import {
   lucideFileVideo,
   lucideNotebookPen,
   lucideExternalLink,
+  lucidePlay,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -25,6 +25,7 @@ import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { BubbleFile, formatSize } from '../core/chat-media';
 import { KIND_STYLES } from '../core/file-kind';
 import { ChatApi } from '../core/chat-api';
+import { throttleWait } from '../core/throttle';
 
 /** Largest image file that is fetched whole to serve as its own preview when the server has no thumbnail. */
 const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
@@ -32,7 +33,7 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
 /** A file in a chat bubble, chat-style: name and actions on top, a page preview below. */
 @Component({
   selector: 'app-file-card',
-  imports: [NgIcon, NgTemplateOutlet, HlmButton, HlmDropdownMenuImports],
+  imports: [NgIcon, HlmButton, HlmDropdownMenuImports],
   providers: [
     provideIcons({
       lucideCopy,
@@ -51,6 +52,7 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
       lucideFileType,
       lucideFileVideo,
       lucideNotebookPen,
+      lucidePlay,
     }),
   ],
   template: `
@@ -83,24 +85,23 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
         }
       </div>
 
-      @if (file().path) {
-        <button type="button" class="focus-visible:outline-ring block h-44 w-full bg-white focus-visible:outline-2 focus-visible:-outline-offset-2" tabindex="-1" aria-hidden="true" (click)="view.emit()">
-          <ng-container *ngTemplateOutlet="preview" />
+      @if (hasPreview()) {
+        <button type="button" class="focus-visible:outline-ring bg-muted relative block h-44 w-full focus-visible:outline-2 focus-visible:-outline-offset-2" tabindex="-1" aria-hidden="true" (click)="view.emit()">
+          @if (image(); as src) {
+            <img [src]="src" alt="" class="size-full object-cover" [class.object-top]="file().kind !== 'video'" (error)="noPreview.set(true)" />
+            @if (file().kind === 'video') {
+              <span class="absolute inset-0 flex items-center justify-center">
+                <span class="flex size-12 items-center justify-center rounded-full bg-black/60 text-white">
+                  <ng-icon name="lucidePlay" class="text-2xl" />
+                </span>
+              </span>
+            }
+          } @else {
+            <span class="block size-full animate-pulse" data-preview-loading></span>
+          }
         </button>
-      } @else {
-        <div class="h-44 w-full bg-white"><ng-container *ngTemplateOutlet="preview" /></div>
       }
     </article>
-
-    <ng-template #preview>
-      @if (image(); as src) {
-        <img [src]="src" alt="" class="size-full object-cover object-top" />
-      } @else {
-        <span class="flex size-full items-center justify-center">
-          <ng-icon [name]="style().icon" class="text-6xl" [class]="style().onWhite" aria-hidden="true" />
-        </span>
-      }
-    </ng-template>
 
     <ng-template #menu>
       <hlm-dropdown-menu class="w-48" [attr.aria-label]="'Actions for ' + file().name">
@@ -135,6 +136,14 @@ export class FileCard {
   protected readonly sizeText = computed(() => formatSize(this.file().size));
   private readonly visible = signal(false);
   protected readonly image = signal<string | null>(null);
+  /** No picture turned up, so the card is just its name and actions. */
+  protected readonly noPreview = signal(false);
+  private readonly wanted = computed(() => {
+    const f = this.file();
+    const own = f.kind === 'image' && f.path && (f.size ?? 0) <= MAX_IMAGE_PREVIEW_BYTES ? f.path : null;
+    return { thumbnail: f.thumbnailPath, own };
+  });
+  protected readonly hasPreview = computed(() => !this.noPreview() && !!(this.wanted().thumbnail || this.wanted().own));
 
   constructor() {
     afterNextRender(() => {
@@ -150,12 +159,16 @@ export class FileCard {
     });
     // The preview is fetched only once the card scrolls into view: the server thumbnail, or for an image its own bytes.
     effect(() => {
-      const f = this.file();
-      if (!this.visible()) return;
-      const path = f.thumbnailPath ?? (f.kind === 'image' && f.path && (f.size ?? 0) <= MAX_IMAGE_PREVIEW_BYTES ? f.path : null);
-      if (!path) return;
-      untracked(() => void this.api.imageUrl(path).then((url) => this.image.set(url)));
+      const { thumbnail, own } = this.wanted();
+      if (!this.visible() || !(thumbnail || own)) return;
+      untracked(() => void this.loadPreview(thumbnail, own));
     });
+  }
+
+  private async loadPreview(thumbnail: string | null, own: string | null): Promise<void> {
+    const url = (thumbnail ? await this.api.imageUrl(thumbnail) : null) ?? (own ? await this.api.imageUrl(own) : null);
+    this.image.set(url);
+    this.noPreview.set(!url);
   }
 
   protected async download(): Promise<void> {
@@ -169,8 +182,8 @@ export class FileCard {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch {
-      toast.error('Could not download the file.');
+    } catch (error) {
+      toast.error(throttleWait(error) === null ? 'Could not download the file.' : 'Microsoft is limiting requests. Try the download again in a minute.');
     }
   }
 

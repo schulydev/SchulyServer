@@ -7,11 +7,13 @@
  *   client-side renderer (spreadsheets become a table), then to "Preview not available".
  *   A Teams chat file card sets `pdf` to `GET /api/plugins/microsoft/accounts/{accountId}/chats/{chatId}/messages/{messageId}/files/{attachmentId}/pdf`
  *   (every id passed through encodeURIComponent, responseType 'blob') plus a `key` such as `chat:{accountId}:{chatId}:{messageId}:{attachmentId}`.
+ * - `stream` (optional) answers a URL a `<video>` or `<audio>` can play directly, with Range, so a long video is never held whole. Used for those types when set.
  * - `key` (optional) is a stable identity for the file: it caches converted PDFs for the session and matches the file in `files`.
  */
 export interface ViewerFile {
   name: string;
   load: () => Promise<Blob>;
   pdf?: () => Promise<Blob>;
+  stream?: () => Promise<string>;
   key?: string;
 }

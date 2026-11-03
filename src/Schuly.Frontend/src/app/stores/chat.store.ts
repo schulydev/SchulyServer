@@ -61,7 +61,19 @@ export interface ChatMessage {
   media?: MessageMedia[] | null;
   files?: MessageFile[] | null;
   cards?: MessageCard[] | null;
+  /** Forwarded messages and replies this message carries. */
+  quotes?: MessageQuote[] | null;
   /** Teams emojis of the message, matching the `<emoji key>` placeholders in the body. */
+  emojis?: MessageEmoji[] | null;
+}
+
+export interface MessageQuote {
+  kind: 'forward' | 'reply';
+  senderName?: string | null;
+  sentAt?: string | null;
+  content?: string | null;
+  contentType?: string | null;
+  /** The quote's own Teams emojis, matching the `<emoji key>` placeholders in its content. */
   emojis?: MessageEmoji[] | null;
 }
 

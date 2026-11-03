@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeft, lucideArrowDown, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideTriangleAlert, lucideCircleAlert } from '@ng-icons/lucide';
+import { lucideArrowLeft, lucideArrowDown, lucideCornerUpRight, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideReply, lucideTriangleAlert, lucideCircleAlert } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { dayKey } from '../core/dates';
@@ -20,7 +20,7 @@ import { ChatAvatar } from '../shared/chat-avatar';
 import { LoadMore } from '../shared/load-more';
 import { AccountProblem } from '../shared/account-problem';
 import { PersonAvatar } from '../shared/person-avatar';
-import { ChatStore, bodyText } from '../stores/chat.store';
+import { ChatStore, MessageQuote, bodyText } from '../stores/chat.store';
 import { AppDatePipe, relativeDayLabel } from '../core/date-format';
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -28,6 +28,16 @@ const NEAR_BOTTOM_PX = 80;
 
 interface Attachment {
   name: string;
+}
+interface QuoteView {
+  kind: 'forward' | 'reply';
+  sender: string | null;
+  sentAt: string | null;
+  html: string;
+  text: string;
+  emojiKeys: string[];
+  emojiMap: Record<string, ChatEmoji>;
+  emojiSize: number;
 }
 interface Reaction {
   label: string;
@@ -49,6 +59,7 @@ type LogItem =
       html: string;
       text: string;
       attachments: Attachment[];
+      quotes: QuoteView[];
       importance: Importance;
       media: BubbleMedia[];
       files: BubbleFile[];
@@ -61,10 +72,18 @@ type LogItem =
       status: 'sent' | 'sending' | 'failed';
     };
 
+/** A forwarded message or reply, through the same sanitizing as any message body. */
+function quoteView(q: MessageQuote): QuoteView {
+  const rendered = renderBody(q.content, q.contentType);
+  const emojiMap: Record<string, ChatEmoji> = {};
+  for (const e of q.emojis ?? []) if (e.key) emojiMap[e.key] = fromMessageEmoji(e);
+  return { kind: q.kind, sender: q.senderName ?? null, sentAt: q.sentAt ?? null, html: rendered.html, text: rendered.html ? '' : rendered.text, emojiKeys: rendered.emojiKeys, emojiMap, emojiSize: 24 };
+}
+
 @Component({
   selector: 'app-chat-conversation',
   imports: [AppDatePipe, NgTemplateOutlet, HlmButton, HlmSkeletonImports, NgIcon, ChatAvatar, ChatMedia, EmojiSlots, EmptyState, FileViewer, LoadMore, AccountProblem, PersonAvatar, ChatComposer],
-  providers: [provideIcons({ lucideArrowLeft, lucideArrowDown, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideTriangleAlert, lucideCircleAlert })],
+  providers: [provideIcons({ lucideArrowLeft, lucideArrowDown, lucideCornerUpRight, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideReply, lucideTriangleAlert, lucideCircleAlert })],
   template: `
     @if (store.openChat(); as chat) {
       <header class="flex h-10 shrink-0 items-center gap-2 border-b px-2 sm:px-3">
@@ -216,6 +235,22 @@ type LogItem =
               <ng-icon [name]="m.importance === 'urgent' ? 'lucideTriangleAlert' : 'lucideCircleAlert'" aria-hidden="true" />
               {{ m.importance === 'urgent' ? 'Urgent' : 'Important' }}
             </p>
+          }
+          @for (q of m.quotes; track $index) {
+            <blockquote class="border-border bg-background/50 mb-1.5 max-w-full rounded-md border-s-2 px-2.5 py-1.5 text-sm" [attr.aria-label]="(q.kind === 'forward' ? 'Forwarded message' : 'Reply') + (q.sender ? ' from ' + q.sender : '')">
+              <p class="text-foreground/70 flex flex-wrap items-center gap-x-1.5 text-xs">
+                <ng-icon [name]="q.kind === 'forward' ? 'lucideCornerUpRight' : 'lucideReply'" aria-hidden="true" />
+                <span class="font-medium">{{ q.sender ?? (q.kind === 'forward' ? 'Forwarded message' : 'Reply') }}</span>
+                @if (q.sentAt) {
+                  <time [attr.datetime]="q.sentAt">{{ q.sentAt | appDate: 'dateTime' }}</time>
+                }
+              </p>
+              @if (q.html) {
+                <div class="mt-1 wrap-anywhere" [innerHTML]="q.html" [appEmojiSlots]="q.html" [keys]="q.emojiKeys" [emojis]="q.emojiMap" [size]="q.emojiSize"></div>
+              } @else if (q.text) {
+                <p class="mt-1 wrap-anywhere whitespace-pre-wrap">{{ q.text }}</p>
+              }
+            </blockquote>
           }
           @if (m.html) {
             <div
@@ -389,7 +424,7 @@ export class ChatConversation {
       const uncovered = Math.max(0, (rendered?.removedImages ?? 0) - hosted.length);
       const attachments: Attachment[] = [
         ...(m?.attachments ?? [])
-          .filter((a) => a.contentType !== 'messageReference' && !a.contentType?.startsWith('application/vnd.microsoft.card') && !(a.id && fileIds.has(a.id)))
+          .filter((a) => a.contentType !== 'messageReference' && a.contentType !== 'forwardedMessageReference' && !a.contentType?.startsWith('application/vnd.microsoft.card') && !(a.id && fileIds.has(a.id)))
           .map((a) => ({ name: a.name || 'Attachment' })),
         ...Array.from({ length: m?.media ? 0 : uncovered }, () => ({ name: 'Image' })),
       ];
@@ -413,6 +448,7 @@ export class ChatConversation {
         html: rendered?.html ?? '',
         text: m ? (rendered && m.body?.contentType === 'html' ? (rendered.html ? '' : rendered.text) : (m.body?.content ?? '')) : out2 && out2.contentType === 'html' ? (rendered?.html ? '' : (rendered?.text ?? '')) : p!.text,
         attachments,
+        quotes: (m?.deletedDateTime ? [] : (m?.quotes ?? [])).map(quoteView),
         importance: m?.importance ?? out2?.importance ?? 'normal',
         media,
         files,
