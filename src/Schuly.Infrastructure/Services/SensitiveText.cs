@@ -22,10 +22,21 @@ namespace Schuly.Infrastructure.Services
         private const int TagSize = 16;
 
         private static byte[]? _key;
+        private static byte[]? _previousKey;
 
         public static readonly ValueConverter<string, string> Converter = new(value => Protect(value), value => Reveal(value));
 
-        public static void UseKeyring(VaultKeyring keyring) => Interlocked.CompareExchange(ref _key, keyring.DeriveKey(KeyNamespace), null);
+        public static void UseKeyring(VaultKeyring keyring)
+        {
+            if (Interlocked.CompareExchange(ref _key, keyring.DeriveKey(KeyNamespace), null) is null)
+                _previousKey = keyring.DerivePreviousKey(KeyNamespace);
+        }
+
+        /// <summary>True while a vault key rotation is in progress, so rows may still be under the previous key.</summary>
+        public static bool Rotating => _previousKey is not null;
+
+        /// <summary>True when the value is stored under the current key, or isn't encrypted yet (the backfill handles that case).</summary>
+        public static bool IsOnCurrentKey(string stored) => !stored.StartsWith(Prefix, StringComparison.Ordinal) || TryDecrypt(stored, Key, out _);
 
         public static string Protect(string plaintext)
         {
@@ -43,17 +54,26 @@ namespace Schuly.Infrastructure.Services
             if (!stored.StartsWith(Prefix, StringComparison.Ordinal))
                 return stored;
 
+            if (TryDecrypt(stored, Key, out var plaintext))
+                return plaintext;
+            return _previousKey is { } previous && TryDecrypt(stored, previous, out plaintext) ? plaintext : Unreadable;
+        }
+
+        private static bool TryDecrypt(string stored, byte[] key, out string plaintext)
+        {
+            plaintext = string.Empty;
             try
             {
                 var blob = Convert.FromBase64String(stored[Prefix.Length..]);
-                var plaintext = new byte[blob.Length - NonceSize - TagSize];
-                using var aes = new AesGcm(Key, TagSize);
-                aes.Decrypt(blob.AsSpan(0, NonceSize), blob.AsSpan(NonceSize, plaintext.Length), blob.AsSpan(NonceSize + plaintext.Length, TagSize), plaintext);
-                return Encoding.UTF8.GetString(plaintext);
+                var bytes = new byte[blob.Length - NonceSize - TagSize];
+                using var aes = new AesGcm(key, TagSize);
+                aes.Decrypt(blob.AsSpan(0, NonceSize), blob.AsSpan(NonceSize, bytes.Length), blob.AsSpan(NonceSize + bytes.Length, TagSize), bytes);
+                plaintext = Encoding.UTF8.GetString(bytes);
+                return true;
             }
             catch (Exception ex) when (ex is CryptographicException or FormatException or OverflowException)
             {
-                return Unreadable;
+                return false;
             }
         }
 

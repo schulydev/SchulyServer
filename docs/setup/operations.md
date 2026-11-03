@@ -38,6 +38,8 @@ any accounts that were deleted after it was made.
 
 ### Rotate the vault key
 
+Absence reasons and document metadata use the same key. They move to the new key on the next start, along with the vault.
+
 1. Back up `data/postgres`.
 2. In `.env`, set `VAULT_PREVIOUS_MASTER_KEY` to the current key and `VAULT_MASTER_KEY` to the output
    of `openssl rand -base64 32`.

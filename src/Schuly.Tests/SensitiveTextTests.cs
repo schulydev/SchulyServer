@@ -39,6 +39,14 @@ namespace Schuly.Tests
         }
 
         [Test]
+        public async Task A_value_on_the_current_key_counts_and_a_foreign_one_does_not()
+        {
+            await Assert.That(SensitiveText.IsOnCurrentKey(SensitiveText.Protect("x"))).IsTrue();
+            await Assert.That(SensitiveText.IsOnCurrentKey("plain")).IsTrue();
+            await Assert.That(SensitiveText.IsOnCurrentKey(SensitiveText.Prefix + Convert.ToBase64String(new byte[40]))).IsFalse();
+        }
+
+        [Test]
         public async Task Reasons_and_document_metadata_are_mapped_through_the_cipher()
         {
             using var ctx = TestDb.NewContext(nameof(Reasons_and_document_metadata_are_mapped_through_the_cipher));
