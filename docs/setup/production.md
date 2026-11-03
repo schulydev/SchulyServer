@@ -1,4 +1,4 @@
-# Production
+# Images and releases
 
 The API ships as a multi-arch Docker image built from `src/Schuly.API/Dockerfile`.
 
