@@ -15,6 +15,7 @@ namespace Schuly.API.Extensions
                 options.UseNpgsql(
                     configuration.GetConnectionString("SchulyDatabase"),
                     npgsqlOptions => npgsqlOptions
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                         .EnableRetryOnFailure(
                             maxRetryCount: 5,
                             maxRetryDelay: TimeSpan.FromSeconds(10),

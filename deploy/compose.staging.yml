@@ -12,7 +12,7 @@ services:
     image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
     network_mode: none
     logging: *logging
-    command: sh -c "mkdir -p /data/plugins && chown -R 1654:1654 /data/plugins"
+    command: sh -c "mkdir -p /data/plugins /data/dataprotection && chown -R 1654:1654 /data/plugins /data/dataprotection"
     volumes:
       - ./data:/data
     restart: "no"
@@ -84,6 +84,7 @@ services:
     logging: *logging
     env_file: [./config/backend.env]
     volumes:
+      - ./data/dataprotection:/home/app/.aspnet/DataProtection-Keys # keys for account-linking sessions
       - ./data/plugins:/app/plugins                        # downloaded plugin DLLs (host folder)
       - ./config/plugins.yml:/app/plugins.yml              # desired plugin set
       - ./config/plugins-config:/app/plugins-config:ro     # per-plugin config

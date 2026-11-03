@@ -164,7 +164,11 @@ namespace Schuly.API.Plugins
             {
                 try
                 {
-                    owners.UnionWith(await PluginDataOwners.ReadAsync(PluginConnectionString(loaded.Name), cancellationToken));
+                    var connectionString = PluginConnectionString(loaded.Name);
+                    var database = new NpgsqlConnectionStringBuilder(connectionString).Database!;
+                    var main = configuration.GetConnectionString("SchulyDatabase")!;
+                    if (await PluginDataOwners.DatabaseExistsAsync(main, database, cancellationToken))
+                        owners.UnionWith(await PluginDataOwners.ReadAsync(connectionString, cancellationToken));
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
