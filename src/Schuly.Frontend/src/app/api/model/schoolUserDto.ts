@@ -22,13 +22,7 @@ export interface SchoolUserDto {
     firstName: string;
     lastName: string;
     email: string;
-    privateEmail?: string | null;
-    phoneNumber?: string | null;
     profilePictureUrl?: string | null;
-    street?: string | null;
-    city?: string | null;
-    zip?: string | null;
-    birthday?: string | null;
     entryDate?: string | null;
     leaveDate?: string | null;
     role: Roles;

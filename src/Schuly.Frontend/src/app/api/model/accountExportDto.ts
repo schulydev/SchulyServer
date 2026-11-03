@@ -7,12 +7,18 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ExportAiAppsDto } from './exportAiAppsDto';
+import { ExportNotificationsDto } from './exportNotificationsDto';
+import { ExportConnectedAccountDto } from './exportConnectedAccountDto';
 import { LinkedAccountDto } from './linkedAccountDto';
 import { StudentDocumentDto } from './studentDocumentDto';
 import { ApplicationUserDto } from './applicationUserDto';
+import { ExportSignInDto } from './exportSignInDto';
 import { AgendaEntryDto } from './agendaEntryDto';
+import { ExportPrivacyNoticeDto } from './exportPrivacyNoticeDto';
 import { SemesterReportDto } from './semesterReportDto';
 import { SchoolUserDto } from './schoolUserDto';
+import { ExportHelplyDto } from './exportHelplyDto';
 
 
 export interface AccountExportDto { 
@@ -23,5 +29,12 @@ export interface AccountExportDto {
     semesterReports?: Array<SemesterReportDto>;
     documents?: Array<StudentDocumentDto>;
     linkedAccounts?: Array<LinkedAccountDto>;
+    privacyNotice?: ExportPrivacyNoticeDto | null;
+    signIn?: ExportSignInDto | null;
+    connectedAccounts?: Array<ExportConnectedAccountDto>;
+    helply?: ExportHelplyDto | null;
+    aiApps?: ExportAiAppsDto | null;
+    notifications?: ExportNotificationsDto | null;
+    notIncluded?: Array<string>;
 }
 

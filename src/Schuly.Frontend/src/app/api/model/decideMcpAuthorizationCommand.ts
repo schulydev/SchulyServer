@@ -15,5 +15,6 @@ export interface DecideMcpAuthorizationCommand {
     parameters: McpAuthorizationParameters;
     approve: boolean;
     permissions: McpPermissionSet | null;
+    aiAppSharingConfirmed?: boolean;
 }
 
