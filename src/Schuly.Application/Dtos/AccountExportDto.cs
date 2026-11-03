@@ -36,7 +36,9 @@ namespace Schuly.Application.Dtos
 
     public record ExportPrivacyNoticeDto(string? AcceptedVersion, DateTime? AcceptedAt, DateTime? SwissSchoolConfirmedAt);
 
-    public record ExportSignInDto(string? UserName, string? Email, DateTimeOffset? EmailConfirmedAt, DateTime? LastSeenAt, bool TwoFactorEnabled, List<ExportExternalLoginDto> ExternalLogins, List<ExportPasskeyDto> Passkeys, List<ExportSessionDto> Sessions, List<ExportSessionDto> TrustedDevices);
+    public record ExportSignInDto(string? UserName, string? Email, DateTimeOffset? EmailConfirmedAt, DateTime? LastSeenAt, bool TwoFactorEnabled, List<ExportExternalLoginDto> ExternalLogins, List<ExportPasskeyDto> Passkeys, List<ExportSessionDto> Sessions, List<ExportSessionDto> TrustedDevices, List<ExportSecurityEventDto> SecurityEvents);
+
+    public record ExportSecurityEventDto(string Kind, string? Detail, DateTime OccurredAt);
 
     public record ExportExternalLoginDto(string ProviderKey, string? Email, DateTimeOffset CreatedAt, DateTimeOffset? LastSignInAt);
 

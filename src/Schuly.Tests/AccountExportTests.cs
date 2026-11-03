@@ -75,6 +75,7 @@ namespace Schuly.Tests
                 ctx.Set<ToamaisutaaPasswordCredential>().Add(new ToamaisutaaPasswordCredential { UserId = loginId, UserName = "mia", NormalizedUserName = "MIA", Email = "me@example.com", NormalizedEmail = "ME@EXAMPLE.COM", PasswordHash = "secret-hash" });
                 ctx.Set<ToamaisutaaRefreshToken>().Add(new ToamaisutaaRefreshToken { Id = Guid.NewGuid(), UserId = loginId, FamilyId = Guid.NewGuid(), TokenHash = "secret-token-hash", SecurityStamp = "s", IpAddress = "203.0.113.9", UserAgent = "Browser" });
 
+                ctx.SecurityAuditEntries.Add(new SecurityAuditEntry { Id = Guid.NewGuid(), Kind = "sign-in-failed", UserId = loginId, OccurredAt = DateTime.UtcNow });
                 ctx.HelplySettings.Add(new HelplySettings { ApplicationUserId = userId, WorkspaceEnabled = true });
                 ctx.HelplyConversations.Add(new HelplyConversation
                 {
@@ -100,7 +101,7 @@ namespace Schuly.Tests
             var result = await new ExportCurrentUserQueryHandler(read, new FakeUserService { CurrentUserId = userId }, Cipher).Handle(new ExportCurrentUserQuery(), CancellationToken.None);
             var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
 
-            foreach (var expected in new[] { "mia", "203.0.113.9", "My chat", "hello helply", "note.pdf", "Some AI", "laptop", "list_grades", "device-1", "v1", "privacy@schuly.dev" })
+            foreach (var expected in new[] { "mia", "203.0.113.9", "My chat", "hello helply", "note.pdf", "Some AI", "laptop", "list_grades", "device-1", "v1", "sign-in-failed", "privacy@schuly.dev" })
                 await Assert.That(json).Contains(expected);
             foreach (var secret in new[] { "secret-stamp", "secret-hash", "secret-token-hash", "secret-key-hash", "device-of-another" })
                 await Assert.That(json).DoesNotContain(secret);

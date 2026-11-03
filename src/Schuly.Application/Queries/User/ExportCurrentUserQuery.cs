@@ -95,6 +95,8 @@ namespace Schuly.Application.Queries.User
             var sessions = await dbContext.Set<ToamaisutaaRefreshToken>().AsNoTracking().Where(t => t.UserId == loginId && t.RevokedAt == null && t.RotatedAt == null).ToListAsync(cancellationToken);
             var devices = await dbContext.Set<ToamaisutaaTrustedDevice>().AsNoTracking().Where(d => d.UserId == loginId && d.RevokedAt == null && d.RotatedAt == null).ToListAsync(cancellationToken);
 
+            var audit = await dbContext.SecurityAuditEntries.AsNoTracking().Where(e => e.UserId == loginId).ToListAsync(cancellationToken);
+
             return new ExportSignInDto(
                 password?.UserName ?? signIn?.UserName,
                 password?.Email ?? signIn?.Email,
@@ -104,7 +106,8 @@ namespace Schuly.Application.Queries.User
                 external.Select(l => new ExportExternalLoginDto(l.ProviderKey, l.Email, l.CreatedAt, l.LastSignInAt)).ToList(),
                 passkeys.Select(p => new ExportPasskeyDto(p.Label, p.CreatedAt, p.LastUsedAt)).ToList(),
                 sessions.Select(s => new ExportSessionDto(null, s.IpAddress, s.UserAgent, s.CreatedAt, s.LastUsedAt)).ToList(),
-                devices.Select(d => new ExportSessionDto(d.Label, d.IpAddress, d.UserAgent, d.CreatedAt, d.LastUsedAt)).ToList());
+                devices.Select(d => new ExportSessionDto(d.Label, d.IpAddress, d.UserAgent, d.CreatedAt, d.LastUsedAt)).ToList(),
+                audit.Select(e => new ExportSecurityEventDto(e.Kind, e.Detail, e.OccurredAt)).ToList());
         }
 
         private async Task<ExportHelplyDto> HelplyAsync(Guid userId, CancellationToken cancellationToken)
