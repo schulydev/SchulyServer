@@ -1,72 +1,50 @@
-# <p align="center">SchulyServer</p>
 <p align="center">
-  <img src="./assets/app_icon.png" width="160" alt="Schuly Logo">
-</p> 
-<p align="center">
-  <strong>ASP.NET Core backend powering the Schuly ecosystem</strong>
+  <img src="./assets/app_icon.png" width="120" alt="Schuly Logo" />
 </p>
 <p align="center">
-  <a href="https://github.com/schulydev/SchulyServer/stargazers"><img src="https://img.shields.io/github/stars/schulydev/SchulyServer?style=flat&color=3da8ff" alt="GitHub stars"/></a>
-  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-3da8ff" alt=".NET"/></a>
-  <a href="https://docs.schuly.dev/SchulyServer/"><img src="https://img.shields.io/badge/docs-docs.schuly.dev-3da8ff" alt="Documentation"/></a>
-  <a href="https://schuly.dev"><img src="https://img.shields.io/badge/site-schuly.dev-3da8ff" alt="Website"/></a>
+  <strong>SchulyServer</strong><br/>
+  Your own Schuly: the API, the web app and the plugin host, behind one domain.
+</p>
+<p align="center">
+  <a href="https://docs.schuly.dev/SchulyServer/setup/self-hosting"><img src="https://img.shields.io/badge/Self--Host-Instructions-3da8ff.svg" alt="Self-hosting" /></a>
+  <img src="https://img.shields.io/badge/.NET-10-3da8ff.svg" alt=".NET 10" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-3da8ff.svg" alt="PolyForm Noncommercial" /></a>
 </p>
 
-Clean-architecture C# API serving the Schuly mobile app. Built on ASP.NET Core with CQRS via Mediator, EF Core on PostgreSQL, built-in sign-in, and an extensible plugin runtime.
+---
 
-## What's in this repo
+## Self-host
 
-- `src/Schuly.API` - ASP.NET Core entry point + controllers
-- `src/Schuly.Application` - CQRS commands/queries + handlers
-- `src/Schuly.Domain` - entities (`School`, `Class`, `Exam`, `Grade`, `Absence`, `AgendaEntry`, ...)
-- `src/Schuly.Infrastructure` - EF Core, sign-in stores, plugin host
-- `src/Schuly.Tests` - unit + integration tests
-
-## Quick start
+You need a Linux server with Docker, a domain pointing at it, ports 80 and 443 open, and an SMTP server.
 
 ```sh
-docker compose -f compose.dev.yml up -d          # Postgres + SeaweedFS + SchulwareAPI
-cd src/Schuly.API
-dotnet user-secrets set "ConnectionStrings:SchulyDatabase" "Host=localhost;Port=2406;Database=schuly-dev;Username=postgres;Password=d4vpas8w0rd13!!!"
-dotnet user-secrets set "LocalLogin:SigningKey" "$(openssl rand -base64 32)"
-dotnet user-secrets set "TwoFactor:EncryptionKey" "$(openssl rand -base64 32)"
-dotnet run --urls=http://localhost:5033
+curl -fsSL https://github.com/schulydev/SchulyServer/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 SchulyServer-main/deploy
+cd deploy
+cp .env.example .env
 ```
 
-API reference (Scalar): `http://localhost:5033/scalar` · OpenAPI document: `http://localhost:5033/openapi/v1.json`
+Fill in `.env` as the [self-hosting guide](https://docs.schuly.dev/SchulyServer/setup/self-hosting) explains. Some of those keys can't be changed later without their rotation steps, so read it first. Then:
 
-The connection string and the two keys are required. To get a token, register through the web app or `POST /auth/register`, then `POST /auth/login`. [Development setup](https://docs.schuly.dev/SchulyServer/setup/development) walks through it properly.
+```sh
+docker compose -f compose.staging.yml up -d
+```
+
+Caddy gets the certificate, and the server sets up its database and downloads its plugins. No domain? [Run it on your local network](https://docs.schuly.dev/SchulyServer/setup/self-hosting-lan) instead.
+
+## What runs
+
+Caddy is the only part reachable from the internet. Behind it are the server, PostgreSQL, SeaweedFS for documents, [SchulwareAPI](https://github.com/PianoNic/SchulwareAPI) for Schulnetz and [SchulyMicrosoft](https://github.com/schulydev/SchulyMicrosoft) for Microsoft 365.
+
+School systems come from plugins, not from the server. List one in `config/plugins.yml`, restart, and it shows up in the app.
 
 ## Documentation
 
-Full documentation lives at **[docs.schuly.dev/SchulyServer](https://docs.schuly.dev/SchulyServer/)**.
+- [Operations](https://docs.schuly.dev/SchulyServer/setup/operations): backups, upgrades and data retention
+- [Configuration](https://docs.schuly.dev/SchulyServer/setup/configuration): every setting
+- [Plugin management](https://docs.schuly.dev/SchulyServer/plugin-management): choose which school systems you offer
+- [Development setup](https://docs.schuly.dev/SchulyServer/setup/development): run it from source, with the API reference at `/scalar`
+- [Architecture](https://docs.schuly.dev/SchulyServer/architecture): how the code is layered
 
-| Guide | What it covers |
-|---|---|
-| [Development setup](https://docs.schuly.dev/SchulyServer/setup/development) | Run the API and its dependencies locally, and the tests. |
-| [Configuration](https://docs.schuly.dev/SchulyServer/setup/configuration) | Every setting: connection string, sign-in, SMTP, S3 storage, avatar signing, logging. |
-| [Self-hosting](https://docs.schuly.dev/SchulyServer/setup/self-hosting) | Stand up the full stack (Caddy, Postgres, SeaweedFS) from published images. |
-| [Production](https://docs.schuly.dev/SchulyServer/setup/production) | Image tags, releases, and deployment notes. |
-| [Architecture](https://docs.schuly.dev/SchulyServer/architecture) | Projects, layering rules, request pipeline, document storage. |
-| [Plugin management](https://docs.schuly.dev/SchulyServer/plugin-management) | How plugins are declared, downloaded, and managed at runtime. |
-| [Migrations](https://docs.schuly.dev/SchulyServer/migrations) | Create and apply EF Core migrations. |
-| [Contributing](https://docs.schuly.dev/SchulyServer/contributing) | Workflow, branch and PR conventions. |
+## License
 
-## School systems catalog
-
-Which login systems the app offers is **supplied by the loaded plugins**, not baked into the backend: each plugin describes the system it serves via its `IPluginLogin.SchoolSystem` descriptor, and the backend seeds the catalog from those on load (seed-if-missing by `Key`, so local edits survive). Install a plugin and its system appears in the picker with no operator config.
-
-Operators can still add or override custom systems through a `SchoolSystems` config section, which seeds first and therefore wins on a matching `Key`.
-
-See [the plugin contract](https://docs.schuly.dev/SchulyPluginAbstractions/contract) for the descriptor and a worked example.
-
-## The Schuly ecosystem
-
-| Repo | Purpose |
-|---|---|
-| [**Schuly**](https://github.com/schulydev/Schuly) | Flutter mobile app |
-| [**SchulyServer**](https://github.com/schulydev/SchulyServer) | ASP.NET Core API and web app *(this repo)* |
-| [**SchulyPluginAbstractions**](https://github.com/schulydev/SchulyPluginAbstractions) | Plugin contract (NuGet) |
-| [**SchulyPlugins**](https://github.com/schulydev/SchulyPlugins) | Official plugins monorepo |
-| [**SchulyWebsite**](https://github.com/schulydev/SchulyWebsite) | Landing site ([schuly.dev](https://schuly.dev)) |
-| [**SchulyDocs**](https://github.com/schulydev/SchulyDocs) | Documentation site ([docs.schuly.dev](https://docs.schuly.dev)) |
+[PolyForm Noncommercial 1.0.0](LICENSE). Read it, change it and run it for any noncommercial purpose. Selling it or hosting it as a paid service isn't licensed. Source-available, not open source.
