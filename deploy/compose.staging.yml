@@ -50,7 +50,7 @@ services:
       - data
 
   schulware:
-    image: ghcr.io/pianonic/schulwareapi:1.11.0@sha256:57960fad6b7ca9bc70f0616523d95ae2acc8f8596289f58b48450959cd979df7
+    image: ghcr.io/pianonic/schulwareapi:1.11.1@sha256:bc88288ec4aed2449ec621fb747cfdeaff992246943f512bd218013d9f65d78b
     restart: unless-stopped
     logging: *logging
     init: true
@@ -61,7 +61,7 @@ services:
       - school
 
   schulymicrosoft:
-    image: ghcr.io/schulydev/schulymicrosoft:0.13.1@sha256:60edd75c7847588e9758ac9d0a8d21fa8b59200fd759ca43edf196e2c0eb498a
+    image: ghcr.io/schulydev/schulymicrosoft:0.14.0@sha256:03b7ef10d851e73e5a15d5bc4ed6d7f5c583717f60480556f3ac1576e133b7c5
     restart: unless-stopped
     logging: *logging
     environment:
@@ -79,7 +79,7 @@ services:
       retries: 3
 
   backend:
-    image: ghcr.io/schulydev/schuly:${SCHULY_VERSION:-3.19.0}
+    image: ghcr.io/schulydev/schuly:${SCHULY_VERSION:-3.20.0}
     restart: unless-stopped
     logging: *logging
     env_file: [./config/backend.env]
@@ -105,7 +105,7 @@ services:
   # mem_limit caps every VM together (2 VMs x 256 MB plus the sidecar); the kernel kills a VM inside it, never another
   # service on the host. It gets its API key and nothing else - no database, mail or gateway secrets.
   sandbox:
-    image: ghcr.io/schulydev/schuly-sandbox:${SCHULY_VERSION:-3.19.0}
+    image: ghcr.io/schulydev/schuly-sandbox:${SCHULY_VERSION:-3.20.0}
     profiles: [sandbox]
     restart: unless-stopped
     logging: *logging
