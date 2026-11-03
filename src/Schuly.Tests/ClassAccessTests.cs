@@ -12,19 +12,7 @@ namespace Schuly.Tests
             var alice = TestDb.NewSchoolUser(schoolId, "Alice");
             var bob = TestDb.NewSchoolUser(schoolId, "Bob");
 
-            alice.PrivateEmail = "alice.private@example.com";
-            alice.PhoneNumber = "+41 11 111 11 11";
-            alice.Street = "Alice Street 1";
-            alice.City = "Alice City";
-            alice.Zip = "AliceZip1111";
-            alice.Birthday = new DateOnly(2000, 1, 1);
 
-            bob.PrivateEmail = "bob.private@example.com";
-            bob.PhoneNumber = "+41 22 222 22 22";
-            bob.Street = "Bob Street 2";
-            bob.City = "Bob City";
-            bob.Zip = "BobZip2222";
-            bob.Birthday = new DateOnly(2001, 2, 2);
 
             var classA = new Class { Name = "A", SchoolId = schoolId, Students = { alice, bob } };
             var classB = new Class { Name = "B", SchoolId = schoolId, Students = { bob } };
@@ -84,11 +72,7 @@ namespace Schuly.Tests
             await Assert.That(result.IsSuccess).IsTrue();
             var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
 
-            await Assert.That(json).DoesNotContain("Bob Street 2");
-            await Assert.That(json).DoesNotContain("+41 22 222 22 22");
-            await Assert.That(json).DoesNotContain("bob.private@example.com");
-            await Assert.That(json).DoesNotContain("BobZip2222");
-            await Assert.That(json).DoesNotContain("2001-02-02");
+            await Assert.That(json).DoesNotContain("Bob@example.com");
         }
 
     }

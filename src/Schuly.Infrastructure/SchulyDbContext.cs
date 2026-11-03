@@ -131,13 +131,8 @@ namespace Schuly.Infrastructure
                 // one Schuly account; each account provisions its own SchoolUser.
                 entity.HasIndex(su => new { su.ApplicationUserId, su.SchoolId, su.Email }).IsUnique();
                 entity.Property(su => su.Email).HasMaxLength(255);
-                entity.Property(su => su.PrivateEmail).HasMaxLength(255);
-                entity.Property(su => su.PhoneNumber).HasMaxLength(50);
                 entity.Property(su => su.FirstName).HasMaxLength(100);
                 entity.Property(su => su.LastName).HasMaxLength(100);
-                entity.Property(su => su.Street).HasMaxLength(200);
-                entity.Property(su => su.City).HasMaxLength(100);
-                entity.Property(su => su.Zip).HasMaxLength(20);
                 entity.Property(su => su.Source).HasMaxLength(SourceMaxLength);
                 entity.Property(su => su.Role).IsRequired();
 
