@@ -4,6 +4,9 @@ namespace Schuly.Domain
 {
     public class Absence : Base, ISyncedEntity
     {
+        /// <summary>Enforced in code, because the column holds the encrypted value.</summary>
+        public const int MaxReasonLength = 500;
+
         public string? Source { get; set; }
         public string? ExternalId { get; set; }
 

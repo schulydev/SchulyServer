@@ -68,6 +68,7 @@ var app = builder.Build();
 
 app.ApplyMigrations();
 app.Services.RotateVaultKey();
+await app.EncryptSensitiveTextAsync();
 await app.SeedSchoolSystemsAsync();
 
 app.UseForwardedHeaders();

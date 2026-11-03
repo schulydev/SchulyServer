@@ -6,6 +6,7 @@ using Schuly.Domain;
 using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure.Mcp;
+using Schuly.Infrastructure.Services;
 
 namespace Schuly.Infrastructure
 {
@@ -279,7 +280,7 @@ namespace Schuly.Infrastructure
             modelBuilder.Entity<Absence>(entity =>
             {
                 entity.HasKey(a => a.Id);
-                entity.Property(a => a.Reason).HasMaxLength(500);
+                entity.Property(a => a.Reason).HasColumnType("text").HasConversion(SensitiveText.Converter);
 
                 entity.HasOne(a => a.SchoolUser)
                     .WithMany(su => su.Absences)
@@ -299,20 +300,19 @@ namespace Schuly.Infrastructure
             modelBuilder.Entity<StudentDocument>(entity =>
             {
                 entity.HasKey(d => d.Id);
-                entity.Property(d => d.Title).HasMaxLength(300).IsRequired();
-                entity.Property(d => d.Comment).HasMaxLength(2000);
-                entity.Property(d => d.Category).HasMaxLength(100);
-                entity.Property(d => d.EnteredBy).HasMaxLength(200);
-                entity.Property(d => d.FileName).HasMaxLength(300);
+                entity.Property(d => d.Title).HasColumnType("text").HasConversion(SensitiveText.Converter).IsRequired();
+                entity.Property(d => d.Comment).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(d => d.Category).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(d => d.EnteredBy).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(d => d.FileName).HasColumnType("text").HasConversion(SensitiveText.Converter);
                 entity.Property(d => d.FileUrl).HasMaxLength(2000);
-                entity.Property(d => d.FollowUpAction).HasMaxLength(500);
+                entity.Property(d => d.FollowUpAction).HasColumnType("text").HasConversion(SensitiveText.Converter);
 
                 entity.HasOne(d => d.SchoolUser)
                     .WithMany(su => su.Documents)
                     .HasForeignKey(d => d.SchoolUserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(d => new { d.SchoolUserId, d.Category });
                 ConfigureSynced(entity, d => new { d.SchoolUserId, d.Source, d.ExternalId });
             });
 

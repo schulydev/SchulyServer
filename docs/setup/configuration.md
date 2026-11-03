@@ -147,10 +147,10 @@ avatar URL is signed, not at startup.
 
 | Key | Purpose |
 |---|---|
-| `Vault:MasterKey` | Encrypts stored plugin credentials. Base64, exactly 32 bytes. Generate with `openssl rand -base64 32`. |
+| `Vault:MasterKey` | Encrypts stored plugin credentials, absence reasons and document metadata (title, comment, category, author, file name, follow-up action). Base64, exactly 32 bytes. Generate with `openssl rand -base64 32`. |
 
 Outside Development, the server refuses to start without a valid key. Keep the key stable: under a new
-key, stored credentials become unreadable. In Development, a missing or invalid key logs a warning and the
+key, stored credentials become unreadable, and so do absence reasons and document metadata, until a sync rewrites them. Entries typed in by hand stay unreadable. In Development, a missing or invalid key logs a warning and the
 server uses a temporary key, so stored credentials don't survive a restart.
 
 `Vault:PreviousMasterKey` is set only while rotating the key. See

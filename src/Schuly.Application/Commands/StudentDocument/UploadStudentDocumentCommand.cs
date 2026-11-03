@@ -15,6 +15,9 @@ namespace Schuly.Application.Commands.StudentDocument
     {
         public async ValueTask<Result<Guid>> Handle(UploadStudentDocumentCommand command, CancellationToken ct)
         {
+            if (command.Title.Length > 300 || command.FileName.Length > 300 || command.Comment?.Length > 2000 || command.Category?.Length > 100 || command.EnteredBy?.Length > 200 || command.FollowUpAction?.Length > 500)
+                return Result<Guid>.Failure("A document field is too long.");
+
             var currentUserId = await userService.GetCurrentUserIdAsync(ct);
             var owned = await db.SchoolUsers
                 .AnyAsync(su => su.Id == command.SchoolUserId && su.ApplicationUserId == currentUserId, ct);

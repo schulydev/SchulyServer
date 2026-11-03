@@ -22,6 +22,9 @@ namespace Schuly.Application.Commands.Absence
             if (UtcDateTime.Normalize(command.From) > UtcDateTime.Normalize(command.Until))
                 return Result.Failure("From must not be after Until");
 
+            if (command.Reason.Length > Domain.Absence.MaxReasonLength)
+                return Result.Failure($"The reason can have at most {Domain.Absence.MaxReasonLength} characters.");
+
             var myIds = await userService.GetCurrentUserSchoolUserIdsAsync(cancellationToken);
 
             var absence = await dbContext.Absences

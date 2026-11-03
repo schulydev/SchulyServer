@@ -55,7 +55,7 @@ To use documents and avatars, also set the `S3:` keys and `Avatar:SigningKey`. T
 are in `scripts/seaweedfs/s3-config.json`.
 
 In Development, the server starts without `Vault:MasterKey` and `Documents:EncryptionKey`. It then uses
-temporary keys, so stored plugin credentials and encrypted documents don't survive a restart.
+temporary keys, so stored plugin credentials, encrypted documents, absence reasons and document metadata don't survive a restart.
 
 ## 3. Run the API
 

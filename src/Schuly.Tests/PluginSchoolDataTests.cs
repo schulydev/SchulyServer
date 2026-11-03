@@ -122,7 +122,7 @@ namespace Schuly.Tests
 
             await Assert.That(result).IsEqualTo(new SyncResult(1, 0));
             using var check = TestDb.NewContext(db);
-            await Assert.That(await check.Absences.CountAsync(a => a.Source == null && a.Reason == "Doctor")).IsEqualTo(1);
+            await Assert.That((await check.Absences.Where(a => a.Source == null).ToListAsync()).Count(a => a.Reason == "Doctor")).IsEqualTo(1);
         }
 
         [Test]
