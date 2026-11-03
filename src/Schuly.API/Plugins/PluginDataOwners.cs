@@ -17,6 +17,16 @@ namespace Schuly.API.Plugins
               AND c.table_schema NOT IN ('pg_catalog', 'information_schema')
             """;
 
+        /// <summary>Whether a plugin has a database at all. Asked on the main database, so a plugin without one causes no failed connection.</summary>
+        public static async Task<bool> DatabaseExistsAsync(string mainConnectionString, string database, CancellationToken cancellationToken)
+        {
+            await using var connection = new NpgsqlConnection(mainConnectionString);
+            await connection.OpenAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("SELECT 1 FROM pg_database WHERE datname = @name", connection);
+            command.Parameters.AddWithValue("name", database);
+            return await command.ExecuteScalarAsync(cancellationToken) is not null;
+        }
+
         public static async Task<IReadOnlyCollection<Guid>> ReadAsync(string connectionString, CancellationToken cancellationToken)
         {
             await using var connection = new NpgsqlConnection(connectionString);
