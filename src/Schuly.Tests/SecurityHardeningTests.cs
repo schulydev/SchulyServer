@@ -230,7 +230,7 @@ namespace Schuly.Tests
                 var store = new PluginStore(directory.FullName);
 
                 await store.InstallAsync(new RegistryPlugin { Name = "P", Dll = "P-v1.dll", Version = "1", Sha256 = Hex(v1) }, registry);
-                await Assert.That(() => store.InstallAsync(new RegistryPlugin { Name = "P", Dll = "P-v2.dll", Version = "2", Sha256 = Hex(v1) }, registry)).Throws<InvalidOperationException>();
+                await Assert.That(async () => { await store.InstallAsync(new RegistryPlugin { Name = "P", Dll = "P-v2.dll", Version = "2", Sha256 = Hex(v1) }, registry); }).Throws<InvalidOperationException>();
 
                 await Assert.That(store.Find("P")!.Version).IsEqualTo("1");
                 await Assert.That(File.Exists(Path.Combine(directory.FullName, "P-v1.dll"))).IsTrue();
