@@ -2,6 +2,7 @@ import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { DriveView, MINE_ROOT, listingOf, parseView, serializeView } from '../core/drive-location';
 import { cleanPreview } from '../core/preview-text';
+import { ResponseCache } from '../core/response-cache';
 import { withAccountResource } from './account-resource';
 import { LinkedAccountsStore } from './linked-accounts.store';
 
@@ -39,7 +40,10 @@ export interface DriveItem {
 }
 
 export const MailStore = signalStore(
-  withAccountResource<MailMessage>('mail', 'mail', { folder: 'inbox', unread: false }, { pageSize: 25, max: 500 }),
+  withAccountResource<MailMessage>('mail', 'mail', { folder: 'inbox', unread: false }, { pageSize: 25, max: 500 }, {
+    route: (params) => ({ path: 'mail', query: params }),
+    cached: (params) => ({ path: 'cached/mail', query: params }),
+  }),
   withComputed((store) => ({
     messages: computed(() =>
       store.items().map((m) => ({
@@ -59,7 +63,20 @@ export const MailStore = signalStore(
     unreadOnly: computed(() => store.params()['unread'] === true),
     folder: computed(() => String(store.params()['folder'] ?? 'inbox')),
   })),
-  withMethods((store) => ({
+  withMethods((store, responses = inject(ResponseCache), accounts = inject(LinkedAccountsStore)) => ({
+    /** Shows a change to the list at once, here and in the saved list, and undoes both if `send` reports a failure. */
+    async optimistic(change: (items: MailMessage[]) => MailMessage[], send: () => Promise<boolean>): Promise<boolean> {
+      const before = store.items();
+      patchState(store, { items: change(before) });
+      const base = accounts.endpoint('mail');
+      const undo = base ? await responses.patch<MailMessage[]>(`${base}/cached/mail`, { ...store.params(), top: store.top() }, change) : null;
+      const ok = await send();
+      if (!ok) {
+        patchState(store, { items: before });
+        await undo?.();
+      }
+      return ok;
+    },
     setUnreadOnly: (unread: boolean) => store.setParam('unread', unread),
     setFolder: (folder: string) => store.setParam('folder', folder),
     /** Removes a message from the loaded list after it was deleted or moved. */

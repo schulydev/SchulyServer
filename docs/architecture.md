@@ -77,6 +77,9 @@ Helply is in `Schuly.API/Helply`. See [Configuration](setup/configuration.md#hel
 
 ## Plugin host
 
+The web app keeps recent Microsoft mail and chats in the browser and draws them before asking the server.
+[Browser cache](#browser-cache) explains what it holds.
+
 The backend hosts plugins that implement `ISchulyPlugin` from `Schuly.Plugin.Abstractions`. The runtime
 is in `Schuly.API/Plugins`:
 
@@ -129,3 +132,28 @@ plugin was built against:
 
 `PluginContract` also refuses a plugin that references `Schuly.Domain`, `Schuly.Infrastructure`,
 `Schuly.Application`, or `Schuly.API`. Refusal errors name both versions.
+
+## Browser cache
+
+The web app follows OutNote's
+[frontend and API guide](https://github.com/PianoNic/OutNote/blob/main/docs/frontend-and-api.md). It draws saved
+answers from IndexedDB at once, then asks the plugin with `If-None-Match`. A 304 redraws nothing. The plugin's side
+is described in [Microsoft response cache](https://github.com/schulydev/SchulyPlugins/blob/main/docs/microsoft-response-cache.md).
+Lists refresh every 30 seconds and an open chat every 15, only while the tab is visible.
+
+It holds mail lists, opened and prefetched mail with its body, the chat list, and the messages of opened chats, for one
+database per signed-in user. **IndexedDB isn't encrypted.** Anyone with access to that browser profile can read it.
+
+| Event | What happens |
+|---|---|
+| Sign-out, account deletion, a session that can't be renewed | Every Schuly database in this browser is deleted, for every user |
+| Unlinking an account | That account's saved answers are deleted |
+| Opening the app | Saved answers older than 30 days, and those past the newest 300, are deleted |
+
+A browser that is closed while signed in and never opened again keeps its data, because no code runs to delete it.
+
+Mail bodies are sanitized when they are drawn, as before, wherever they came from.
+
+There's no service worker. The guide's version serves the app's files from a fixed list that changes on every release, and
+Angular's file names change on every build, so it needs a release step this project doesn't have. A stale `index.html`
+would keep users on an old version.

@@ -4,6 +4,8 @@ import { firstValueFrom } from 'rxjs';
 import { LinkProviderDto, LinkedAccountDto, LinkedAccountStatus, LinkingApi } from '../core/linking-api';
 import { linkErrorMessage } from '../core/linking-step';
 import { DataRefresh } from './data-refresh';
+import { removeSavedAccount, userIdFromToken } from '../core/browser-cache';
+import { AuthStore } from './auth.store';
 
 /** Capability kinds the web has a generic UI for. */
 export const WEB_KINDS = ['mail', 'chat', 'drive', 'notes', 'calendar', 'absence_reporting'] as const;
@@ -128,7 +130,7 @@ export const LinkedAccountsStore = signalStore(
       return [...byProvider.values()];
     }),
   })),
-  withMethods((store, api = inject(LinkingApi), refresh = inject(DataRefresh, { optional: true })) => {
+  withMethods((store, api = inject(LinkingApi), refresh = inject(DataRefresh, { optional: true }), auth = inject(AuthStore)) => {
     let sequence = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let waited = 0;
@@ -212,6 +214,7 @@ export const LinkedAccountsStore = signalStore(
         patchState(store, { busy: true, actionError: null });
         try {
           await firstValueFrom(api.unlink(account.providerId, account.id));
+          await removeSavedAccount(userIdFromToken(auth.accessToken()), account.id);
           patchState(store, { accounts: store.accounts().filter((a) => !(a.providerId === account.providerId && a.id === account.id)) });
           if (account.capabilities?.some((c) => c.kind === 'school_data')) refresh?.clearAndReload();
           else refresh?.reloadAll();

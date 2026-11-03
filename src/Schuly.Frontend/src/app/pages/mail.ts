@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChildren } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChildren, DestroyRef } from '@angular/core';
+import { keepFresh } from '../core/response-cache';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArchive,
@@ -355,6 +356,17 @@ export class Mail {
       const current = this.mail.folder();
       if (this.client.foldersLive() && !folders.some((f) => f.key === current)) untracked(() => this.mail.setFolder('inbox'));
     });
+    // Load the top of the list ahead, once a list is on screen.
+    effect(() => {
+      const ids = this.mail.items().map((m) => m.id);
+      if (ids.length) untracked(() => this.client.prefetchTop(ids));
+    });
+    inject(DestroyRef).onDestroy(
+      keepFresh(() => {
+        this.mail.refresh();
+        void this.client.loadFolders();
+      }),
+    );
   }
 
   protected chooseFolder(key: string): void {

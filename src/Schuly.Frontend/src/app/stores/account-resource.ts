@@ -2,9 +2,10 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DestroyRef, computed, effect, inject, untracked } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
-import { Subject, map, of, switchMap, tap } from 'rxjs';
+import { Observable, Subject, map, of, switchMap, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { swrCache } from '../core/swr-cache';
+import { ResponseCache } from '../core/response-cache';
 import { CapabilityKind, LinkedAccountsStore } from './linked-accounts.store';
 import { DataRefresh } from './data-refresh';
 
@@ -27,6 +28,8 @@ type ResourceParams = Record<string, string | number | boolean>;
 /** Lets a resource choose its route and read its list from the params, for lists that live under more than one route. */
 export interface ResourceRouting<T> {
   route: (params: ResourceParams) => { path: string; query: ResourceParams };
+  /** The route that draws from the browser first and revalidates (see ResponseCache), for the params it can answer. */
+  cached?: (params: ResourceParams) => { path: string; query: ResourceParams } | null;
   /** Reads the list out of a response body that is not the list itself. */
   unwrap?: (body: unknown) => T[];
 }
@@ -60,6 +63,7 @@ interface ResourceRequest {
   params: ResourceParams;
   top: number;
   more: boolean;
+  silent?: boolean;
 }
 
 // The plugin answers an expired sign-in with 409; a 401 is the Schuly session and the auth interceptor handles it.
@@ -102,11 +106,20 @@ export function withAccountResource<T>(kind: CapabilityKind, resource: string, p
     withMethods((store) => {
       const http = inject(HttpClient);
       const accounts = inject(LinkedAccountsStore);
+      const responses = inject(ResponseCache);
       const requests = new Subject<ResourceRequest>();
+      /** The answer for these params: saved first, then changes, where a cached route exists. */
+      const load = (base: string, params: ResourceParams, top: number): Observable<unknown> => {
+        const live = route(params);
+        const liveQuery = paging ? { ...live.query, top } : live.query;
+        const cached = routing?.cached?.(params);
+        return cached ? responses.swr<unknown>(`${base}/${cached.path}`, paging ? { ...cached.query, top } : cached.query, `${base}/${live.path}`) : http.get<unknown>(`${base}/${live.path}`, { params: liveQuery });
+      };
 
       requests
         .pipe(
           tap((r) => {
+            if (r.silent) return;
             if (r.more) return patchState(store, { loadingMore: true, moreFailed: false });
             // Stale-while-revalidate: a cached list shows at once and is refreshed below.
             const hit = r.id ? swrCache.get<T[]>(cacheKey(r.id, resource, r.params, paging ? r.top : 0)) : null;
@@ -123,9 +136,7 @@ export function withAccountResource<T>(kind: CapabilityKind, resource: string, p
           }),
           switchMap((r) => {
             if (!r.id || !r.base) return of(null);
-            const target = route(r.params);
-            const query = paging ? { ...target.query, top: r.top } : target.query;
-            return http.get<unknown>(`${r.base}/${target.path}`, { params: query }).pipe(
+            return load(r.base, r.params, r.top).pipe(
               map(read),
               tapResponse({
                 next: (items) => {
@@ -163,14 +174,12 @@ export function withAccountResource<T>(kind: CapabilityKind, resource: string, p
           const key = cacheKey(id, resource, params, paging ? pageSize : 0);
           const hit = swrCache.get(key);
           if (hit && hit.age < PREFETCH_FRESH_MS) return;
-          const target = route(params);
-          const query = paging ? { ...target.query, top: pageSize } : target.query;
-          http
-            .get<unknown>(`${base}/${target.path}`, { params: query })
-            .subscribe({ next: (body) => swrCache.set(key, read(body)), error: () => undefined });
+          load(base, params, pageSize).subscribe({ next: (body) => swrCache.set(key, read(body)), error: () => undefined });
         },
         /** Reloads from the first page for the selected account. */
         reload: () => requests.next({ id: accounts.selectedId(kind), base: accounts.endpoint(kind), params: store.params(), top: pageSize, more: false }),
+        /** Checks for changes behind what is on screen, which stays until a different list arrives. */
+        refresh: () => requests.next({ id: accounts.selectedId(kind), base: accounts.endpoint(kind), params: store.params(), top: store.top(), more: false, silent: true }),
         /** Asks for one more page; the current items stay until the longer list arrives. */
         loadMore: () => {
           if (!paging || !store.more() || store.loading() || store.loadingMore()) return;

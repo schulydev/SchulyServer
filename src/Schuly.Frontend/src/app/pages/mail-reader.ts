@@ -262,38 +262,30 @@ export class MailReader {
   }
 
   private async markRead(id: string): Promise<void> {
-    if ((await this.client.setRead(id, true)) === 'ok') this.mail.patch(id, { isRead: true });
+    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, isRead: true } : m)), async () => (await this.client.setRead(id, true)) === 'ok');
   }
 
   protected async toggleRead(): Promise<void> {
     const id = this.summary().id;
     const next = !this.read();
-    if (this.say(await this.client.setRead(id, next), next ? 'Marked as read' : 'Marked as unread')) this.mail.patch(id, { isRead: next });
+    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, isRead: next } : m)), async () => this.say(await this.client.setRead(id, next), next ? 'Marked as read' : 'Marked as unread'));
   }
 
   protected async toggleFlag(): Promise<void> {
     const id = this.summary().id;
     const next = !this.flagged();
-    if (this.say(await this.client.setFlag(id, next), next ? 'Flagged' : 'Flag removed')) {
-      this.mail.patch(id, { flag: { flagStatus: next ? 'flagged' : 'notFlagged' } });
-    }
+    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, flag: { flagStatus: next ? 'flagged' : 'notFlagged' } } : m)), async () => this.say(await this.client.setFlag(id, next), next ? 'Flagged' : 'Flag removed'));
   }
 
   protected async remove(): Promise<void> {
     const id = this.summary().id;
-    if (this.say(await this.client.remove(id), 'Message deleted')) {
-      this.mail.drop(id);
-      this.removed.emit();
-    }
+    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.remove(id), 'Message deleted'))) this.removed.emit();
   }
 
   protected async move(folder: string | null | undefined): Promise<void> {
     if (!folder) return;
     const id = this.summary().id;
-    if (this.say(await this.client.move(id, folder), 'Message moved')) {
-      this.mail.drop(id);
-      this.removed.emit();
-    }
+    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.move(id, folder), 'Message moved'))) this.removed.emit();
   }
 
   protected async download(file: MailAttachment): Promise<void> {

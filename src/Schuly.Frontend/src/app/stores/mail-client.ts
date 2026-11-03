@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, lastValueFrom, tap } from 'rxjs';
+import { ResponseCache } from '../core/response-cache';
 import { swrCache } from '../core/swr-cache';
 import { LinkedAccountsStore } from './linked-accounts.store';
 import { viewerSupports } from '../shared/file-viewer/file-types';
@@ -313,6 +314,8 @@ export class MailClient {
 
   readonly unreadTotal = computed(() => this.folders().find((f) => f.kind === 'inbox')?.unread ?? null);
 
+  private readonly responses = inject(ResponseCache);
+
   private openSeq = 0;
   /** The message on screen; attachment and inline-image loads only land when it is still the one they were started for. */
   private openId: string | null = null;
@@ -320,6 +323,12 @@ export class MailClient {
   private base(): string | null {
     const base = this.accounts.endpoint('mail');
     return base ? `${base}/mail` : null;
+  }
+
+  /** Reads that draw from the browser first; the rest of this client talks to the live routes. */
+  private cachedBase(): string | null {
+    const base = this.accounts.endpoint('mail');
+    return base ? `${base}/cached/mail` : null;
   }
 
   private key(suffix: string): string {
@@ -336,12 +345,18 @@ export class MailClient {
       this.foldersLive.set(true);
     }
     try {
-      const items = await firstValueFrom(this.http.get<GraphFolder[]>(`${base}/folders`));
-      if (!Array.isArray(items) || !items.length) throw new Error('no folders');
-      const folders = orderFolders(items);
-      swrCache.set(key, folders);
-      this.folders.set(folders);
-      this.foldersLive.set(true);
+      await lastValueFrom(
+        this.responses.swr<GraphFolder[]>(`${this.cachedBase()}/folders`, {}, `${base}/folders`).pipe(
+          tap((items) => {
+            if (!Array.isArray(items) || !items.length) throw new Error('no folders');
+            const folders = orderFolders(items);
+            swrCache.set(key, folders);
+            this.folders.set(folders);
+            this.foldersLive.set(true);
+          }),
+        ),
+        { defaultValue: null },
+      );
     } catch {
       // Without the endpoint (older server) the built-in list stays.
       if (!hit) {
@@ -389,13 +404,23 @@ export class MailClient {
       this.detailLoading.set(true);
     }
     try {
-      const message = await firstValueFrom(this.http.get<GraphMessage>(`${base}/${encodeURIComponent(id)}`));
-      if (seq !== this.openSeq) return;
-      const detail = this.parse(message);
-      swrCache.set(key, detail);
-      this.detail.set(detail);
-      this.detailLoading.set(false);
-      if (wantsAttachments(detail) && !wantsAttachments(hit?.data)) void this.loadAttachments(id, seq);
+      let loading = !!hit && wantsAttachments(hit.data);
+      await lastValueFrom(
+        this.responses.swr<GraphMessage>(`${this.cachedBase()}/${encodeURIComponent(id)}`, {}, `${base}/${encodeURIComponent(id)}`).pipe(
+          tap((message) => {
+            if (seq !== this.openSeq) return;
+            const detail = this.parse(message);
+            swrCache.set(key, detail);
+            this.detail.set(detail);
+            this.detailLoading.set(false);
+            if (wantsAttachments(detail) && !loading) {
+              loading = true;
+              void this.loadAttachments(id, seq);
+            }
+          }),
+        ),
+        { defaultValue: null },
+      );
     } catch (error) {
       if (seq !== this.openSeq) return;
       this.detailLoading.set(false);
@@ -420,7 +445,7 @@ export class MailClient {
     const key = this.key(`msg|${id}`);
     const hit = swrCache.get(key);
     if (hit && hit.age < 60_000) return;
-    this.http.get<GraphMessage>(`${base}/${encodeURIComponent(id)}`).subscribe({
+    this.responses.swr<GraphMessage>(`${this.cachedBase()}/${encodeURIComponent(id)}`, {}, `${base}/${encodeURIComponent(id)}`).subscribe({
       next: (m) => swrCache.set(key, this.parse(m)),
       error: () => undefined,
     });
@@ -532,6 +557,7 @@ export class MailClient {
 
   private forget(id: string): void {
     swrCache.invalidate(this.key(`msg|${id}`));
+    void this.responses.forget(`${this.cachedBase()}/${encodeURIComponent(id)}`);
   }
 
   /** Lists are cached per folder; after a move, delete or send they must be refetched. */
@@ -539,10 +565,18 @@ export class MailClient {
     swrCache.invalidate(this.key('['));
   }
 
+  /** Saved details of the top of a list, loaded ahead gently so opening them is instant. */
+  prefetchTop(ids: string[]): void {
+    const base = this.cachedBase();
+    if (base) void this.responses.prefetch(ids.slice(0, 5).map((id) => `${base}/${encodeURIComponent(id)}`));
+  }
+
   async setRead(id: string, read: boolean): Promise<ActionResult> {
+    const wasRead = this.detail()?.id === id ? this.detail()!.read : null;
+    this.detail.update((d) => (d && d.id === id ? { ...d, read } : d));
     const result = await this.post(`${encodeURIComponent(id)}/read`, { read });
+    if (result !== 'ok' && wasRead !== null) this.detail.update((d) => (d && d.id === id ? { ...d, read: wasRead } : d));
     if (result === 'ok') {
-      this.detail.update((d) => (d && d.id === id ? { ...d, read } : d));
       this.forget(id);
       this.forgetLists();
       void this.loadFolders();
@@ -551,9 +585,11 @@ export class MailClient {
   }
 
   async setFlag(id: string, flagged: boolean): Promise<ActionResult> {
+    const wasFlagged = this.detail()?.id === id ? this.detail()!.flagged : null;
+    this.detail.update((d) => (d && d.id === id ? { ...d, flagged } : d));
     const result = await this.post(`${encodeURIComponent(id)}/flag`, { status: flagged ? 'flagged' : 'notFlagged' });
+    if (result !== 'ok' && wasFlagged !== null) this.detail.update((d) => (d && d.id === id ? { ...d, flagged: wasFlagged } : d));
     if (result === 'ok') {
-      this.detail.update((d) => (d && d.id === id ? { ...d, flagged } : d));
       this.forget(id);
       this.forgetLists();
     }

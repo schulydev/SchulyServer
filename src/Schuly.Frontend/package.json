@@ -58,6 +58,7 @@
     "@spartan-ng/cli": "^1.8.3",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/qrcode": "^1.5.6",
+    "fake-indexeddb": "^6.2.7",
     "jsdom": "^30.0.0",
     "ngx-prompt-kit": "22.5.0",
     "postcss": "^8.5.3",
