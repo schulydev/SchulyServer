@@ -1,4 +1,9 @@
 using Schuly.Application.Queries.User;
+using Schuly.Domain.Helply;
+using Schuly.Domain.Mcp;
+using Schuly.Infrastructure.Helply;
+using Schuly.Infrastructure.Vault;
+using Toamaisutaa.Abstractions;
 using Schuly.Domain;
 using Schuly.Domain.Enums;
 using Schuly.Tests.TestHelpers;
@@ -52,6 +57,58 @@ namespace Schuly.Tests
             return new SeedResult(user1.Id, user2.Id, su1.Id, su2.Id);
         }
 
+        private static readonly HelplyCipher Cipher = new(VaultKeyring.Ephemeral());
+
+        [Test]
+        public async Task The_export_covers_everything_stored_about_the_user_and_nothing_of_another()
+        {
+            var db = nameof(The_export_covers_everything_stored_about_the_user_and_nothing_of_another);
+            var loginId = Guid.CreateVersion7();
+            var userId = Guid.NewGuid();
+            var otherId = Guid.NewGuid();
+            var conversationId = Guid.NewGuid();
+            var attachmentId = Guid.NewGuid();
+            using (var ctx = TestDb.NewContext(db))
+            {
+                ctx.ApplicationUsers.Add(new ApplicationUser { Id = userId, ExternalId = loginId.ToString(), Email = "me@example.com", PolicyVersionAccepted = "v1", SwissSchoolConfirmedAt = DateTime.UtcNow });
+                ctx.Set<ToamaisutaaUser>().Add(new ToamaisutaaUser { Id = loginId, SecurityStamp = "secret-stamp" });
+                ctx.Set<ToamaisutaaPasswordCredential>().Add(new ToamaisutaaPasswordCredential { UserId = loginId, UserName = "mia", NormalizedUserName = "MIA", Email = "me@example.com", NormalizedEmail = "ME@EXAMPLE.COM", PasswordHash = "secret-hash" });
+                ctx.Set<ToamaisutaaRefreshToken>().Add(new ToamaisutaaRefreshToken { Id = Guid.NewGuid(), UserId = loginId, FamilyId = Guid.NewGuid(), TokenHash = "secret-token-hash", SecurityStamp = "s", IpAddress = "203.0.113.9", UserAgent = "Browser" });
+
+                ctx.HelplySettings.Add(new HelplySettings { ApplicationUserId = userId, WorkspaceEnabled = true });
+                ctx.HelplyConversations.Add(new HelplyConversation
+                {
+                    Id = conversationId,
+                    ApplicationUserId = userId,
+                    Title = Cipher.Encrypt("My chat", conversationId, userId, HelplyCipher.TitleField),
+                    Transcript = Cipher.Encrypt("[{\"text\":\"hello helply\"}]", conversationId, userId, HelplyCipher.TranscriptField),
+                });
+                ctx.HelplyAttachments.Add(new HelplyAttachment { Id = attachmentId, ApplicationUserId = userId, ConversationId = conversationId, FileName = Cipher.Encrypt("note.pdf", conversationId, userId, HelplyAttachmentStore.Field(attachmentId, "name")), MediaType = "application/pdf", SizeBytes = 12 });
+
+                var client = new McpOAuthClient { ClientId = "c", ClientName = "Some AI", RedirectUris = ["https://a.example/cb"] };
+                ctx.McpGrants.Add(new McpGrant { ApplicationUserId = userId, McpOAuthClient = client });
+                ctx.McpApiKeys.Add(new McpApiKey { ApplicationUserId = userId, Name = "laptop", Prefix = "schuly_mcp_abc", KeyHash = "secret-key-hash" });
+                ctx.McpActivities.Add(new McpActivity { ApplicationUserId = userId, ToolName = "list_grades", Allowed = true });
+
+                ctx.NotificationPreferences.Add(new NotificationPreference { ApplicationUserId = userId, IncludeDetails = true });
+                ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = userId, Token = "device-1", Platform = "android", Locale = "de" });
+                ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = otherId, Token = "device-of-another", Platform = "android", Locale = "de" });
+                await ctx.SaveChangesAsync();
+            }
+
+            using var read = TestDb.NewContext(db);
+            var result = await new ExportCurrentUserQueryHandler(read, new FakeUserService { CurrentUserId = userId }, Cipher).Handle(new ExportCurrentUserQuery(), CancellationToken.None);
+            var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
+
+            foreach (var expected in new[] { "mia", "203.0.113.9", "My chat", "hello helply", "note.pdf", "Some AI", "laptop", "list_grades", "device-1", "v1", "privacy@schuly.dev" })
+                await Assert.That(json).Contains(expected);
+            foreach (var secret in new[] { "secret-stamp", "secret-hash", "secret-token-hash", "secret-key-hash", "device-of-another" })
+                await Assert.That(json).DoesNotContain(secret);
+            await Assert.That(result.Value!.Helply!.WorkspaceEnabled).IsTrue();
+            await Assert.That(result.Value!.Notifications!.Preferences!.IncludeDetails).IsTrue();
+            await Assert.That(result.Value!.PrivacyNotice!.SwissSchoolConfirmedAt).IsNotNull();
+        }
+
         [Test]
         public async Task Export_contains_only_the_callers_own_data()
         {
@@ -59,7 +116,7 @@ namespace Schuly.Tests
             var seed = Seed(db);
 
             using var ctx = TestDb.NewContext(db);
-            var handler = new ExportCurrentUserQueryHandler(ctx, new FakeUserService() { CurrentUserId = seed.User1Id });
+            var handler = new ExportCurrentUserQueryHandler(ctx, new FakeUserService() { CurrentUserId = seed.User1Id }, Cipher);
 
             var result = await handler.Handle(new ExportCurrentUserQuery(), CancellationToken.None);
 
@@ -93,7 +150,7 @@ namespace Schuly.Tests
         public async Task Export_fails_when_the_current_user_does_not_exist()
         {
             using var ctx = TestDb.NewContext(nameof(Export_fails_when_the_current_user_does_not_exist));
-            var handler = new ExportCurrentUserQueryHandler(ctx, new FakeUserService() { CurrentUserId = Guid.NewGuid() });
+            var handler = new ExportCurrentUserQueryHandler(ctx, new FakeUserService() { CurrentUserId = Guid.NewGuid() }, Cipher);
 
             var result = await handler.Handle(new ExportCurrentUserQuery(), CancellationToken.None);
 

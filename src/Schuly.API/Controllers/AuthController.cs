@@ -7,6 +7,7 @@ using Schuly.Application.Commands.User;
 using Schuly.Application.Dtos;
 using Schuly.Application.Queries.User;
 using Schuly.API.Extensions;
+using Schuly.API.Linking;
 using Schuly.API.Plugins;
 using Schuly.API.Security;
 using System.Text.Json;
@@ -45,11 +46,14 @@ namespace Schuly.API.Controllers
         [HttpGet("me/export")]
         [ProducesResponseType(typeof(AccountExportDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> ExportCurrentUser(CancellationToken cancellationToken)
+        public async Task<IActionResult> ExportCurrentUser([FromServices] LinkingService linking, CancellationToken cancellationToken)
         {
             var result = await mediator.Send(new ExportCurrentUserQuery(), cancellationToken);
             if (result.IsFailure)
                 return result.ToActionResult();
+
+            var accounts = await linking.ListAccountsAsync(result.Value!.Profile.Id, cancellationToken);
+            result.Value.ConnectedAccounts = accounts.Select(a => new ExportConnectedAccountDto(a.ProviderName, a.Title, a.Detail, a.Status.ToString(), a.LinkedAt, a.LastSyncedAt)).ToList();
 
             var bytes = JsonSerializer.SerializeToUtf8Bytes(result.Value, ExportSerializerOptions);
             return File(bytes, "application/json", "schuly-export.json");
