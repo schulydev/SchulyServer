@@ -220,13 +220,13 @@ Helply is the optional AI assistant. It needs an OpenAI-compatible chat-completi
 
 | Key | Purpose |
 |---|---|
-| `Helply:BaseUrl` | Gateway URL. Absolute `http` or `https`. |
+| `Helply:BaseUrl` | Gateway URL. `https`, or `http` only to a private address, `localhost`, a single-label service name or a `.local`, `.internal`, `.lan` or `.home.arpa` name. |
 | `Helply:ApiKey` | Gateway API key. |
-| `Helply:Model` | Optional. Without it, the server probes the models the gateway lists and uses the first that answers tool calls. |
+| `Helply:Model` | Required outside Development. In Development only, the server may instead probe the models the gateway lists and use the first that answers tool calls. |
 
 `BaseUrl` and `ApiKey` together turn Helply on. These three settings have no default. Set them only as
 environment variables (`Helply__BaseUrl`, `Helply__ApiKey`, `Helply__Model`), never in appsettings.
-Without them, the server logs that Helply is disabled and users see it turned off.
+Without them, the server logs that Helply is disabled and users see it turned off. Outside Development, a missing model or a public plain-http gateway logs an error and also turns Helply off. The first time someone opens Helply, the web app says it is an AI and not a person.
 
 ### Limits
 

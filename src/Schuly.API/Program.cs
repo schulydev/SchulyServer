@@ -58,7 +58,7 @@ builder.Services.AddSchulyLinking();
 builder.Services.AddSchulyAuthentication(builder.Configuration);
 builder.Services.AddSchulyAuthorization(builder.Configuration);
 builder.Services.AddSchulyMcp(builder.Configuration);
-builder.Services.AddSchulyHelply(builder.Configuration);
+builder.Services.AddSchulyHelply(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddSchulyExceptionHandling();
 builder.Services.AddSchulyForwardedHeaders(builder.Configuration);
 builder.Services.AddSchulyRateLimiting();

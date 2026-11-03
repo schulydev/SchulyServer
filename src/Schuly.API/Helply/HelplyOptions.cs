@@ -1,4 +1,6 @@
+using System.Net;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Schuly.API.Services;
 using Schuly.Infrastructure.Helply;
 
 namespace Schuly.API.Helply
@@ -6,6 +8,7 @@ namespace Schuly.API.Helply
     /// <summary>
     /// Helply's OpenAI-compatible chat-completions gateway, from <c>Helply__BaseUrl</c>, <c>Helply__ApiKey</c> and optional <c>Helply__Model</c>. None of these
     /// has a default and none belongs in appsettings. They are secrets of the deployment: no API response, error message or log line may contain the URL, key or model.
+    /// Outside Development the model is required, and the gateway must be https or on a private address, so what the privacy policy says about the model can be checked.
     /// </summary>
     public class HelplyOptions
     {
@@ -14,6 +17,29 @@ namespace Schuly.API.Helply
         public string? BaseUrl { get; set; }
         public string? ApiKey { get; set; }
         public string? Model { get; set; }
+
+        /// <summary>Set by <see cref="HelplyExtensions.AddSchulyHelply"/>, never from configuration: only Development may pick whichever model answers.</summary>
+        public bool AllowModelDiscovery { get; set; }
+    }
+
+    public static class HelplyGatewayRules
+    {
+        private static readonly string[] PrivateSuffixes = [".local", ".internal", ".lan", ".home.arpa", ".localhost"];
+
+        /// <summary>https anywhere; plain http only to a place that can't be on the public internet: a private IP, localhost, a single-label service name or a private suffix.</summary>
+        public static bool IsAllowed(Uri uri)
+        {
+            if (uri.Scheme == Uri.UriSchemeHttps)
+                return true;
+            if (uri.Scheme != Uri.UriSchemeHttp)
+                return false;
+
+            if (uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6)
+                return IPAddress.TryParse(uri.Host.Trim('[', ']'), out var ip) && NetworkAddresses.IsPrivate(ip);
+
+            var host = uri.IdnHost.TrimEnd('.').ToLowerInvariant();
+            return !host.Contains('.') || PrivateSuffixes.Any(suffix => host.EndsWith(suffix, StringComparison.Ordinal));
+        }
     }
 
     /// <summary>Per-user and per-run limits, <c>Helply:Limits</c>. Nothing secret, so these may live in appsettings.</summary>
@@ -69,17 +95,29 @@ namespace Schuly.API.Helply
     public sealed class HelplyAvailability
     {
         public bool IsEnabled { get; init; }
+
+        /// <summary>Why settings that were given can't be used. Names settings, never a value.</summary>
+        public IReadOnlyList<string> Refused { get; init; } = [];
     }
 
     public static class HelplyExtensions
     {
-        public static IServiceCollection AddSchulyHelply(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddSchulyHelply(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
         {
             services.Configure<HelplyOptions>(configuration.GetSection(HelplyOptions.SectionName));
+            services.PostConfigure<HelplyOptions>(o => o.AllowModelDiscovery = isDevelopment);
 
             var options = configuration.GetSection(HelplyOptions.SectionName).Get<HelplyOptions>() ?? new HelplyOptions();
             var enabled = Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) && !string.IsNullOrWhiteSpace(options.ApiKey);
-            services.AddSingleton(new HelplyAvailability { IsEnabled = enabled });
+            var refused = new List<string>();
+            if (enabled && !isDevelopment)
+            {
+                if (string.IsNullOrWhiteSpace(options.Model))
+                    refused.Add("set Helply__Model: outside Development the server does not pick a model itself");
+                if (!HelplyGatewayRules.IsAllowed(uri!))
+                    refused.Add("point Helply__BaseUrl at https or a private address");
+            }
+            services.AddSingleton(new HelplyAvailability { IsEnabled = enabled && refused.Count == 0, Refused = refused });
             services.Configure<HelplyLimits>(configuration.GetSection(HelplyLimits.SectionName));
             services.Configure<HelplyAttachmentOptions>(configuration.GetSection(HelplyAttachmentOptions.SectionName));
             services.Configure<HelplySandboxOptions>(configuration.GetSection(HelplySandboxOptions.SectionName));
@@ -113,6 +151,8 @@ namespace Schuly.API.Helply
         {
             if (availability.IsEnabled)
                 logger.LogInformation("Helply is enabled");
+            else if (availability.Refused.Count > 0)
+                logger.LogError("Helply is off: {Reasons}", string.Join("; ", availability.Refused));
             else
                 logger.LogWarning("Helply is disabled: set Helply__BaseUrl (an absolute http or https URL) and Helply__ApiKey to enable it");
             if (availability.IsEnabled)

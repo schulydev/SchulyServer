@@ -253,7 +253,7 @@ namespace Schuly.Tests.Helply
             });
             builder.Services.AddAuthorization(o => o.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
             builder.Services.AddSchulyMcp(builder.Configuration);
-            builder.Services.AddSchulyHelply(builder.Configuration);
+            builder.Services.AddSchulyHelply(builder.Configuration, isDevelopment: true);
             builder.Services.AddSingleton<TimeProvider>(time);
             configure?.Invoke(builder.Services);
             if (behindProxy)
