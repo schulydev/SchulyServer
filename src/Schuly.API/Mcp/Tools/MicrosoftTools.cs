@@ -418,7 +418,7 @@ namespace Schuly.API.Mcp.Tools
             var message = response.Json() is { } error ? Str(error, "message") : null;
             throw new McpException(response.StatusCode switch
             {
-                StatusCodes.Status404NotFound => "Not found. Either the item does not exist or the Microsoft 365 plugin is not installed on this Schuly server.",
+                StatusCodes.Status404NotFound => "Not found in Microsoft 365. The item may have moved, or the id may be out of date, so list or search again.",
                 StatusCodes.Status409Conflict => "The Microsoft sign-in for this account expired. Reconnect the account in the Schuly app.",
                 StatusCodes.Status413PayloadTooLarge => message ?? "The file is too large to read as text. Open it in Schuly or OneDrive instead.",
                 StatusCodes.Status415UnsupportedMediaType => message ?? (Str(response.Json() ?? default, "detail") ?? "This file type cannot be read as text."),
