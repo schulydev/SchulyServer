@@ -58,5 +58,9 @@ namespace Schuly.Infrastructure.Security
         }
 
         public Task<AccountPurgeSummary> PurgeSchoolUsersAsync(IReadOnlyCollection<Guid> schoolUserIds, CancellationToken cancellationToken = default) => inner.PurgeSchoolUsersAsync(schoolUserIds, cancellationToken);
+
+        public Task<int> PurgePluginDataAsync(Guid applicationUserId, string? pluginSource, CancellationToken cancellationToken = default) => inner.PurgePluginDataAsync(applicationUserId, pluginSource, cancellationToken);
+
+        public Task<PendingPurgeResult> RetryPendingAsync(CancellationToken cancellationToken = default) => inner.RetryPendingAsync(cancellationToken);
     }
 }

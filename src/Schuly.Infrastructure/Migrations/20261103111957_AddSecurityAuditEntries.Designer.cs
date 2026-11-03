@@ -13,7 +13,7 @@ using Schuly.Infrastructure;
 namespace Schuly.Infrastructure.Migrations
 {
     [DbContext(typeof(SchulyDbContext))]
-    [Migration("20261103105251_AddSecurityAuditEntries")]
+    [Migration("20261103111957_AddSecurityAuditEntries")]
     partial class AddSecurityAuditEntries
     {
         /// <inheritdoc />
@@ -534,6 +534,23 @@ namespace Schuly.Infrastructure.Migrations
                     b.ToTable("HelplySettings");
                 });
 
+            modelBuilder.Entity("Schuly.Domain.InactivityWarning", b =>
+                {
+                    b.Property<Guid>("LoginId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DeleteAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("LoginId");
+
+                    b.ToTable("InactivityWarnings");
+                });
+
             modelBuilder.Entity("Schuly.Domain.LinkedAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -902,13 +919,6 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<int>("RetryCount")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("Score")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("numeric(4,2)");
-
-                    b.Property<DateTime?>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -968,6 +978,38 @@ namespace Schuly.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("NotificationPreferences");
+                });
+
+            modelBuilder.Entity("Schuly.Domain.PendingPurge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PluginSource")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PendingPurges");
                 });
 
             modelBuilder.Entity("Schuly.Domain.PluginTask", b =>
