@@ -235,7 +235,7 @@ The server exposes MCP at `/mcp`, so users can connect AI apps.
 | `Mcp:PublicUrl` | The public origin and the audience of every MCP token. Set it in deployments. Without it, the server takes the origin from each request. |
 | `Mcp:AllowedOrigins` | Browser origins allowed CORS, besides the server's own (`Mcp__AllowedOrigins__0`, `__1`, and so on). Wildcards aren't supported. |
 
-Those are the only two settings to configure.
+You normally set only these two. Token lifetimes and limits also live under `Mcp:` and have working defaults (`McpOAuthOptions`).
 
 ## Authorization policy
 

@@ -3,7 +3,7 @@ param (
 )
 
 function Show-Help {
-    Write-Host "Usage: .\Manage-Migrations.ps1 [-Command | --Command]"
+    Write-Host "Usage: .\DbScript.ps1 [-Command | --Command]"
     Write-Host "Commands:"
     Write-Host "  -add-migration, --add-migration        - Adds a new migration (asks for a name)"
     Write-Host "  -start-db, --start-db                  - Starts the development database"
@@ -22,7 +22,8 @@ if (-not $Command -or $Command -eq "help") {
 }
 
 $RootPath = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
-$MigrationsPath = Join-Path -Path $RootPath -ChildPath "src\DockiUp.Infrastructure"
+$MigrationsPath = Join-Path -Path $RootPath -ChildPath "src\Schuly.Infrastructure"
+$StartupProjectPath = Join-Path -Path $RootPath -ChildPath "src\Schuly.API"
 $DockerComposeFile = Join-Path -Path $RootPath -ChildPath "compose.dev.yml"
 
 switch ($Command) {
@@ -33,7 +34,7 @@ switch ($Command) {
             exit 1
         }
         Push-Location $MigrationsPath
-        dotnet ef migrations add $MigrationName
+        dotnet ef migrations add $MigrationName --startup-project $StartupProjectPath
         Pop-Location
     }
     "start-db" {
@@ -43,9 +44,7 @@ switch ($Command) {
     }
     "recreate-db" {
 		Push-Location $RootPath
-		docker compose -f $DockerComposeFile down
-
-		docker volume prune -f
+		docker compose -f $DockerComposeFile down -v
 
 		docker compose -f $DockerComposeFile up -d
 		Pop-Location
@@ -75,12 +74,12 @@ switch ($Command) {
         }
         
         Push-Location $RootPath
-        docker compose -f $DockerComposeFile down
+        docker compose -f $DockerComposeFile down -v
         docker compose -f $DockerComposeFile up -d
         Pop-Location
         
         Push-Location $MigrationsPath
-        dotnet ef migrations add Init
+        dotnet ef migrations add Init --startup-project $StartupProjectPath
         Pop-Location
         
         Write-Host "Full reset completed with 'Init' migration." -ForegroundColor Green
