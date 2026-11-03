@@ -21,10 +21,12 @@ namespace Schuly.Application.Commands.User
             if (externalId is null)
                 return Result.Failure("User not found");
 
-            await accountPurger.PurgeApplicationUserAsync(userId, cancellationToken);
-
+            // The sign-in goes first: from here on every token is refused, so no request can recreate the
+            // user while the purge runs. If the purge then fails, the daily sweep finishes it.
             if (Guid.TryParse(externalId, out var loginId))
                 await userStore.DeleteAsync(loginId, cancellationToken);
+
+            await accountPurger.PurgeApplicationUserAsync(userId, cancellationToken);
 
             return Result.Success();
         }

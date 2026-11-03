@@ -1,5 +1,6 @@
 using Amazon.S3;
 using Amazon.S3.Model;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Options;
 
 namespace Schuly.Infrastructure.Storage
@@ -41,6 +42,20 @@ namespace Schuly.Infrastructure.Storage
 
         public async Task DeleteAsync(string key, CancellationToken ct) =>
             await client.DeleteObjectAsync(_opts.Bucket, key, ct);
+
+        public async IAsyncEnumerable<StoredBlob> ListAsync([EnumeratorCancellation] CancellationToken ct)
+        {
+            var request = new ListObjectsV2Request { BucketName = _opts.Bucket };
+            ListObjectsV2Response response;
+            do
+            {
+                response = await client.ListObjectsV2Async(request, ct);
+                foreach (var item in response.S3Objects ?? [])
+                    yield return new StoredBlob(item.Key, (item.LastModified ?? DateTime.UtcNow).ToUniversalTime());
+                request.ContinuationToken = response.NextContinuationToken;
+            }
+            while (response.IsTruncated == true);
+        }
 
         private static string SanitizeFileName(string name)
         {

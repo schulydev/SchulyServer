@@ -10,11 +10,12 @@ namespace Schuly.Tests
         private sealed class RecordingPurger : IPluginUserDataPurger
         {
             public readonly List<Guid> Purged = [];
-            public Task PurgeAsync(Guid applicationUserId, CancellationToken cancellationToken = default)
+            public Task<IReadOnlyList<string>> PurgeAsync(Guid applicationUserId, string? pluginSource = null, CancellationToken cancellationToken = default)
             {
                 Purged.Add(applicationUserId);
-                return Task.CompletedTask;
+                return Task.FromResult<IReadOnlyList<string>>([]);
             }
+            public Task<IReadOnlyCollection<Guid>> ListOwnersAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<Guid>>([]);
         }
 
         [Test]

@@ -57,6 +57,30 @@ namespace Schuly.Tests.Mcp
         }
 
         [Test]
+        public async Task Use_through_an_api_key_counts_as_activity_for_the_inactivity_sweep()
+        {
+            await using var host = await McpHttpHost.StartAsync(nameof(Use_through_an_api_key_counts_as_activity_for_the_inactivity_sweep), services =>
+            {
+                services.AddScoped<Schuly.Infrastructure.Services.IOidcService>(_ => new Schuly.Tests.TestHelpers.FakeOidcService("unused"));
+                services.AddScoped<Schuly.Infrastructure.Services.IUserService, Schuly.Infrastructure.Services.UserService>();
+            });
+            var userId = host.Scoped(sp => NewUser(sp.GetRequiredService<SchulyDbContext>()).User.Id);
+            var old = DateTime.UtcNow.AddMonths(-11);
+            await host.ScopedAsync(async sp =>
+            {
+                var db = sp.GetRequiredService<SchulyDbContext>();
+                (await db.ApplicationUsers.SingleAsync(u => u.Id == userId)).LastSeenAt = old;
+                return await db.SaveChangesAsync();
+            });
+            var key = await host.ApiKeyAsync(userId, McpPermissionSet.ReadOnly());
+
+            await host.Http.SendAsync(host.Post("/mcp", ToolsList, key));
+
+            var lastSeen = host.Scoped(sp => sp.GetRequiredService<SchulyDbContext>().ApplicationUsers.Single(u => u.Id == userId).LastSeenAt);
+            await Assert.That(lastSeen > DateTime.UtcNow.AddMinutes(-5)).IsTrue();
+        }
+
+        [Test]
         public async Task The_sdk_client_cannot_connect_without_a_credential()
         {
             await using var host = await McpHttpHost.StartAsync(nameof(The_sdk_client_cannot_connect_without_a_credential));

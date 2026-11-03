@@ -6,14 +6,13 @@ namespace Schuly.Tests
 {
     public class NotificationMessageFactoryTests
     {
-        private static NotificationOutbox NewRow(NotificationType type, string? subjectName = null, decimal? score = null, string? summary = null, DateTime? occursAt = null) => new()
+        private static NotificationOutbox NewRow(NotificationType type, string? subjectName = null, string? summary = null, DateTime? occursAt = null) => new()
         {
             Id = Guid.NewGuid(),
             ApplicationUserId = Guid.NewGuid(),
             Type = type,
             EntityId = Guid.NewGuid(),
             SubjectName = subjectName,
-            Score = score,
             Summary = summary,
             OccursAt = occursAt,
             Status = NotificationOutboxStatus.Pending,
@@ -92,10 +91,10 @@ namespace Schuly.Tests
         [Test]
         public async Task Grade_body_is_present_only_when_include_grade_value_is_true()
         {
-            var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik", score: 5.5m);
+            var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
-            var withValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: true);
-            var withoutValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
+            var withValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: true, score: 5.5m);
+            var withoutValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, score: 5.5m);
 
             await Assert.That(withValue.Body).IsEqualTo("Note: 5.50");
             await Assert.That(withoutValue.Body).IsNull();
@@ -104,7 +103,7 @@ namespace Schuly.Tests
         [Test]
         public async Task Grade_body_is_null_when_score_is_unset_even_with_include_grade_value()
         {
-            var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik", score: null);
+            var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
             var message = NotificationMessageFactory.Create(row, "en", includeGradeValue: true);
 

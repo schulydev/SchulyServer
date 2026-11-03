@@ -24,9 +24,9 @@ namespace Schuly.Tests
         };
 
         [Test]
-        public async Task Row_whose_category_is_disabled_is_marked_sent_without_sending()
+        public async Task Row_whose_category_is_disabled_is_deleted_without_sending()
         {
-            var dbName = nameof(Row_whose_category_is_disabled_is_marked_sent_without_sending);
+            var dbName = nameof(Row_whose_category_is_disabled_is_deleted_without_sending);
             using var ctx = TestDb.NewContext(dbName);
             var now = DateTime.UtcNow;
             var userId = Guid.NewGuid();
@@ -42,14 +42,14 @@ namespace Schuly.Tests
             var processed = await dispatcher.DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(processed).IsEqualTo(1);
-            await Assert.That(row.Status).IsEqualTo(NotificationOutboxStatus.Sent);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
             await Assert.That(sender.Sends.Count).IsEqualTo(0);
         }
 
         [Test]
-        public async Task User_with_no_device_tokens_has_rows_marked_sent()
+        public async Task User_with_no_device_tokens_has_rows_deleted()
         {
-            var dbName = nameof(User_with_no_device_tokens_has_rows_marked_sent);
+            var dbName = nameof(User_with_no_device_tokens_has_rows_deleted);
             using var ctx = TestDb.NewContext(dbName);
             var now = DateTime.UtcNow;
             var userId = Guid.NewGuid();
@@ -64,7 +64,7 @@ namespace Schuly.Tests
             var processed = await dispatcher.DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(processed).IsEqualTo(1);
-            await Assert.That(row.Status).IsEqualTo(NotificationOutboxStatus.Sent);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
             await Assert.That(sender.Sends.Count).IsEqualTo(0);
         }
 
@@ -88,7 +88,7 @@ namespace Schuly.Tests
             var processed = await dispatcher.DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(processed).IsEqualTo(1);
-            await Assert.That(row.Status).IsEqualTo(NotificationOutboxStatus.Sent);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
             await Assert.That(sender.Sends.Count).IsEqualTo(2);
 
             var deSend = sender.Sends.Single(s => s.Tokens.Contains("de-token"));
@@ -119,7 +119,7 @@ namespace Schuly.Tests
             await Assert.That(processed).IsEqualTo(3);
             await Assert.That(sender.Sends.Count).IsEqualTo(1);
             await Assert.That(sender.Sends[0].Message.Title).IsEqualTo("3 neue Noten");
-            await Assert.That(ctx.NotificationOutbox.Count(r => r.Status == NotificationOutboxStatus.Sent)).IsEqualTo(3);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
         }
 
         [Test]
@@ -140,6 +140,50 @@ namespace Schuly.Tests
             await dispatcher.DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(ctx.DeviceTokens.Any(t => t.Token == "dead-token")).IsFalse();
+        }
+
+        [Test]
+        public async Task A_grade_value_is_read_from_the_grade_when_the_push_goes_out()
+        {
+            using var ctx = TestDb.NewContext(Guid.NewGuid().ToString());
+            var now = DateTime.UtcNow;
+            var (withValue, withoutValue) = (Guid.NewGuid(), Guid.NewGuid());
+            var (grade, otherGrade) = (new Grade { Id = Guid.NewGuid(), Score = 5.5m, Weighting = 1, ExamId = Guid.NewGuid(), SchoolUserId = Guid.NewGuid() }, new Grade { Id = Guid.NewGuid(), Score = 4m, Weighting = 1, ExamId = Guid.NewGuid(), SchoolUserId = Guid.NewGuid() });
+            ctx.Grades.AddRange(grade, otherGrade);
+            ctx.NotificationPreferences.Add(new NotificationPreference { ApplicationUserId = withValue, IncludeGradeValue = true });
+            ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = withValue, Token = "with", Platform = "android", Locale = "de", LastSeenAt = now });
+            ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = withoutValue, Token = "without", Platform = "android", Locale = "de", LastSeenAt = now });
+            var first = NewRow(withValue, NotificationType.GradeAdded, now, subjectName: "Mathematik");
+            first.EntityId = grade.Id;
+            var second = NewRow(withoutValue, NotificationType.GradeAdded, now, subjectName: "Mathematik");
+            second.EntityId = otherGrade.Id;
+            ctx.NotificationOutbox.AddRange(first, second);
+            ctx.SaveChanges();
+
+            var sender = new FakePushSender();
+            await new NotificationDispatcher(ctx, sender, NullLogger<NotificationDispatcher>.Instance).DrainOnceAsync(CancellationToken.None);
+
+            await Assert.That(sender.Sends.Single(s => s.Tokens.Contains("with")).Message.Body).IsEqualTo("Note: 5.50");
+            await Assert.That(sender.Sends.Single(s => s.Tokens.Contains("without")).Message.Body).IsNull();
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
+        }
+
+        [Test]
+        public async Task An_absence_push_shows_the_date_without_a_stored_reason()
+        {
+            using var ctx = TestDb.NewContext(Guid.NewGuid().ToString());
+            var now = DateTime.UtcNow;
+            var userId = Guid.NewGuid();
+            ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = userId, Token = "t", Platform = "android", Locale = "de", LastSeenAt = now });
+            var row = NewRow(userId, NotificationType.AbsenceAdded, now);
+            row.OccursAt = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+            ctx.NotificationOutbox.Add(row);
+            ctx.SaveChanges();
+
+            var sender = new FakePushSender();
+            await new NotificationDispatcher(ctx, sender, NullLogger<NotificationDispatcher>.Instance).DrainOnceAsync(CancellationToken.None);
+
+            await Assert.That(sender.Sends.Single().Message.Body).IsEqualTo("02.03.2026");
         }
 
         [Test]
@@ -167,9 +211,9 @@ namespace Schuly.Tests
         }
 
         [Test]
-        public async Task Row_at_retry_count_four_that_fails_again_becomes_failed()
+        public async Task Row_at_retry_count_four_that_fails_again_is_deleted()
         {
-            var dbName = nameof(Row_at_retry_count_four_that_fails_again_becomes_failed);
+            var dbName = nameof(Row_at_retry_count_four_that_fails_again_is_deleted);
             using var ctx = TestDb.NewContext(dbName);
             var now = DateTime.UtcNow;
             var userId = Guid.NewGuid();
@@ -184,14 +228,13 @@ namespace Schuly.Tests
 
             await dispatcher.DrainOnceAsync(CancellationToken.None);
 
-            await Assert.That(row.Status).IsEqualTo(NotificationOutboxStatus.Failed);
-            await Assert.That(row.RetryCount).IsEqualTo(5);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
         }
 
         [Test]
-        public async Task Unconfigured_sender_drains_the_batch_by_marking_rows_sent()
+        public async Task Unconfigured_sender_drains_the_batch_by_deleting_rows()
         {
-            var dbName = nameof(Unconfigured_sender_drains_the_batch_by_marking_rows_sent);
+            var dbName = nameof(Unconfigured_sender_drains_the_batch_by_deleting_rows);
             using var ctx = TestDb.NewContext(dbName);
             var now = DateTime.UtcNow;
             var userId = Guid.NewGuid();
@@ -206,7 +249,7 @@ namespace Schuly.Tests
             var processed = await dispatcher.DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(processed).IsEqualTo(1);
-            await Assert.That(row.Status).IsEqualTo(NotificationOutboxStatus.Sent);
+            await Assert.That(ctx.NotificationOutbox.Any()).IsFalse();
             await Assert.That(sender.Sends.Count).IsEqualTo(0);
         }
     }

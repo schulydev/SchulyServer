@@ -60,6 +60,10 @@ namespace Schuly.API.Extensions
             }
             : null;
 
+        private static async Task<bool> SignInStillExistsAsync(HttpContext httpContext, string externalId) =>
+            Guid.TryParse(externalId, out var loginId)
+            && await httpContext.RequestServices.GetRequiredService<IUserStore>().ReadSecurityStampAsync(loginId, httpContext.RequestAborted) is not null;
+
         public static AuthenticationBuilder AddUserSync(this AuthenticationBuilder builder)
         {
             builder.Services.PostConfigure<JwtBearerOptions>(
@@ -77,9 +81,17 @@ namespace Schuly.API.Extensions
                         if (context.Principal?.Identity is not ClaimsIdentity identity)
                             return;
 
-                        context.HttpContext.User = context.Principal;
-
                         var externalId = identity.FindFirst("sub")?.Value ?? identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                        // A token outlives the deletion of its account by up to its lifetime. This runs before
+                        // HttpContext.User is set: authorization would otherwise accept that principal after Fail.
+                        if (!string.IsNullOrEmpty(externalId) && !await SignInStillExistsAsync(context.HttpContext, externalId))
+                        {
+                            context.Fail("The sign-in for this token no longer exists.");
+                            return;
+                        }
+
+                        context.HttpContext.User = context.Principal;
 
                         if (string.IsNullOrEmpty(externalId))
                             return;

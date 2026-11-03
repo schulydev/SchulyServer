@@ -1,3 +1,4 @@
+using Schuly.Infrastructure.Services;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
@@ -44,6 +45,9 @@ namespace Schuly.API.Mcp
                 return AuthenticateResult.Fail("The MCP access token or API key is invalid, expired or revoked.");
 
             Context.Items[typeof(McpCaller)] = caller;
+            // Use through an AI app counts as use: the inactivity sweep must not delete an account that is in use.
+            if (Context.RequestServices.GetService<IUserService>() is { } users)
+                await users.TouchLastSeenAsync(caller.ExternalId, null, Context.RequestAborted);
             var claims = new List<Claim> { new("sub", caller.ExternalId), new(AuthKindClaim, caller.Kind) };
             // Read from the grant or key on every request, so a permission edit is live on the next call.
             claims.AddRange(McpScopes.Granted(caller.Permissions).Select(scope => new Claim(McpScopes.ClaimType, scope)));

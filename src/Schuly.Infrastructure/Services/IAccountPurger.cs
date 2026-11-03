@@ -1,6 +1,8 @@
 namespace Schuly.Infrastructure.Services
 {
-    public record AccountPurgeSummary(int SchoolUsers, int Documents, int BlobsDeleted, int BlobsFailed);
+    public record AccountPurgeSummary(int SchoolUsers, int Documents, int BlobsDeleted, int BlobsFailed, int PluginPurgesFailed = 0);
+
+    public record PendingPurgeResult(int Completed, int StillFailing);
 
     public interface IAccountPurger
     {
@@ -20,5 +22,14 @@ namespace Schuly.Infrastructure.Services
         /// of what was removed.
         /// </summary>
         Task<AccountPurgeSummary> PurgeSchoolUsersAsync(IReadOnlyCollection<Guid> schoolUserIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Asks every plugin, or only <paramref name="pluginSource"/>, to wipe the user's data, without
+        /// touching host rows. A failure is queued for retry. Returns the number of plugins that failed.
+        /// </summary>
+        Task<int> PurgePluginDataAsync(Guid applicationUserId, string? pluginSource, CancellationToken cancellationToken = default);
+
+        /// <summary>Retries every deletion step that failed earlier.</summary>
+        Task<PendingPurgeResult> RetryPendingAsync(CancellationToken cancellationToken = default);
     }
 }

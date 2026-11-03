@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Schuly.Domain;
 using Schuly.Infrastructure.Plugins;
 using Schuly.Infrastructure.Storage;
 using Schuly.Infrastructure.Vault;
@@ -12,9 +13,8 @@ namespace Schuly.Infrastructure.Services
         // Per-user purge steps. Every table that stores rows scoped to a SchoolUser or
         // an ApplicationUser must be represented here; a new user-scoped table is a
         // two-line addition.
-        // Plugin vault entries are not purged: a VaultEntry is keyed by plugin namespace
-        // and an opaque key with no user dimension, so nothing here can attribute one to
-        // an account. Purging them needs a user-scoped key on the vault first.
+        // Plugin vault entries are purged by each plugin's handler, not here: a VaultEntry is
+        // keyed by plugin namespace and an opaque key with no user dimension.
         //
         // StudentDocuments and the Classes join table are handled separately from this
         // list (see PurgeSchoolUserScopedDataAsync) because they need extra work
@@ -56,7 +56,7 @@ namespace Schuly.Infrastructure.Services
 
             // Plugins wipe their own data (their DB rows and vault secrets) for this user
             // before the core rows go; it only needs the user id, so order is not critical.
-            await pluginData.PurgeAsync(applicationUserId, cancellationToken);
+            var failedPlugins = await pluginData.PurgeAsync(applicationUserId, null, cancellationToken);
 
             var schoolUserIds = await dbContext.SchoolUsers
                 .Where(su => su.ApplicationUserId == applicationUserId)
@@ -65,21 +65,19 @@ namespace Schuly.Infrastructure.Services
 
             var schoolUsersRemoved = 0;
             var documentsRemoved = 0;
-            IReadOnlyList<string> fileUrls = [];
-            IReadOnlyList<Guid> linkedAccountIds = [];
+            List<PendingPurge> pending = [];
 
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async ct =>
             {
                 await using var transaction = dbContext.Database.IsRelational() ? await dbContext.Database.BeginTransactionAsync(ct) : null;
 
-                (schoolUsersRemoved, documentsRemoved, fileUrls) = await PurgeSchoolUserScopedDataAsync(schoolUserIds, ct);
+                (schoolUsersRemoved, documentsRemoved, var fileUrls) = await PurgeSchoolUserScopedDataAsync(schoolUserIds, ct);
 
                 foreach (var step in ApplicationUserScopedSteps)
                     await step(dbContext, applicationUserId, ct);
 
                 var linkedAccounts = await dbContext.LinkedAccounts.Where(a => a.ApplicationUserId == applicationUserId).ToListAsync(ct);
-                linkedAccountIds = linkedAccounts.Select(a => a.Id).ToList();
                 dbContext.LinkedAccounts.RemoveRange(linkedAccounts);
 
                 // Teacher records are school-owned master data referenced by Classes,
@@ -93,20 +91,29 @@ namespace Schuly.Infrastructure.Services
                 var user = await dbContext.ApplicationUsers.SingleAsync(u => u.Id == applicationUserId, ct);
                 dbContext.ApplicationUsers.Remove(user);
 
+                pending = fileUrls.Select(BlobStep).ToList();
+                if (BlobKeys.IsStored(user.ProfilePictureUrl))
+                    pending.Add(BlobStep(user.ProfilePictureUrl!));
+                pending.AddRange(linkedAccounts.Select(a => new PendingPurge { Kind = PendingPurgeKind.LinkedAccountSecrets, Target = a.Id.ToString() }));
+                pending.AddRange(failedPlugins.Select(source => PluginStep(applicationUserId, source)));
+                dbContext.PendingPurges.AddRange(pending);
+
                 await dbContext.SaveChangesAsync(ct);
 
                 if (transaction is not null)
                     await transaction.CommitAsync(ct);
             }, cancellationToken);
 
-            var (blobsDeleted, blobsFailed) = await DeleteBlobsAsync(fileUrls, cancellationToken);
-            var linkedSecrets = new LinkedAccountStore(dbContext, vaultFactory);
-            foreach (var linkedAccountId in linkedAccountIds)
-                linkedSecrets.RemoveSecrets(linkedAccountId);
-            var summary = new AccountPurgeSummary(schoolUsersRemoved, documentsRemoved, blobsDeleted, blobsFailed);
+            // The plugin steps are already failed attempts; they wait for the next sweep.
+            var (blobsDeleted, blobsFailed) = await RunPendingAsync(pending.Where(p => p.Kind == PendingPurgeKind.Blob).ToList(), cancellationToken);
+            var (_, secretsFailed) = await RunPendingAsync(pending.Where(p => p.Kind == PendingPurgeKind.LinkedAccountSecrets).ToList(), cancellationToken);
+            var summary = new AccountPurgeSummary(schoolUsersRemoved, documentsRemoved, blobsDeleted, blobsFailed, failedPlugins.Count);
 
-            logger.LogInformation("Account purge completed for user {UserHash}: {SchoolUsers} school users, {Documents} documents, {BlobsDeleted} blobs deleted, {BlobsFailed} blob deletions failed",
-                HashUserId(applicationUserId), summary.SchoolUsers, summary.Documents, summary.BlobsDeleted, summary.BlobsFailed);
+            logger.LogInformation("Account purge completed for user {UserHash}: {SchoolUsers} school users, {Documents} documents, {BlobsDeleted} blobs deleted, {BlobsFailed} blob deletions failed, {PluginPurgesFailed} plugin purges failed",
+                HashUserId(applicationUserId), summary.SchoolUsers, summary.Documents, summary.BlobsDeleted, summary.BlobsFailed, summary.PluginPurgesFailed);
+
+            if (blobsFailed + secretsFailed + failedPlugins.Count > 0)
+                logger.LogError("Account purge for user {UserHash} is incomplete: {Failed} steps queued for retry", HashUserId(applicationUserId), blobsFailed + secretsFailed + failedPlugins.Count);
 
             return summary;
         }
@@ -115,21 +122,24 @@ namespace Schuly.Infrastructure.Services
         {
             var schoolUsersRemoved = 0;
             var documentsRemoved = 0;
-            IReadOnlyList<string> fileUrls = [];
+            List<PendingPurge> pending = [];
 
             var strategy = dbContext.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async ct =>
             {
                 await using var transaction = dbContext.Database.IsRelational() ? await dbContext.Database.BeginTransactionAsync(ct) : null;
 
-                (schoolUsersRemoved, documentsRemoved, fileUrls) = await PurgeSchoolUserScopedDataAsync(schoolUserIds, ct);
+                await QueueOutboxDeletionForSchoolUsersAsync(schoolUserIds, ct);
+                (schoolUsersRemoved, documentsRemoved, var fileUrls) = await PurgeSchoolUserScopedDataAsync(schoolUserIds, ct);
+                pending = fileUrls.Select(BlobStep).ToList();
+                dbContext.PendingPurges.AddRange(pending);
                 await dbContext.SaveChangesAsync(ct);
 
                 if (transaction is not null)
                     await transaction.CommitAsync(ct);
             }, cancellationToken);
 
-            var (blobsDeleted, blobsFailed) = await DeleteBlobsAsync(fileUrls, cancellationToken);
+            var (blobsDeleted, blobsFailed) = await RunPendingAsync(pending, cancellationToken);
             var summary = new AccountPurgeSummary(schoolUsersRemoved, documentsRemoved, blobsDeleted, blobsFailed);
 
             // No single ApplicationUser is guaranteed here - this can purge SchoolUsers
@@ -139,6 +149,36 @@ namespace Schuly.Infrastructure.Services
 
             return summary;
         }
+
+        public async Task<int> PurgePluginDataAsync(Guid applicationUserId, string? pluginSource, CancellationToken cancellationToken = default)
+        {
+            var failed = await pluginData.PurgeAsync(applicationUserId, pluginSource, cancellationToken);
+            if (failed.Count == 0)
+                return 0;
+
+            var target = applicationUserId.ToString();
+            var queued = await dbContext.PendingPurges
+                .Where(p => p.Kind == PendingPurgeKind.PluginUserData && p.Target == target)
+                .Select(p => p.PluginSource)
+                .ToListAsync(cancellationToken);
+            dbContext.PendingPurges.AddRange(failed.Except(queued).Select(source => PluginStep(applicationUserId, source!)));
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return failed.Count;
+        }
+
+        public async Task<PendingPurgeResult> RetryPendingAsync(CancellationToken cancellationToken = default)
+        {
+            var pending = await dbContext.PendingPurges.OrderBy(p => p.CreatedAt).ToListAsync(cancellationToken);
+            if (pending.Count == 0)
+                return new PendingPurgeResult(0, 0);
+
+            var (completed, failed) = await RunPendingAsync(pending, cancellationToken);
+            return new PendingPurgeResult(completed, failed);
+        }
+
+        private static PendingPurge BlobStep(string key) => new() { Kind = PendingPurgeKind.Blob, Target = key };
+
+        private static PendingPurge PluginStep(Guid applicationUserId, string pluginSource) => new() { Kind = PendingPurgeKind.PluginUserData, Target = applicationUserId.ToString(), PluginSource = pluginSource };
 
         // Queues the deletion of every row scoped to the given SchoolUser ids (running
         // the named steps above plus documents and class memberships), and queues the
@@ -160,35 +200,77 @@ namespace Schuly.Infrastructure.Services
             foreach (var schoolUser in schoolUsers)
                 schoolUser.Classes.Clear();
             dbContext.SchoolUsers.RemoveRange(schoolUsers);
+            fileUrls.AddRange(schoolUsers.Where(su => BlobKeys.IsStored(su.ProfilePictureUrl)).Select(su => su.ProfilePictureUrl!));
 
             return (schoolUsers.Count, documents.Count, fileUrls);
         }
 
-        // Blobs are deleted only after the DB transaction has committed. An orphan blob
-        // left behind by a failed delete is recoverable - it can be swept up later - but
-        // orphan StudentDocument metadata pointing at an already-deleted blob is not, so
-        // the DB row must be gone first. A missing or unreachable object must never fail
-        // the purge, so every delete gets its own try/catch.
-        private async Task<(int Deleted, int Failed)> DeleteBlobsAsync(IReadOnlyList<string> fileUrls, CancellationToken cancellationToken)
+        // Steps outside the database run only after its transaction has committed, because a
+        // row pointing at an already-deleted blob could not be recovered. Their queue rows
+        // commit with that transaction, so a failed or interrupted step is retried by the
+        // daily sweep. A failing step must never fail the purge, so each gets its own try/catch.
+        private async Task<(int Completed, int Failed)> RunPendingAsync(IReadOnlyList<PendingPurge> pending, CancellationToken cancellationToken)
         {
-            var deleted = 0;
+            var completed = 0;
             var failed = 0;
 
-            foreach (var fileUrl in fileUrls)
+            foreach (var step in pending)
             {
                 try
                 {
-                    await documentStorage.DeleteAsync(fileUrl, cancellationToken);
-                    deleted++;
+                    await RunStepAsync(step, cancellationToken);
+                    dbContext.PendingPurges.Remove(step);
+                    completed++;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
                 {
+                    step.Attempts++;
                     failed++;
-                    logger.LogWarning(ex, "Failed to delete a student document blob during account purge");
+                    logger.LogWarning("A {Kind} deletion step failed ({ExceptionType}); the daily sweep retries it", step.Kind, ex.GetType().Name);
                 }
             }
 
-            return (deleted, failed);
+            if (pending.Count > 0)
+                await dbContext.SaveChangesAsync(cancellationToken);
+
+            return (completed, failed);
+        }
+
+        private async Task RunStepAsync(PendingPurge step, CancellationToken cancellationToken)
+        {
+            switch (step.Kind)
+            {
+                case PendingPurgeKind.Blob:
+                    await documentStorage.DeleteAsync(step.Target, cancellationToken);
+                    break;
+                case PendingPurgeKind.LinkedAccountSecrets:
+                    new LinkedAccountStore(dbContext, vaultFactory).RemoveSecrets(Guid.Parse(step.Target));
+                    break;
+                case PendingPurgeKind.PluginUserData:
+                    if ((await pluginData.PurgeAsync(Guid.Parse(step.Target), step.PluginSource, cancellationToken)).Count > 0)
+                        throw new InvalidOperationException("The plugin purge failed again.");
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown purge step {step.Kind}.");
+            }
+        }
+
+        // Outbox rows carry no SchoolUserId. They point at the grade, absence or agenda entry through
+        // EntityId, and at a class agenda entry for each student, so those are matched by owner as well.
+        private async Task QueueOutboxDeletionForSchoolUsersAsync(IReadOnlyCollection<Guid> schoolUserIds, CancellationToken cancellationToken)
+        {
+            var entityIds = await dbContext.Grades.Where(g => schoolUserIds.Contains(g.SchoolUserId)).Select(g => g.Id).ToListAsync(cancellationToken);
+            entityIds.AddRange(await dbContext.Absences.Where(a => schoolUserIds.Contains(a.SchoolUserId)).Select(a => a.Id).ToListAsync(cancellationToken));
+            entityIds.AddRange(await dbContext.AgendaEntries.Where(a => a.SchoolUserId != null && schoolUserIds.Contains(a.SchoolUserId.Value)).Select(a => a.Id).ToListAsync(cancellationToken));
+
+            var owners = await dbContext.SchoolUsers.Where(su => schoolUserIds.Contains(su.Id)).Select(su => su.ApplicationUserId).Distinct().ToListAsync(cancellationToken);
+            var classIds = await dbContext.SchoolUsers.Where(su => schoolUserIds.Contains(su.Id)).SelectMany(su => su.Classes).Select(c => c.Id).Distinct().ToListAsync(cancellationToken);
+            var classEntryIds = await dbContext.AgendaEntries.Where(a => a.ClassId != null && classIds.Contains(a.ClassId.Value)).Select(a => a.Id).ToListAsync(cancellationToken);
+
+            var rows = await dbContext.NotificationOutbox
+                .Where(o => entityIds.Contains(o.EntityId) || (owners.Contains(o.ApplicationUserId) && classEntryIds.Contains(o.EntityId)))
+                .ToListAsync(cancellationToken);
+            dbContext.NotificationOutbox.RemoveRange(rows);
         }
 
         private static async Task QueueSemesterSubjectGradeDeletionAsync(SchulyDbContext dbContext, IReadOnlyCollection<Guid> schoolUserIds, CancellationToken cancellationToken)

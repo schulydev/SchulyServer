@@ -120,12 +120,15 @@ namespace Schuly.API.Plugins
             return null;
         }
 
-        public async Task DispatchAsync<TEvent>(TEvent message, CancellationToken cancellationToken = default) where TEvent : notnull
-        {
-            if (_loaded.IsEmpty)
-                return;
+        public Task DispatchAsync<TEvent>(TEvent message, CancellationToken cancellationToken = default) where TEvent : notnull =>
+            DispatchReportingFailuresAsync(message, null, cancellationToken);
 
-            foreach (var loaded in _loaded.Values)
+        /// <summary>Dispatches to every plugin, or only to <paramref name="pluginSource"/>. A failed handler doesn't stop the others; the sources of the plugins with a failure are returned.</summary>
+        public async Task<IReadOnlyList<string>> DispatchReportingFailuresAsync<TEvent>(TEvent message, string? pluginSource, CancellationToken cancellationToken) where TEvent : notnull
+        {
+            var failed = new List<string>();
+
+            foreach (var loaded in _loaded.Values.Where(p => pluginSource is null || PluginSource(p.Instance) == pluginSource))
             {
                 try
                 {
@@ -136,17 +139,40 @@ namespace Schuly.API.Plugins
                         {
                             await handler.HandleAsync(message, cancellationToken);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
                         {
-                            logger.LogError(ex, "Plugin event handler {Handler} failed for {Event}", handler.GetType().Name, typeof(TEvent).Name);
+                            failed.Add(PluginSource(loaded.Instance));
+                            logger.LogError("Plugin event handler {Handler} failed for {Event} ({ExceptionType})", handler.GetType().Name, typeof(TEvent).Name, ex.GetType().Name);
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
                 {
-                    logger.LogError(ex, "Plugin {Name} failed to dispatch {Event}", loaded.Name, typeof(TEvent).Name);
+                    failed.Add(PluginSource(loaded.Instance));
+                    logger.LogError("Plugin {Name} failed to dispatch {Event} ({ExceptionType})", loaded.Name, typeof(TEvent).Name, ex.GetType().Name);
                 }
             }
+
+            return failed.Distinct().ToList();
+        }
+
+        /// <summary>The application user ids the loaded plugins hold data for. A plugin database that can't be read is logged and skipped; it is read again on the next sweep.</summary>
+        public async Task<IReadOnlyCollection<Guid>> ListDataOwnersAsync(CancellationToken cancellationToken)
+        {
+            var owners = new HashSet<Guid>();
+            foreach (var loaded in _loaded.Values)
+            {
+                try
+                {
+                    owners.UnionWith(await PluginDataOwners.ReadAsync(PluginConnectionString(loaded.Name), cancellationToken));
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError("Could not read the database of plugin {Name} to find orphaned data ({ExceptionType})", loaded.Name, ex.GetType().Name);
+                }
+            }
+
+            return owners;
         }
 
         private async Task SyncSchoolSystemsAsync(LoadedPlugin loaded, CancellationToken ct)
