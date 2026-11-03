@@ -153,6 +153,9 @@ Outside Development, the server refuses to start without a valid key. Keep the k
 key, stored credentials become unreadable. In Development, a missing or invalid key logs a warning and the
 server uses a temporary key, so stored credentials don't survive a restart.
 
+`Vault:PreviousMasterKey` is set only while rotating the key. See
+[Rotate the vault key](operations.md#rotate-the-vault-key).
+
 ## Retention
 
 A hosted service sweeps expired data five minutes after startup and every 24 hours after that. It uses the

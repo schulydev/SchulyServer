@@ -1,20 +1,34 @@
+# Images are pinned by tag and digest, so an upgrade is always a deliberate edit here. See docs/setup/operations.md.
+
+# Docker caps logs by size only. It has no age limit, so how many days this holds depends on how much each service writes.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   init-perms:
-    image: busybox:1.37
+    image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    network_mode: none
+    logging: *logging
     command: sh -c "mkdir -p /data/plugins && chown -R 1654:1654 /data/plugins"
     volumes:
       - ./data:/data
     restart: "no"
 
   postgres:
-    image: postgres:18.1
+    image: postgres:18.1@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: schuly
     volumes:
       - ./data/postgres:/var/lib/postgresql
+    networks:
+      - data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d schuly -h 127.0.0.1"]
       interval: 10s
@@ -22,8 +36,9 @@ services:
       retries: 10
 
   seaweedfs:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.50@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
+    logging: *logging
     command: >
       server -dir=/data
       -s3 -s3.config=/etc/seaweedfs/s3-config.json -s3.port=8333
@@ -31,22 +46,30 @@ services:
     volumes:
       - ./data/seaweedfs:/data
       - ./config/seaweedfs/s3-config.json:/etc/seaweedfs/s3-config.json:ro
+    networks:
+      - data
 
   schulware:
-    image: ghcr.io/pianonic/schulwareapi:latest
+    image: ghcr.io/pianonic/schulwareapi:1.11.0@sha256:57960fad6b7ca9bc70f0616523d95ae2acc8f8596289f58b48450959cd979df7
     restart: unless-stopped
+    logging: *logging
     init: true
     ipc: host
     environment:
       PYTHONUNBUFFERED: "1"
+    networks:
+      - school
 
   schulymicrosoft:
-    image: ghcr.io/schulydev/schulymicrosoft:latest
+    image: ghcr.io/schulydev/schulymicrosoft:0.13.1@sha256:60edd75c7847588e9758ac9d0a8d21fa8b59200fd759ca43edf196e2c0eb498a
     restart: unless-stopped
+    logging: *logging
     environment:
       PYTHONUNBUFFERED: "1"
       # Shared with the backend's Microsoft plugin; guards the password sign-in routes.
       SCHULY_SERVICE_KEY: ${MICROSOFT_SERVICE_KEY:-}
+    networks:
+      - school
     healthcheck:
       # 503 until the startup warm-up is done, then 200. The image has no curl.
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health/ready', timeout=2)"]
@@ -56,15 +79,18 @@ services:
       retries: 3
 
   backend:
-    image: ghcr.io/schulydev/schuly:${SCHULY_VERSION:-latest}
+    image: ghcr.io/schulydev/schuly:${SCHULY_VERSION:-3.19.0}
     restart: unless-stopped
+    logging: *logging
     env_file: [./config/backend.env]
     volumes:
       - ./data/plugins:/app/plugins                        # downloaded plugin DLLs (host folder)
       - ./config/plugins.yml:/app/plugins.yml              # desired plugin set
       - ./config/plugins-config:/app/plugins-config:ro     # per-plugin config
     networks:
-      - default
+      - edge
+      - data
+      - school
       - sandbox                                             # reaches Helply's sandbox sidecar; nothing else is on it
     depends_on:
       postgres:
@@ -79,9 +105,10 @@ services:
   # mem_limit caps every VM together (2 VMs x 256 MB plus the sidecar); the kernel kills a VM inside it, never another
   # service on the host. It gets its API key and nothing else - no database, mail or gateway secrets.
   sandbox:
-    image: ghcr.io/schulydev/schuly-sandbox:${SCHULY_VERSION:-latest}
+    image: ghcr.io/schulydev/schuly-sandbox:${SCHULY_VERSION:-3.19.0}
     profiles: [sandbox]
     restart: unless-stopped
+    logging: *logging
     devices:
       - /dev/kvm
     cap_drop:
@@ -100,8 +127,9 @@ services:
       - sandbox
 
   caddy:
-    image: caddy:2
+    image: caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
@@ -111,11 +139,19 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data/caddy:/data
       - ./data/caddy-config:/config
+    networks:
+      - edge
     depends_on:
       - backend
 
 networks:
-  default:
+  # Caddy and the backend only. Caddy reaches nothing else.
+  edge:
+  # The backend and the two services that talk to schools and Microsoft, which need the internet.
+  school:
+  # The backend and its storage, with no route to the internet.
+  data:
+    internal: true
   # Private and internal: the backend and the sandbox sidecar only, with no route to the internet.
   sandbox:
     internal: true
