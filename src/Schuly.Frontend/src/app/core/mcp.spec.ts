@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { cursorInstallLink, mcpClientGuides, mcpUrl, vscodeInstallLink } from './mcp-clients';
-import { fullAccessPreset, readOnlyPreset, samePermissions, summarize, withLevel } from './mcp-permissions';
+import { fullAccessPreset, readOnlyPreset, samePermissions, schoolDataPreset, summarize, withLevel } from './mcp-permissions';
 import { safeReturnUrl } from './return-url';
 
 describe('permission presets', () => {
+  it('the default reads school data only and allows no Microsoft account', () => {
+    const set = schoolDataPreset();
+    expect(set.areas.Grades).toBe('Read');
+    expect(set.areas.Absences).toBe('Read');
+    expect(set.areas.Calendar).toBe('Read');
+    expect(set.areas.Mail).toBeUndefined();
+    expect(set.areas.Teams).toBeUndefined();
+    expect(set.areas.Drive).toBeUndefined();
+    expect(set.areas.OneNote).toBeUndefined();
+    expect(set.microsoftAccountIds).toEqual([]);
+    expect(set.allowDestructive).toBe(false);
+  });
+
+  it('turning on a Microsoft area also opens the accounts, or it would find nothing', () => {
+    expect(withLevel(schoolDataPreset(), 'Mail', 'Read').microsoftAccountIds).toBeNull();
+    expect(withLevel({ ...schoolDataPreset(), microsoftAccountIds: ['a'] }, 'Mail', 'Read').microsoftAccountIds).toEqual(['a']);
+    expect(withLevel(schoolDataPreset(), 'Grades', 'Off').microsoftAccountIds).toEqual([]);
+  });
+
   it('read-only reads everything and never writes or deletes', () => {
     const set = readOnlyPreset();
     expect(Object.values(set.areas).every((level) => level === 'Read')).toBe(true);

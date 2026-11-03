@@ -303,7 +303,7 @@ namespace Schuly.Tests.Mcp
             var request = Request(clientId, Pkce.ChallengeFor(Verifier), scope: "ms.mail.write schuly.destructive");
 
             var check = await oauth.CheckAuthorizationRequestAsync(request, Resource);
-            await Assert.That(check.Requested.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Read);
+            await Assert.That(check.Requested.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Off);
             await Assert.That(check.Requested.AllowDestructive).IsFalse();
 
             var chosen = new McpPermissionSet { Areas = { [McpArea.Grades] = McpAccessLevel.Read } };

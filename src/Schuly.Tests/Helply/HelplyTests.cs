@@ -133,7 +133,7 @@ namespace Schuly.Tests.Helply
             await host.SendMessageAsync(token, id, "hello");
             var defaults = host.Gateway.ChatRequests.Last().ToolNames;
             await Assert.That(defaults).Contains("list_grades");
-            await Assert.That(defaults).Contains("list_mail");
+            await Assert.That(defaults).DoesNotContain("list_mail");
             await Assert.That(defaults).DoesNotContain("send_mail");
             await Assert.That(defaults).DoesNotContain("delete_mail");
 

@@ -9,7 +9,7 @@ import { HlmSwitch } from '@spartan-ng/helm/switch';
 import { HelplyApi } from '../../core/helply-api';
 import { HelplySettings } from '../../core/helply-types';
 import { mcpErrorMessage } from '../../core/mcp-api';
-import { McpPermissionSet, readOnlyPreset, samePermissions } from '../../core/mcp-permissions';
+import { McpPermissionSet, samePermissions, schoolDataPreset } from '../../core/mcp-permissions';
 import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
 
 /** Side sheet to choose what Helply may use. Reuses the MCP permission editor. */
@@ -90,7 +90,7 @@ export class HelplySettingsSheet {
   readonly saved$ = output<HelplySettings>({ alias: 'saved' });
 
   private readonly initial = signal<McpPermissionSet | null>(null);
-  protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? readOnlyPreset());
+  protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? schoolDataPreset());
   private readonly initialWorkspace = signal(false);
   protected readonly workspaceAvailable = signal(false);
   protected readonly draftWorkspace = linkedSignal<boolean>(() => this.initialWorkspace());

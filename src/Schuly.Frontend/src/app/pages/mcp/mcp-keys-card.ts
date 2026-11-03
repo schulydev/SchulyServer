@@ -7,14 +7,15 @@ import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
-import { McpActivity, McpApi, McpKey, mcpErrorMessage } from '../../core/mcp-api';
-import { McpPermissionSet, readOnlyPreset, summarize } from '../../core/mcp-permissions';
+import { AI_APP_OPT_IN, McpActivity, McpApi, McpKey, mcpErrorMessage } from '../../core/mcp-api';
+import { McpPermissionSet, schoolDataPreset, summarize } from '../../core/mcp-permissions';
 import { CopyBlock } from '../../shared/copy-block';
 import { EmptyState } from '../../shared/empty-state';
 import { formatDate, relativeTime } from './format';
@@ -25,7 +26,6 @@ const MAX_NAME = 100;
 const DAY = 24 * 3600 * 1000;
 
 const EXPIRIES = [
-  { value: 'never', label: 'Never', days: 0 },
   { value: '30', label: '30 days', days: 30 },
   { value: '90', label: '90 days', days: 90 },
   { value: '365', label: '1 year', days: 365 },
@@ -39,6 +39,7 @@ const EXPIRIES = [
     HlmBadge,
     HlmButton,
     HlmCardImports,
+    HlmCheckbox,
     HlmDialogImports,
     HlmFieldImports,
     HlmInput,
@@ -167,7 +168,7 @@ const EXPIRIES = [
           </div>
           <div hlmField>
             <label hlmFieldLabel for="mcp-key-expiry">Expires</label>
-            <hlm-select [value]="expiry()" (valueChange)="expiry.set($event ?? 'never')">
+            <hlm-select [value]="expiry()" (valueChange)="expiry.set($event ?? '90')">
               <hlm-select-trigger buttonId="mcp-key-expiry" class="w-full">
                 <hlm-select-value />
               </hlm-select-trigger>
@@ -181,6 +182,10 @@ const EXPIRIES = [
             </hlm-select>
           </div>
           <app-mcp-permission-editor [(value)]="newPermissions" />
+          <label class="flex items-start gap-2 text-sm" for="mcp-key-opt-in">
+            <hlm-checkbox class="mt-0.5" inputId="mcp-key-opt-in" [checked]="optIn()" (checkedChange)="optIn.set($event)" />
+            {{ optInText }}
+          </label>
           <div aria-live="polite" role="status">
             @if (createError()) {
               <div hlmAlert variant="destructive">
@@ -192,7 +197,7 @@ const EXPIRIES = [
             <button hlmBtn variant="outline" type="button" [disabled]="creating()" (click)="createOpen.set(false)">
               Cancel
             </button>
-            <button hlmBtn type="button" [disabled]="!nameValid() || creating()" (click)="create()">
+            <button hlmBtn type="button" [disabled]="!nameValid() || !optIn() || creating()" (click)="create()">
               @if (creating()) {
                 <hlm-spinner aria-hidden="true" />
               }
@@ -250,8 +255,10 @@ export class McpKeysCard implements OnInit {
   protected readonly creating = signal(false);
   protected readonly createError = signal<string | null>(null);
   protected readonly name = signal('');
-  protected readonly expiry = signal('never');
-  protected readonly newPermissions = signal<McpPermissionSet>(readOnlyPreset());
+  protected readonly optInText = AI_APP_OPT_IN;
+  protected readonly optIn = signal(false);
+  protected readonly expiry = signal('90');
+  protected readonly newPermissions = signal<McpPermissionSet>(schoolDataPreset());
   protected readonly nameValid = computed(() => this.name().trim().length > 0 && this.name().length <= MAX_NAME);
   /** Held only while the dialog is open, never stored. */
   protected readonly secret = signal<string | null>(null);
@@ -281,14 +288,15 @@ export class McpKeysCard implements OnInit {
 
   protected openCreate(): void {
     this.name.set('');
-    this.expiry.set('never');
-    this.newPermissions.set(readOnlyPreset());
+    this.expiry.set('90');
+    this.optIn.set(false);
+    this.newPermissions.set(schoolDataPreset());
     this.createError.set(null);
     this.createOpen.set(true);
   }
 
   protected async create(): Promise<void> {
-    if (!this.nameValid() || this.creating()) return;
+    if (!this.nameValid() || !this.optIn() || this.creating()) return;
     const days = EXPIRIES.find((option) => option.value === this.expiry())?.days ?? 0;
     this.creating.set(true);
     this.createError.set(null);
@@ -298,6 +306,7 @@ export class McpKeysCard implements OnInit {
           name: this.name().trim(),
           permissions: this.newPermissions(),
           expiresAt: days ? new Date(Date.now() + days * DAY).toISOString() : null,
+          aiAppSharingConfirmed: true,
         }),
       );
       this.keys.update((list) => [created.key, ...list]);

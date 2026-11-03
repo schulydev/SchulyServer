@@ -10,6 +10,9 @@ namespace Schuly.Infrastructure.Mcp
         /// <summary>Public origin of this server (for example https://app.schuly.dev). When empty it is taken from the request, which the forwarded-headers setup makes correct behind the proxy.</summary>
         public string? PublicUrl { get; set; }
 
+        /// <summary>How long an API key lasts when the request names no expiry.</summary>
+        public TimeSpan DefaultApiKeyLifetime { get; set; } = TimeSpan.FromDays(90);
+
         /// <summary>Browser origins besides this server's own that may call /mcp. Empty by default: desktop and CLI clients send no Origin at all.</summary>
         public List<string> AllowedOrigins { get; set; } = [];
 

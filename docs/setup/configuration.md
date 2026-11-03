@@ -268,6 +268,8 @@ The server exposes MCP at `/mcp`, so users can connect AI apps.
 
 You normally set only these two. Token lifetimes and limits also live under `Mcp:` and have working defaults (`McpOAuthOptions`).
 
+New connections, new API keys and Helply start with school data only, read-only, with Microsoft off and no linked account allowed. A new connection or API key needs a separate tick in the web app, and the API refuses one without it. An API key without an expiry date expires after 90 days (`Mcp:DefaultApiKeyLifetime`). Connections, keys and saved Helply settings from before this stay as they were.
+
 ## Privacy notice
 
 | Key | Purpose |

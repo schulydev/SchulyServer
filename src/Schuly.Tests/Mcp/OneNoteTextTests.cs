@@ -51,7 +51,7 @@ namespace Schuly.Tests.Mcp
 
             await Assert.That(McpScopes.Normalize(set).Level(McpArea.OneNote)).IsEqualTo(McpAccessLevel.ReadWrite);
             await Assert.That(McpScopes.Granted(set)).Contains("ms.onenote.write");
-            await Assert.That(McpScopes.Requested("ms.onenote.write").Level(McpArea.OneNote)).IsEqualTo(McpAccessLevel.Read);
+            await Assert.That(McpScopes.Requested("ms.onenote.write").Level(McpArea.OneNote)).IsEqualTo(McpAccessLevel.Off);
         }
     }
 }

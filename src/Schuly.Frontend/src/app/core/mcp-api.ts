@@ -3,6 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { McpPermissionSet } from './mcp-permissions';
 
+/** The separate opt-in for connecting an AI app. The server refuses a new connection without it. */
+export const AI_APP_OPT_IN =
+  'I want to share this data with this AI app. It gets what I allow, under its own terms and possibly outside Switzerland. Absence reasons can reveal health information.';
+
 export interface McpAuthorizationParameters {
   responseType: string;
   clientId: string;
@@ -29,6 +33,7 @@ export interface McpAuthorizationDecision {
   parameters: McpAuthorizationParameters;
   approve: boolean;
   permissions: McpPermissionSet | null;
+  aiAppSharingConfirmed: boolean;
 }
 
 export interface McpConnection {
@@ -66,6 +71,7 @@ export interface McpCreateKey {
   name: string;
   permissions: McpPermissionSet;
   expiresAt: string | null;
+  aiAppSharingConfirmed: boolean;
 }
 
 export interface LinkedAccount {

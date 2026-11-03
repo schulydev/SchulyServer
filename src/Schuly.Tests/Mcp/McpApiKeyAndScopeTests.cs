@@ -97,10 +97,11 @@ namespace Schuly.Tests.Mcp
             var mail = McpScopes.Requested("openid ms.mail.write schuly.grades.read");
 
             await Assert.That(none.Level(McpArea.Grades)).IsEqualTo(McpAccessLevel.Read);
-            await Assert.That(none.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Read);
+            await Assert.That(none.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Off);
             await Assert.That(none.AllowDestructive).IsFalse();
-            await Assert.That(openid.Level(McpArea.Teams)).IsEqualTo(McpAccessLevel.Read);
-            await Assert.That(mail.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Read);
+            await Assert.That(openid.Level(McpArea.Teams)).IsEqualTo(McpAccessLevel.Off);
+            await Assert.That(openid.Level(McpArea.Exams)).IsEqualTo(McpAccessLevel.Read);
+            await Assert.That(mail.Level(McpArea.Mail)).IsEqualTo(McpAccessLevel.Off);
             await Assert.That(mail.Level(McpArea.Grades)).IsEqualTo(McpAccessLevel.Read);
             await Assert.That(mail.Level(McpArea.Drive)).IsEqualTo(McpAccessLevel.Off);
         }
