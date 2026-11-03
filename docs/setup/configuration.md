@@ -159,7 +159,7 @@ server uses a temporary key, so stored credentials don't survive a restart.
 ## Retention
 
 A hosted service sweeps expired data five minutes after startup and every 24 hours after that. It uses the
-same purge code as `DELETE /api/auth/me`, so a swept row leaves nothing behind in Postgres or S3.
+same purge code as `DELETE /api/auth/me`, so a swept row leaves nothing behind in Postgres or S3. It also removes classes with no student and no grade, with their exams and class agenda, and unlinked teachers with no class.
 
 | Key | Purpose |
 |---|---|

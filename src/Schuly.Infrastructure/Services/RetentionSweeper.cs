@@ -7,7 +7,7 @@ using Toamaisutaa.Abstractions;
 
 namespace Schuly.Infrastructure.Services
 {
-    public record RetentionSweepResult(int SchoolUsersPurged, int AccountsPurged, int WarningsSent = 0, int OrphanedOwnersPurged = 0, int OrphanedAccountsPurged = 0, int OrphanedBlobsDeleted = 0, int PendingCompleted = 0, int PendingFailing = 0, int FailedSteps = 0);
+    public record RetentionSweepResult(int SchoolUsersPurged, int AccountsPurged, int WarningsSent = 0, int OrphanedOwnersPurged = 0, int OrphanedAccountsPurged = 0, int OrphanedBlobsDeleted = 0, int PendingCompleted = 0, int PendingFailing = 0, int FailedSteps = 0, int OrphanedSchoolRows = 0);
 
     public sealed class RetentionSweeper(SchulyDbContext dbContext, IAccountPurger accountPurger, IPluginUserDataPurger pluginData, IUserStore userStore, IDocumentStorage documentStorage, IInactivityWarningSender warningSender, IOptions<RetentionOptions> options, ILogger<RetentionSweeper> logger)
     {
@@ -28,14 +28,15 @@ namespace Schuly.Infrastructure.Services
             var orphanedOwners = await RunStepAsync("plugin data of deleted users", () => SweepOrphanedPluginDataAsync(cancellationToken), 0, cancellationToken);
             var orphanedAccounts = await RunStepAsync("accounts without a sign-in", () => SweepAccountsWithoutSignInAsync(cancellationToken), 0, cancellationToken);
             var orphanedBlobs = await RunStepAsync("orphaned blobs", () => SweepOrphanedBlobsAsync(cancellationToken), 0, cancellationToken);
+            var orphanedSchoolRows = await RunStepAsync("school rows without an owner", () => SweepOrphanedSchoolRowsAsync(cancellationToken), 0, cancellationToken);
 
-            logger.LogInformation("Retention sweep: {SchoolUsers} school users and {Accounts} accounts purged, {Warnings} warnings sent, {OrphanedOwners} deleted users' plugin data and {OrphanedAccounts} accounts without a sign-in purged, {OrphanedBlobs} orphaned blobs deleted, {PendingCompleted} queued deletions completed.",
-                schoolUsersPurged, accountsPurged, warningsSent, orphanedOwners, orphanedAccounts, orphanedBlobs, pending.Completed);
+            logger.LogInformation("Retention sweep: {SchoolUsers} school users and {Accounts} accounts purged, {Warnings} warnings sent, {OrphanedOwners} deleted users' plugin data and {OrphanedAccounts} accounts without a sign-in purged, {OrphanedBlobs} orphaned blobs and {OrphanedSchoolRows} school rows without an owner deleted, {PendingCompleted} queued deletions completed.",
+                schoolUsersPurged, accountsPurged, warningsSent, orphanedOwners, orphanedAccounts, orphanedBlobs, orphanedSchoolRows, pending.Completed);
 
             if (pending.StillFailing > 0 || _failedSteps > 0)
                 logger.LogError("Retention sweep is incomplete: {PendingFailing} queued deletions still fail and {FailedSteps} sweep steps failed. Data the policy says is deleted may still exist.", pending.StillFailing, _failedSteps);
 
-            return new RetentionSweepResult(schoolUsersPurged, accountsPurged, warningsSent, orphanedOwners, orphanedAccounts, orphanedBlobs, pending.Completed, pending.StillFailing, _failedSteps);
+            return new RetentionSweepResult(schoolUsersPurged, accountsPurged, warningsSent, orphanedOwners, orphanedAccounts, orphanedBlobs, pending.Completed, pending.StillFailing, _failedSteps, orphanedSchoolRows);
         }
 
         // One failing step must not stop the others. Its half-done changes are dropped, or the next step's save would retry them.
@@ -257,6 +258,34 @@ namespace Schuly.Infrastructure.Services
                 await accountPurger.PurgeApplicationUserAsync(orphan, cancellationToken);
 
             return orphans.Count;
+        }
+
+        // A class with no student and no grade belongs to nobody, and its exams and class agenda go with it. A class always gets its first student in the save that creates
+        // it, so no sync is caught halfway. An exam without grades in a class that still has students stays: classmates may still see it, and it names nobody.
+        private async Task<int> SweepOrphanedSchoolRowsAsync(CancellationToken cancellationToken)
+        {
+            // No students at all means a fresh or wrong database, not that everyone left.
+            if (!await dbContext.SchoolUsers.AnyAsync(cancellationToken))
+                return 0;
+
+            var classes = await dbContext.Classes
+                .Include(c => c.Exams)
+                .Include(c => c.Agenda)
+                .Include(c => c.Teachers)
+                .Where(c => !c.Students.Any() && !c.Exams.Any(e => e.Grades.Any()))
+                .ToListAsync(cancellationToken);
+            var removed = classes.Count + classes.Sum(c => c.Exams.Count);
+
+            dbContext.AgendaEntries.RemoveRange(classes.SelectMany(c => c.Agenda));
+            dbContext.Exams.RemoveRange(classes.SelectMany(c => c.Exams));
+            dbContext.Classes.RemoveRange(classes);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            var teachers = await dbContext.Teachers.Where(t => t.ApplicationUserId == null && !t.Classes.Any()).ToListAsync(cancellationToken);
+            dbContext.Teachers.RemoveRange(teachers);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return removed + teachers.Count;
         }
 
         // Blobs left by deletions from before avatars were purged, and by replaced pictures. A blob counts as orphaned only

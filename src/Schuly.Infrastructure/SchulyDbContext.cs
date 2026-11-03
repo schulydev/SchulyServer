@@ -217,7 +217,6 @@ namespace Schuly.Infrastructure
                 entity.Property(t => t.FirstName).HasMaxLength(100).IsRequired();
                 entity.Property(t => t.LastName).HasMaxLength(100).IsRequired();
                 entity.Property(t => t.Code).HasMaxLength(20).IsRequired();
-                entity.Property(t => t.Email).HasMaxLength(255);
 
                 entity.HasOne(t => t.School)
                     .WithMany(s => s.Teachers)

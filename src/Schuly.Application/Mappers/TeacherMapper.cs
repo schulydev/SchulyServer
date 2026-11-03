@@ -14,8 +14,7 @@ namespace Schuly.Application.Mappers
                 SchoolName = teacher.School?.Name,
                 FirstName = teacher.FirstName,
                 LastName = teacher.LastName,
-                Code = teacher.Code,
-                Email = teacher.Email
+                Code = teacher.Code
             };
         }
 
