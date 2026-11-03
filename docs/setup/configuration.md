@@ -287,6 +287,7 @@ Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `confi
 - OIDC providers can't create accounts, whatever `AllowSignUp` says. Accounts that already linked a provider keep using it.
 - Existing accounts keep working from anywhere. Private mode has no account, so this doesn't affect it.
 - Users also confirm "I attend a school in Switzerland." The server stores the time on the account, and private mode stores it on the device. With the setting off, nobody is asked. The confirmation doesn't replace the network check.
+- New school connections only reach `.ch` hosts and `www.schul-netz.com`. This covers linking in account mode and the sign-in routes in private mode. Accounts already linked keep working. It doesn't cover Microsoft accounts, which aren't tied to a school.
 - A Swiss address must reach the server. Set `ForwardedHeaders:KnownNetworks` correctly behind a proxy, or every sign-up is refused.
 
 The list comes from RIPE registry data, which shows where a network is registered, so it isn't exact. A VPN can get around it. To refresh the list before a release, run `scripts/update-swiss-networks.sh`.
