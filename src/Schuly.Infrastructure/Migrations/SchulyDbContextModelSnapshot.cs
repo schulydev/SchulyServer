@@ -962,6 +962,9 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<bool>("Grades")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IncludeDetails")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IncludeGradeValue")
                         .HasColumnType("boolean");
 

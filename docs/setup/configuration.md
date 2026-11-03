@@ -204,7 +204,7 @@ remove a lot, and later ones little:
 ## Push notifications (Firebase)
 
 A background service drains the notification outbox (grades, absences, agenda changes) and delivers it
-through Firebase Cloud Messaging.
+through Firebase Cloud Messaging. By default the text is generic, such as "New grade". A user can turn on details in the notification settings, and only then the subject, agenda title and date go through Firebase.
 
 | Key | Purpose |
 |---|---|

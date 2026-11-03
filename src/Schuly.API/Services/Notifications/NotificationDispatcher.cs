@@ -79,6 +79,7 @@ namespace Schuly.API.Services.Notifications
             var absences = preference?.Absences ?? true;
             var agenda = preference?.Agenda ?? true;
             var includeGradeValue = preference?.IncludeGradeValue ?? false;
+            var includeDetails = preference?.IncludeDetails ?? false;
 
             var deliverable = new List<NotificationOutbox>();
 
@@ -112,7 +113,7 @@ namespace Schuly.API.Services.Notifications
                         var localeTokens = localeGroup.Select(t => t.Token).ToList();
                         var message = groupRows.Count > 1
                             ? NotificationMessageFactory.CreateAggregate(typeGroup.Key, localeGroup.Key, groupRows.Count)
-                            : NotificationMessageFactory.Create(groupRows[0], localeGroup.Key, includeGradeValue, scores.TryGetValue(groupRows[0].EntityId, out var score) ? score : null);
+                            : NotificationMessageFactory.Create(groupRows[0], localeGroup.Key, includeGradeValue, scores.TryGetValue(groupRows[0].EntityId, out var score) ? score : null, includeDetails);
 
                         var result = await sender.SendAsync(localeTokens, message, cancellationToken);
 
