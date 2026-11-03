@@ -237,6 +237,17 @@ The server exposes MCP at `/mcp`, so users can connect AI apps.
 
 You normally set only these two. Token lifetimes and limits also live under `Mcp:` and have working defaults (`McpOAuthOptions`).
 
+## Limit sign-ups to Switzerland
+
+Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `config/backend.env`) to accept new accounts only from Swiss networks. It's off by default.
+
+- Password sign-ups from other networks get an error. The server only compares the address with a built-in list, and doesn't store or log it.
+- OIDC providers can't create accounts, whatever `AllowSignUp` says. Accounts that already linked a provider keep using it.
+- Existing accounts keep working from anywhere. Private mode has no account, so this doesn't affect it.
+- A Swiss address must reach the server. Set `ForwardedHeaders:KnownNetworks` correctly behind a proxy, or every sign-up is refused.
+
+The list comes from RIPE registry data, which shows where a network is registered, so it isn't exact. A VPN can get around it. To refresh the list before a release, run `scripts/update-swiss-networks.sh`.
+
 ## Authorization policy
 
 The fallback policy requires an authenticated user for every endpoint (`AddSchulyAuthorization`).
