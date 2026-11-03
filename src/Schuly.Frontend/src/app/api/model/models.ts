@@ -86,6 +86,7 @@ export * from './trustedDeviceSummary';
 export * from './twoFactorEnrolmentCompleted';
 export * from './twoFactorEnrolmentStarted';
 export * from './twoFactorStatus';
+export * from './deleteAccountRequest';
 export * from './unifiedLoginRequest';
 export * from './updateAbsenceCommand';
 export * from './updateAgendaEntryCommand';

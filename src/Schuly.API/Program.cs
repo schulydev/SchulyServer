@@ -7,6 +7,7 @@ using Schuly.API.Plugins;
 using Schuly.API.Services;
 using Schuly.Application.Behaviors;
 using Schuly.Infrastructure.Plugins;
+using Schuly.Infrastructure.Security;
 using Schuly.Infrastructure.Services;
 using Schuly.Infrastructure.Storage;
 using Schuly.Infrastructure.Vault;
@@ -34,7 +35,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IAvatarUrlSigner, AvatarUrlSigner>();
 builder.Services.AddScoped<IPluginUserContext, PluginUserContext>();
 builder.Services.AddScoped<IPluginUserDataPurger, Schuly.API.Plugins.PluginUserDataPurger>();
-builder.Services.AddScoped<IAccountPurger, AccountPurger>();
+builder.Services.AddScoped<AccountPurger>();
+builder.Services.AddScoped<IAccountPurger, AuditedAccountPurger>();
 builder.Services.AddScoped<ILinkedAccounts, LinkedAccountStore>();
 builder.Services.AddSchulyDocumentStorage(builder.Configuration, builder.Environment.IsDevelopment());
 
@@ -65,6 +67,7 @@ if (builder.Environment.IsDevelopment())
 var app = builder.Build();
 
 app.ApplyMigrations();
+app.Services.RotateVaultKey();
 await app.SeedSchoolSystemsAsync();
 
 app.UseForwardedHeaders();

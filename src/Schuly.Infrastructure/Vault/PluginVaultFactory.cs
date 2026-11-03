@@ -33,7 +33,7 @@ namespace Schuly.Infrastructure.Vault
             // Resolved eagerly so a misconfigured production deployment fails fast at
             // startup, before the app runs, rather than silently losing every plugin
             // credential on the next restart.
-            var keyring = new VaultKeyring(ResolveMasterKey(configuration, isDevelopment, out var warning));
+            var keyring = new VaultKeyring(ResolveMasterKey(configuration, isDevelopment, out var warning), ResolvePreviousMasterKey(configuration));
 
             services.AddSingleton(sp =>
             {
@@ -47,6 +47,33 @@ namespace Schuly.Infrastructure.Vault
             services.AddSingleton<IPluginVault>(sp =>
                 sp.GetRequiredService<IPluginVaultFactory>().GetVault(HostNamespace));
             return services;
+        }
+
+        private static byte[]? ResolvePreviousMasterKey(IConfiguration configuration)
+        {
+            var configured = configuration["Vault:PreviousMasterKey"];
+            if (string.IsNullOrWhiteSpace(configured))
+                return null;
+
+            try
+            {
+                var decoded = Convert.FromBase64String(configured);
+                if (decoded.Length == VaultKeyring.MasterKeySize)
+                    return decoded;
+            }
+            catch (FormatException)
+            {
+            }
+
+            throw new InvalidOperationException("Vault:PreviousMasterKey is not a valid base64-encoded 32-byte key.");
+        }
+
+        /// <summary>Moves vault entries from the previous master key to the current one. Runs before anything reads the vault; does nothing without Vault:PreviousMasterKey.</summary>
+        public static void RotateVaultKey(this IServiceProvider services)
+        {
+            var result = VaultKeyRotator.Rotate(services.GetRequiredService<VaultKeyring>(), services.GetRequiredService<IVaultStore>());
+            if (result.Rotated > 0 || result.Unreadable > 0)
+                services.GetRequiredService<ILoggerFactory>().CreateLogger("Schuly.Vault").LogInformation("Vault key rotation: {Rotated} entries moved to the current key, {Unreadable} readable with neither key", result.Rotated, result.Unreadable);
         }
 
         private static byte[] ResolveMasterKey(IConfiguration configuration, bool isDevelopment, out string? warning)

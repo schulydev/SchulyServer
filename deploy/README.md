@@ -8,11 +8,11 @@ with a real domain.
 
 | Service | Image | Exposed |
 |---|---|---|
-| `caddy` | `caddy:2` | **80 / 443** (the only public ports) |
+| `caddy` | `caddy` | **80 / 443** (the only public ports) |
 | `backend` | `ghcr.io/schulydev/schuly` | via Caddy → `https://${API_HOST}` |
 | `schulware` | `ghcr.io/pianonic/schulwareapi` | internal |
 | `schulymicrosoft` | `ghcr.io/schulydev/schulymicrosoft` | internal (Microsoft 365 access for the Microsoft plugin; healthchecked on `/health/ready`, the backend starts only once it is ready) |
-| `postgres` | `postgres:18.1` | internal (DBs: `schuly`, `schuly_plugin_*`) |
+| `postgres` | `postgres` | internal (DBs: `schuly`, `schuly_plugin_*`) |
 | `seaweedfs` | `chrislusf/seaweedfs` | internal (S3 document storage) |
 | `sandbox` | `ghcr.io/schulydev/schuly-sandbox` | private network with the backend only; optional (`sandbox` profile), see below |
 
@@ -32,9 +32,9 @@ registry - no DLL baked into the image).
    signs everybody out, a new encryption key breaks two-factor. The `SMTP_* block is the mail server for email verification and
    password reset.
    `VAULT_MASTER_KEY` must be a real generated base64 32-byte key
-   (`openssl rand -base64 32`) and must never change afterwards - the backend
-   refuses to start without it, and stored credentials become unreadable under
-   a different key.
+   (`openssl rand -base64 32`) - the backend refuses to start without it, and stored
+   credentials become unreadable under a different key. To change it, follow
+   [Rotate the vault key](../docs/setup/operations.md#rotate-the-vault-key).
 3. **Run**:
    ```sh
    docker compose -f compose.staging.yml up -d
@@ -114,6 +114,12 @@ sent is removed after 24 hours. No extra setting is needed.
 
 ## Notes
 
+- Containers sit on separate networks: Caddy shares `edge` with the backend only, Postgres and SeaweedFS
+  are on the internal `data` network, and `schulware` and `schulymicrosoft` are on `school`. The rate
+  limits rely on `ForwardedHeaders__KnownNetworks__0` in `config/backend.env` covering the `edge`
+  network. It covers Docker's default range; if `docker network inspect` shows another range on your
+  host, change that setting, or all clients share one limit.
+- A security incident? See [breach-runbook.md](breach-runbook.md).
 - To change the plugins, edit `config/plugins.yml` and restart the backend.
 - All state is **bind-mounted to host folders under `./data`** (recommended over
   named volumes - visible and easy to back up): `data/postgres`, `data/seaweedfs`,

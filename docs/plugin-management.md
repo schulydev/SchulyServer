@@ -59,6 +59,11 @@ during downtime runs once after the next start. A task never overlaps with itsel
 | Key | Default | Purpose |
 |---|---|---|
 | `Plugins:Registry` | SchulyPlugins `repo` branch | Registry base URL |
+
+When the registry index lists a SHA-256 hash for a download (`sha256`, `depsSha256`), the server checks
+it and keeps the installed version on a mismatch. The index lists hashes for the latest build only, so
+a pinned older version installs unchecked. The hashes come from the same branch as the files, so they
+catch a damaged or swapped download, not a compromised registry.
 | `Plugins:File` | `<app>/plugins.yml` | The list of plugins |
 | `Plugins:Directory` | `<app>/plugins` | Where plugin DLLs are stored |
 | `Plugins:ConfigDirectory` | `<app>/plugins-config` | Where plugin config files are stored |

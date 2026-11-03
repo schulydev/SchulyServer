@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Schuly.Infrastructure;
+using Schuly.Infrastructure.Security;
 using Schuly.Infrastructure.Services;
 using System.Security.Claims;
 using Schuly.API.Email;
+using Schuly.API.Security;
 using Schuly.API.SignUp;
 using Toamaisutaa.Abstractions;
 using Toamaisutaa.Email.Smtp;
@@ -32,6 +34,10 @@ namespace Schuly.API.Extensions
             });
             services.AddSwissExternalSignUpLimit(configuration);
             services.AddToamaisutaaTokenCleanup();
+            services.AddScoped<SecurityAuditLog>();
+            services.AddToamaisutaaAuthenticationEventSink<SecurityAuditSink>();
+            services.AddHostedService<SecurityAuditCleanupService>();
+            services.AddScoped<AccountPasswordCheck>();
 
             return services;
         }
@@ -45,6 +51,7 @@ namespace Schuly.API.Extensions
         public static WebApplication MapSchulyAuthEndpoints(this WebApplication app)
         {
             app.MapToamaisutaaPasswordEndpoints();
+            app.MapToamaisutaaSessionEndpoints();
             app.MapToamaisutaaTwoFactorEndpoints();
             app.MapToamaisutaaTrustedDeviceEndpoints();
             app.MapToamaisutaaExternalLoginEndpoints();

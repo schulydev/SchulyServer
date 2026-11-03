@@ -13,6 +13,8 @@ namespace Schuly.API.Plugins
         [JsonPropertyName("description")] public string? Description { get; init; }
         [JsonPropertyName("authors")] public string? Authors { get; init; }
         [JsonPropertyName("contract")] public string? Contract { get; init; }
+        [JsonPropertyName("sha256")] public string? Sha256 { get; init; }
+        [JsonPropertyName("depsSha256")] public string? DepsSha256 { get; init; }
 
         /// <summary>False only when the index says this build targets a contract the host can't load. Entries without a contract are checked at load time.</summary>
         public bool SupportsContract(System.Version host) => Contract is null || !System.Version.TryParse(Contract, out var contract) || PluginContract.IsCompatible(contract, host);
@@ -31,6 +33,8 @@ namespace Schuly.API.Plugins
                 Dll = $"{Name}-v{pinned}.dll",
                 Deps = $"{Name}-v{pinned}-deps.zip",
                 Contract = null,
+                Sha256 = null,
+                DepsSha256 = null,
             };
         }
     }

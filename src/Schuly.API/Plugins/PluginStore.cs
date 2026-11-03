@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Schuly.API.Plugins
@@ -55,21 +56,30 @@ namespace Schuly.API.Plugins
 
         public async Task<PluginManifest> InstallAsync(RegistryPlugin entry, PluginRegistryClient registry, CancellationToken ct = default)
         {
+            // Downloaded and checked before anything is removed, so a bad download leaves the installed version in place.
+            var dll = SafeArtifactName(entry.Dll);
+            var dllBytes = await registry.DownloadArtifactAsync(dll, ct);
+            VerifyHash(dll, dllBytes, entry.Sha256);
+
+            byte[]? zipBytes = null;
+            if (!string.IsNullOrWhiteSpace(entry.Deps))
+            {
+                var deps = SafeArtifactName(entry.Deps);
+                zipBytes = await registry.DownloadArtifactAsync(deps, ct);
+                VerifyHash(deps, zipBytes, entry.DepsSha256);
+            }
+
             // Clean any previous version's files first so a downgrade/upgrade leaves no
             // stale -v<old>.dll behind that would be discovered alongside the new one.
             Remove(entry.Name);
 
             var files = new List<string>();
 
-            var dll = SafeArtifactName(entry.Dll);
-            var dllBytes = await registry.DownloadArtifactAsync(dll, ct);
             await File.WriteAllBytesAsync(Path.Combine(Directory, dll), dllBytes, ct);
             files.Add(dll);
 
-            if (!string.IsNullOrWhiteSpace(entry.Deps))
+            if (zipBytes is not null)
             {
-                var deps = SafeArtifactName(entry.Deps);
-                var zipBytes = await registry.DownloadArtifactAsync(deps, ct);
                 using var zip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
                 foreach (var zipEntry in zip.Entries)
                 {
@@ -112,6 +122,15 @@ namespace Schuly.API.Plugins
             }
 
             TryDelete(ManifestPath(name));
+        }
+
+        /// <summary>Entries without a hash (older index, pinned version) are installed unchecked; the index doesn't list hashes for those.</summary>
+        private static void VerifyHash(string file, byte[] bytes, string? expected)
+        {
+            if (string.IsNullOrWhiteSpace(expected))
+                return;
+            if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(expected, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Plugin artifact '{file}' does not match the SHA-256 hash in the registry index");
         }
 
         private string ManifestPath(string name) => Path.Combine(Directory, name + ManifestSuffix);

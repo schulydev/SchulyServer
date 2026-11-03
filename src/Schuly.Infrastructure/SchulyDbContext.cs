@@ -30,6 +30,7 @@ namespace Schuly.Infrastructure
         public DbSet<PendingPurge> PendingPurges { get; set; }
         public DbSet<InactivityWarning> InactivityWarnings { get; set; }
         public DbSet<VaultEntry> VaultEntries { get; set; }
+        public DbSet<SecurityAuditEntry> SecurityAuditEntries { get; set; }
         public DbSet<LinkedAccount> LinkedAccounts { get; set; }
         public DbSet<PluginTask> PluginTasks { get; set; }
         public DbSet<McpOAuthClient> McpOAuthClients { get; set; }
@@ -585,6 +586,16 @@ namespace Schuly.Infrastructure
                 entity.Property(v => v.PluginName).HasMaxLength(200).IsRequired();
                 entity.Property(v => v.Key).HasMaxLength(200).IsRequired();
                 entity.HasIndex(v => new { v.PluginName, v.Key }).IsUnique();
+            });
+
+            modelBuilder.Entity<SecurityAuditEntry>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Kind).HasMaxLength(64).IsRequired();
+                entity.Property(a => a.Detail).HasMaxLength(64);
+                entity.HasIndex(a => a.OccurredAt);
+                entity.HasIndex(a => a.UserId);
+                // No FK to the user: the trail has to outlive the account it describes, until its retention limit.
             });
 
             modelBuilder.Entity<PluginTask>(entity =>

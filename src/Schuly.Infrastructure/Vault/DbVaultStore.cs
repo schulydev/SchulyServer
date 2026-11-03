@@ -13,6 +13,13 @@ namespace Schuly.Infrastructure.Vault
     /// </summary>
     public sealed class DbVaultStore(IServiceScopeFactory scopeFactory) : IVaultStore
     {
+        public IReadOnlyCollection<string> Namespaces()
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<SchulyDbContext>();
+            return db.VaultEntries.AsNoTracking().Select(e => e.PluginName).Distinct().ToList();
+        }
+
         public IReadOnlyDictionary<string, VaultRecord> Load(string @namespace)
         {
             using var scope = scopeFactory.CreateScope();

@@ -62,8 +62,8 @@ Replace every `change-me` value before the first start.
 Then set the same S3 values in `config/seaweedfs/s3-config.json`. If they differ, document
 storage fails.
 
-::: warning Back up `.env` and keep the keys
-Changing a key later has lasting effects:
+::: warning Keep the keys safe, and apart from your backups
+Changing a key without its [rotation steps](operations.md#rotate-keys) has lasting effects:
 
 - `LOCAL_LOGIN_SIGNING_KEY`: everyone is signed out.
 - `TWO_FACTOR_ENCRYPTION_KEY`: two-factor stops working for every account.
