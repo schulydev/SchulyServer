@@ -12,16 +12,18 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap } from 'rxjs';
 import { ApplicationUserDto, AuthService, MeService } from '../api';
 import { AuthStore } from './auth.store';
+import { apiMessage } from '../core/chat-api';
 import { initials } from '../core/initials';
 
 interface UserState {
   user: ApplicationUserDto | null;
   loading: boolean;
   busy: boolean;
+  deleteError: string | null;
 }
 
 export const UserStore = signalStore(
-  withState<UserState>({ user: null, loading: false, busy: false }),
+  withState<UserState>({ user: null, loading: false, busy: false, deleteError: null }),
   withComputed(({ user }) => {
     const name = computed(() => {
       const schoolUser = user()?.schoolUsers?.find((s) => s.firstName);
@@ -94,11 +96,11 @@ export const UserStore = signalStore(
             error: () => patchState(store, { busy: false }),
           });
         },
-        deleteAccount(): void {
-          patchState(store, { busy: true });
-          api.apiAuthMeDelete().subscribe({
+        deleteAccount(password: string): void {
+          patchState(store, { busy: true, deleteError: null });
+          api.apiAuthMeDelete({ password: password || null }).subscribe({
             next: () => void auth.signOut(),
-            error: () => patchState(store, { busy: false }),
+            error: (error: unknown) => patchState(store, { busy: false, deleteError: apiMessage(error, 'Could not delete the account. Try again.') }),
           });
         },
       };

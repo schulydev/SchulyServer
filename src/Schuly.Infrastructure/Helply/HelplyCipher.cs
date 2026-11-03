@@ -21,8 +21,13 @@ namespace Schuly.Infrastructure.Helply
         private const int TagSize = 16;
 
         private readonly byte[] _key;
+        private readonly byte[]? _previousKey;
 
-        public HelplyCipher(VaultKeyring keyring) => _key = keyring.DeriveKey(KeyNamespace);
+        public HelplyCipher(VaultKeyring keyring)
+        {
+            _key = keyring.DeriveKey(KeyNamespace);
+            _previousKey = keyring.DerivePreviousKey(KeyNamespace);
+        }
 
         public byte[] Encrypt(ReadOnlySpan<byte> plaintext, Guid conversationId, Guid applicationUserId, string field)
         {
@@ -44,8 +49,18 @@ namespace Schuly.Infrastructure.Helply
                 throw new CryptographicException("Unrecognised Helply blob.");
             var cipherLength = blob.Length - 1 - NonceSize - TagSize;
             var plaintext = new byte[cipherLength];
-            using var aes = new AesGcm(_key, TagSize);
-            aes.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize, cipherLength), blob.AsSpan(1 + NonceSize + cipherLength, TagSize), plaintext, AssociatedData(conversationId, applicationUserId, field));
+            var aad = AssociatedData(conversationId, applicationUserId, field);
+            try
+            {
+                using var aes = new AesGcm(_key, TagSize);
+                aes.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize, cipherLength), blob.AsSpan(1 + NonceSize + cipherLength, TagSize), plaintext, aad);
+            }
+            catch (CryptographicException) when (_previousKey is not null)
+            {
+                // Written before a master key rotation. New writes use the current key.
+                using var previous = new AesGcm(_previousKey, TagSize);
+                previous.Decrypt(blob.AsSpan(1, NonceSize), blob.AsSpan(1 + NonceSize, cipherLength), blob.AsSpan(1 + NonceSize + cipherLength, TagSize), plaintext, aad);
+            }
             return plaintext;
         }
 

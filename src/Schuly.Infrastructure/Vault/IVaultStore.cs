@@ -8,6 +8,8 @@ namespace Schuly.Infrastructure.Vault
     /// </summary>
     public interface IVaultStore
     {
+        IReadOnlyCollection<string> Namespaces();
+
         IReadOnlyDictionary<string, VaultRecord> Load(string @namespace);
 
         void Save(string @namespace, string key, VaultRecord record);
@@ -26,6 +28,8 @@ namespace Schuly.Infrastructure.Vault
         public static readonly NullVaultStore Instance = new();
 
         private static readonly IReadOnlyDictionary<string, VaultRecord> Empty = new Dictionary<string, VaultRecord>(StringComparer.Ordinal);
+
+        public IReadOnlyCollection<string> Namespaces() => [];
 
         public IReadOnlyDictionary<string, VaultRecord> Load(string @namespace) => Empty;
 

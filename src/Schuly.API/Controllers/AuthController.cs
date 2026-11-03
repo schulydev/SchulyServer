@@ -1,10 +1,14 @@
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.RateLimiting;
 using Schuly.Application.Commands.User;
 using Schuly.Application.Dtos;
 using Schuly.Application.Queries.User;
+using Schuly.API.Extensions;
 using Schuly.API.Plugins;
+using Schuly.API.Security;
 using System.Text.Json;
 
 namespace Schuly.API.Controllers
@@ -26,10 +30,14 @@ namespace Schuly.API.Controllers
         }
 
         [HttpDelete("me")]
+        [EnableRateLimiting(AccountRateLimits.Delete)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteCurrentUser(CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteCurrentUser([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] DeleteAccountRequest? request, [FromServices] AccountPasswordCheck passwordCheck, CancellationToken cancellationToken)
         {
+            if (await passwordCheck.RefusalAsync(User, request?.Password, cancellationToken) is { } refusal)
+                return BadRequest(new { message = refusal });
+
             var result = await mediator.Send(new DeleteCurrentUserCommand(), cancellationToken);
             return result.ToActionResult();
         }
@@ -71,6 +79,8 @@ namespace Schuly.API.Controllers
                 : BadRequest(new { message = result.Message });
         }
     }
+
+    public record DeleteAccountRequest(string? Password);
 
     public record UnifiedLoginRequest(string SystemKey, Dictionary<string, string>? Fields, string? DisplayName);
 }

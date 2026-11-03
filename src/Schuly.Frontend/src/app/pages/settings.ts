@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideDownload,
@@ -10,6 +10,7 @@ import {
 import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
 import { Theme, ThemeStore } from '../stores/theme.store';
@@ -26,6 +27,7 @@ import { UserStore } from '../stores/user.store';
     AccountsCard,
     HlmCardImports,
     HlmButton,
+    HlmInput,
     HlmToggleGroupImports,
     HlmAlertDialogImports,
     HlmSpinner,
@@ -89,6 +91,9 @@ import { UserStore } from '../stores/user.store';
             Permanently delete your Schuly account and all synced school data. This cannot be
             undone.
           </p>
+          @if (user.deleteError(); as error) {
+            <p class="text-destructive text-sm" role="alert">{{ error }}</p>
+          }
         </div>
         <div hlmCardFooter>
           <hlm-alert-dialog>
@@ -104,9 +109,19 @@ import { UserStore } from '../stores/user.store';
                   every grade, exam, absence and document synced to the server.
                 </p>
               </hlm-alert-dialog-header>
+              <label class="grid gap-1.5 text-sm font-medium">
+                Your password (leave empty if you only use single sign-on)
+                <input
+                  hlmInput
+                  type="password"
+                  autocomplete="current-password"
+                  [value]="deletePassword()"
+                  (input)="deletePassword.set($any($event.target).value)"
+                />
+              </label>
               <hlm-alert-dialog-footer>
                 <button hlmAlertDialogCancel>Cancel</button>
-                <button hlmAlertDialogAction variant="destructive" (click)="user.deleteAccount()">
+                <button hlmAlertDialogAction variant="destructive" (click)="confirmDelete()">
                   Delete account
                 </button>
               </hlm-alert-dialog-footer>
@@ -120,6 +135,12 @@ import { UserStore } from '../stores/user.store';
 export class Settings {
   protected readonly user = inject(UserStore);
   protected readonly theme = inject(ThemeStore);
+  protected readonly deletePassword = signal('');
+
+  protected confirmDelete(): void {
+    this.user.deleteAccount(this.deletePassword());
+    this.deletePassword.set('');
+  }
 
   protected setTheme(value: unknown): void {
     if (value === 'light' || value === 'dark' || value === 'system')

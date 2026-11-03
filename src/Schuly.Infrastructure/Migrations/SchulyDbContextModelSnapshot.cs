@@ -1285,6 +1285,36 @@ namespace Schuly.Infrastructure.Migrations
                     b.ToTable("SchoolUsers");
                 });
 
+            modelBuilder.Entity("Schuly.Domain.SecurityAuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SecurityAuditEntries");
+                });
+
             modelBuilder.Entity("Schuly.Domain.SemesterReport", b =>
                 {
                     b.Property<Guid>("Id")
