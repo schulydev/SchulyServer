@@ -1,3 +1,4 @@
+using Schuly.API.SignUp;
 using Mediator;
 using Schuly.API.Extensions;
 using Schuly.API.Helply;
@@ -68,6 +69,9 @@ await app.SeedSchoolSystemsAsync();
 app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
+
+if (app.Configuration.SwitzerlandOnly())
+    app.UseMiddleware<SwissSignUpGate>();
 
 app.UseSchulyResponseCompression();
 app.UseDefaultFiles();

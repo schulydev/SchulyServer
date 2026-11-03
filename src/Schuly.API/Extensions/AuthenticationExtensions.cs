@@ -4,6 +4,7 @@ using Schuly.Infrastructure;
 using Schuly.Infrastructure.Services;
 using System.Security.Claims;
 using Schuly.API.Email;
+using Schuly.API.SignUp;
 using Toamaisutaa.Abstractions;
 using Toamaisutaa.Email.Smtp;
 using Toamaisutaa.EntityFrameworkCore;
@@ -29,6 +30,7 @@ namespace Schuly.API.Extensions
                 foreach (var provider in options.Providers.Values.Where(p => string.IsNullOrWhiteSpace(p.IconUrl)))
                     provider.IconUrl = BuiltInIcon(provider.Authority);
             });
+            services.AddSwissExternalSignUpLimit(configuration);
             services.AddToamaisutaaTokenCleanup();
 
             return services;
