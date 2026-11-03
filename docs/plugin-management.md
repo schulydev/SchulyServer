@@ -1,38 +1,44 @@
 # Plugin management
 
-Plugins are loaded into the backend at runtime from a registry - no rebuilds, no
-manual DLL drops.
+Plugins connect Schuly to school systems. Your server downloads them from a registry, so you don't
+copy any files by hand.
 
-## How it works
+## Add or remove a plugin
 
-- **Registry** (`Plugins:Registry`, default the SchulyPlugins `repo` branch) serves an
-  `index.min.json` and artifacts under `dll/`: `dll/<name>-v<ver>.dll` plus a
-  `-deps.zip` of the plugin's private dependencies.
-- **Desired set** lives in `plugins.yml` (`Plugins:File`). On startup the backend
-  reconciles it against the registry + the plugins directory: downloads missing or
-  out-of-date plugins, removes ones no longer listed, then loads them.
-- **Hot-swap**: each plugin runs in its own collectible `AssemblyLoadContext` with its
-  own child service container. Its controllers, minimal-API endpoints, and background
-  tasks are wired in on load and torn down on unload - the running process never
-  restarts. Plugin requests execute inside the plugin's own DI scope (falling back to
-  the host's services).
+Edit `config/plugins.yml` and restart the backend:
 
-## Background tasks
+```yaml
+plugins:
+  - name: Schuly.Plugin.Schulware
+    version: latest
+  - name: Schuly.Plugin.Microsoft
+    version: latest
+  - name: Schuly.Plugin.OdaOrg
+    version: latest
+```
 
-A plugin declares a recurring job by registering an `IPluginBackgroundTask`: a name, a
-`PluginSchedule` (a cron expression plus optional retries and `RunOnStartup`), and an
-`ExecuteAsync` body. The backend runs these on its own scheduler: it checks every second
-which tasks are due, resolves the task by plugin and task name inside the plugin's own
-DI scope, and retries a failed run as often as the schedule allows (30 seconds apart
-unless `RetryIntervals` says otherwise). A task never overlaps with itself; a run that
-is still going when the next one is due delays that run until it finishes.
+On startup, the server downloads what's listed and removes what isn't. A plugin's school system
+then appears in the app automatically. There is no admin API for plugins.
 
-Every task's cron, next run, last run and run counters are stored in the main database
-(`PluginTasks` table), so the history survives a restart - and a run that was due
-during downtime runs once right after the next start.
+### Run without Microsoft 365
 
-An operator can override a task's cadence per plugin in
-`plugins-config/<AssemblyName>.yml`:
+1. Remove `Schuly.Plugin.Microsoft` from `plugins.yml`.
+2. In `compose.staging.yml`, remove the `schulymicrosoft` service and the matching entry in the
+   backend's `depends_on`.
+
+## Configure a plugin
+
+Each plugin reads `config/plugins-config/<AssemblyName>.yml`. The defaults work for most servers.
+
+- **Absence reasons:** set `AbsenceReasons` in `Schuly.Plugin.Schulware.yml`, keyed by the host of
+  the school's Schulnetz URL.
+- **Microsoft service:** the Microsoft plugin needs `MicrosoftApi.BaseUrl` in
+  `Schuly.Plugin.Microsoft.yml` and doesn't start without it.
+
+## Change when a task runs
+
+Plugins run recurring tasks, such as syncing a timetable. To override a task's schedule, add it to
+the plugin's config file:
 
 ```yaml
 Schedules:
@@ -42,21 +48,24 @@ Schedules:
     RunOnStartup: false
 ```
 
-An override that fails to parse (a typo'd cron expression, say) is ignored in favour
-of the plugin's own default rather than taking the task offline. The same keys work as
-`SCHULY_PLUGIN_<NAME>_` environment variables, like the rest of the plugin config.
+If the schedule can't be parsed, the plugin's default applies. The same keys work as
+`SCHULY_PLUGIN_<NAME>_` environment variables.
 
-## Configuration
+Schuly keeps each task's schedule and run history in the `PluginTasks` table. A run that was due
+during downtime runs once after the next start. A task never overlaps with itself.
+
+## Settings
 
 | Key | Default | Purpose |
 |---|---|---|
-| `Plugins:Registry` | SchulyPlugins `repo` branch | Base URL of the registry. |
-| `Plugins:File` | `<app>/plugins.yml` | Declarative desired plugin set. |
-| `Plugins:Directory` | `<app>/plugins` | Where plugin DLLs are stored. |
-| `Plugins:ConfigDirectory` | `<app>/plugins-config` | Per-plugin `<AssemblyName>.yml` config. |
+| `Plugins:Registry` | SchulyPlugins `repo` branch | Registry base URL |
+| `Plugins:File` | `<app>/plugins.yml` | The list of plugins |
+| `Plugins:Directory` | `<app>/plugins` | Where plugin DLLs are stored |
+| `Plugins:ConfigDirectory` | `<app>/plugins-config` | Where plugin config files are stored |
 
-## Managing plugins
+## How it works
 
-There is no runtime admin API. Edit `plugins.yml` and restart the backend: it installs
-what is declared, removes what is not, and loads the result. Shared dependency DLLs are
-reference-counted: removing one plugin never deletes a dependency another still uses.
+Each plugin runs in its own collectible `AssemblyLoadContext` with its own service container. The
+host wires in its controllers, endpoints, and background tasks when it loads the plugin, and removes
+them when it unloads it. Shared dependency DLLs are reference-counted, so removing one plugin never
+deletes a DLL that another plugin uses.
