@@ -6,7 +6,9 @@ import { Importance } from './chat-media';
 import { openMediaStream } from './media-stream';
 import { createQueue } from './request-queue';
 import { ThrottledError, throttleWait } from './throttle';
-import { Catalogue, catalogueLocale, parseCatalogue } from './chat-emoji';
+import { AuthStore } from '../stores/auth.store';
+import { readSaved, userIdFromToken, writeSaved } from './browser-cache';
+import { Catalogue, addSearchTerms, parseCatalogue, searchLanguage, searchTerms } from './chat-emoji';
 
 export interface Gif {
   id: string;
@@ -65,20 +67,35 @@ export function safeApiPath(path: string, base: string): string | null {
   return `${base}/${path}`;
 }
 
+const CATALOGUE_KEY = 'emoji-catalogue';
+const GIFS_UNAVAILABLE_KEY = 'schuly.chat.gifsUnavailableUntil';
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_TERMS_AGE_MS = 7 * DAY_MS;
+
+const gifsKnownUnavailable = (): boolean => {
+  try {
+    return Number(localStorage.getItem(GIFS_UNAVAILABLE_KEY)) > Date.now();
+  } catch {
+    return false;
+  }
+};
+
 /** Everything the chat composer and message bubbles ask of accounts/{id}/... besides the chat list and messages themselves. */
 @Injectable()
 export class ChatApi {
   private readonly http = inject(HttpClient);
   private readonly accounts = inject(LinkedAccountsStore);
+  private readonly auth = inject(AuthStore);
 
-  /** null until the GIF endpoint answered once: true when configured, false on 503. */
+  /** null until the GIF endpoint answered: true when configured, false on 503, which is remembered for a day so it isn't asked again on every visit. */
   readonly gifsAvailable = signal<boolean | null>(null);
 
   private readonly queue = createQueue(MAX_CONCURRENT_MEDIA);
   private readonly urls = new Map<string, Promise<string | null>>();
   /** Until when Microsoft asked to wait: nothing is asked of it sooner, since that only extends the wait. */
   private blockedUntil = 0;
-  private catalogueCache: { account: string; promise: Promise<Catalogue | null> } | null = null;
+  private cataloguePromise: Promise<Catalogue | null> | null = null;
+  private catalogueLoaded: Catalogue | null = null;
 
   constructor() {
     // A different account must not see another account's cached blobs.
@@ -86,8 +103,7 @@ export class ChatApi {
       this.accounts.selectedId('chat');
       untracked(() => {
         this.revokeAll();
-        this.gifsAvailable.set(null);
-        this.catalogueCache = null;
+        this.gifsAvailable.set(gifsKnownUnavailable() ? false : null);
       });
     });
   }
@@ -187,33 +203,86 @@ export class ChatApi {
       const url = query ? `${base}/gifs/search` : `${base}/gifs/trending`;
       const params: Record<string, string | number> = query ? { q: query, limit } : { limit };
       const items = await firstValueFrom(this.http.get<Gif[]>(url, { params }));
-      this.gifsAvailable.set(true);
+      this.noteGifs(true);
       return { status: 'ok', items: Array.isArray(items) ? items : [] };
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 503) {
-        this.gifsAvailable.set(false);
+        this.noteGifs(false);
         return { status: 'unavailable' };
       }
       return { status: 'error' };
     }
   }
 
+  private noteGifs(available: boolean): void {
+    this.gifsAvailable.set(available);
+    try {
+      if (available) localStorage.removeItem(GIFS_UNAVAILABLE_KEY);
+      else localStorage.setItem(GIFS_UNAVAILABLE_KEY, String(Date.now() + DAY_MS));
+    } catch {
+      // Not remembered; the next visit asks again.
+    }
+  }
+
+  /** The catalogue when it is already here, so the picker can draw it at once. */
+  catalogueNow(): Catalogue | null {
+    return this.catalogueLoaded;
+  }
+
   /**
-   * Teams' own emoji catalogue (large, so it is fetched the first time something needs it and then kept in memory);
-   * null when the server has none, so callers fall back to unicode.
+   * Teams' own emoji catalogue: public and the same for every account, kept in memory and saved in this browser, so only the first
+   * visit waits for it. A saved copy older than a day is replaced in the background. Null when it can't be had; the next call tries again.
    */
   catalogue(): Promise<Catalogue | null> {
-    const account = this.accounts.selectedId('chat');
     const base = this.base();
-    if (!account || !base) return Promise.resolve(null);
-    if (this.catalogueCache?.account !== account) {
-      const locale = catalogueLocale(typeof navigator === 'undefined' ? undefined : navigator.language);
-      this.catalogueCache = {
-        account,
-        promise: firstValueFrom(this.http.get<unknown>(`${base}/emojis/catalogue`, { params: { locale } })).then(parseCatalogue, () => null),
-      };
+    if (this.catalogueLoaded || !base) return Promise.resolve(this.catalogueLoaded);
+    return (this.cataloguePromise ??= this.loadCatalogue(base).then((catalogue) => {
+      this.catalogueLoaded = catalogue;
+      this.cataloguePromise = null;
+      if (catalogue) void this.loadSearchTerms(base, catalogue);
+      return catalogue;
+    }));
+  }
+
+  private fetchCatalogue(base: string, locale: string): Promise<unknown> {
+    return firstValueFrom(this.http.get<unknown>(`${base}/emojis/catalogue`, { params: { locale } }));
+  }
+
+  // Saved as JSON text: cloning a string in and out of IndexedDB is far cheaper than the thousands of strings in the object.
+  private async loadCatalogue(base: string): Promise<Catalogue | null> {
+    const owner = userIdFromToken(this.auth.accessToken());
+    const save = (data: unknown) => writeSaved(owner, CATALOGUE_KEY, { data: JSON.stringify(data), etag: null, at: Date.now() });
+    const saved = await readSaved<string>(owner, CATALOGUE_KEY);
+    const catalogue = saved && parseCatalogue(JSON.parse(saved.data));
+    if (catalogue) {
+      if (Date.now() - saved.at > DAY_MS) void this.fetchCatalogue(base, 'default').then(save, () => undefined);
+      return catalogue;
     }
-    return this.catalogueCache.promise;
+    try {
+      const data = await this.fetchCatalogue(base, 'default');
+      const parsed = parseCatalogue(data);
+      if (parsed) void save(data);
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Search words in the browser's language; search works without them until they arrive. */
+  private async loadSearchTerms(base: string, catalogue: Catalogue): Promise<void> {
+    const language = searchLanguage(typeof navigator === 'undefined' ? undefined : navigator.language);
+    if (!language) return;
+    const owner = userIdFromToken(this.auth.accessToken());
+    const key = `${CATALOGUE_KEY}/${language}`;
+    const saved = await readSaved<string>(owner, key);
+    if (saved && Date.now() - saved.at < MAX_TERMS_AGE_MS) return addSearchTerms(catalogue, JSON.parse(saved.data));
+    try {
+      const data = searchTerms(await this.fetchCatalogue(base, language));
+      addSearchTerms(catalogue, data);
+      void writeSaved(owner, key, { data: JSON.stringify(data), etag: null, at: Date.now() });
+    } catch {
+      if (saved) addSearchTerms(catalogue, JSON.parse(saved.data));
+    }
   }
 
   async scheduled(chatId: string): Promise<ScheduledMessage[]> {

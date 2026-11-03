@@ -33,15 +33,14 @@ import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmPopoverImports } from '@spartan-ng/helm/popover';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { Importance, formatSize } from '../core/chat-media';
-import { EmojiMatch, emojiCompleteAt, emojiQueryAt, loadEmoji, searchEmoji } from '../core/emoji';
 import { Composed, compose } from '../core/rich-html';
 import { Gif } from '../core/chat-api';
 import { ChatApi } from '../core/chat-api';
-import { EmojiRef, ChatEmoji, normalizeShortcut, searchShortcuts } from '../core/chat-emoji';
+import { ChatEmoji, emojiQueryAt, normalizeShortcut, searchShortcuts } from '../core/chat-emoji';
 import { Outgoing, ChatStore } from '../stores/chat.store';
 import { ClipDialog } from './chat-clip-dialog';
 import { DeliveryDialog, MeetingDialog, ScheduleDialog } from './chat-dialogs';
-import { EmojiPicker } from './chat-emoji-picker';
+import { EmojiPicker, FIRST_SCREEN_EMOJI } from './chat-emoji-picker';
 
 export const MAX_LENGTH = 4000;
 export const MAX_INLINE_BYTES = 3 * 1024 * 1024;
@@ -58,8 +57,6 @@ interface ComposerChat {
 interface Suggestion {
   key: string;
   label: string;
-  /** Emoji character, for emoji suggestions. */
-  char?: string;
   /** Member id, for mention suggestions. */
   userId?: string;
   /** Teams emoji, for suggestions from the catalogue. */
@@ -214,9 +211,6 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
                   <img [src]="t.staticUrl" alt="" width="22" height="22" referrerpolicy="no-referrer" />
                 }
                 <span class="truncate"><span class="sr-only">{{ t.label }} </span>:{{ item.label }}:</span>
-              } @else if (item.char) {
-                <span class="text-lg leading-none" aria-hidden="true">{{ item.char }}</span>
-                <span class="truncate"><span class="sr-only">{{ item.char }} </span>:{{ item.label }}:</span>
               } @else {
                 <span class="truncate">{{ item.label }}</span>
               }
@@ -296,11 +290,11 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
         </button>
 
         <hlm-popover align="start" sideOffset="8" [state]="emojiState()" (stateChanged)="emojiState.set($event)">
-          <button hlmBtn hlmPopoverTrigger [hlmPopoverTriggerFor]="emojiPopover()" type="button" variant="ghost" size="icon-sm" (mousedown)="$event.preventDefault()">
+          <button hlmBtn hlmPopoverTrigger [hlmPopoverTriggerFor]="emojiPopover()" type="button" variant="ghost" size="icon-sm" (mousedown)="$event.preventDefault()" (pointerenter)="warmEmoji()" (focus)="warmEmoji()">
             <ng-icon name="lucideSmile" aria-hidden="true" />
-            <span class="sr-only">Emoji and GIFs</span>
+            <span class="sr-only">{{ api.gifsAvailable() === false ? 'Emoji' : 'Emoji and GIFs' }}</span>
           </button>
-          <hlm-popover-content *hlmPopoverPortal="let ctx" class="w-88 max-w-[calc(100vw-2rem)]">
+          <hlm-popover-content *hlmPopoverPortal="let ctx" class="w-88 max-w-[calc(100vw-4.5rem)] p-2">
             <app-emoji-picker (emoji)="insertEmoji($event)" (gif)="sendGif($event)" />
           </hlm-popover-content>
         </hlm-popover>
@@ -369,7 +363,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
 })
 export class ChatComposer {
   private readonly store = inject(ChatStore);
-  private readonly api = inject(ChatApi);
+  protected readonly api = inject(ChatApi);
   private readonly injector = inject(Injector);
 
   readonly chat = input.required<ComposerChat>();
@@ -393,6 +387,7 @@ export class ChatComposer {
   private readonly editor = viewChild.required<ElementRef<HTMLElement>>('editor');
   private readonly linkInput = viewChild<ElementRef<HTMLInputElement>>('linkInput');
   protected readonly emojiPopover = viewChild.required(BrnPopover);
+  private warmed = false;
 
   protected readonly composed = signal<Composed>(EMPTY);
   protected readonly formatOpen = signal(false);
@@ -433,6 +428,8 @@ export class ChatComposer {
   protected readonly scheduleContent = computed(() => (this.composed().plain ? this.composed().text : this.composed().html));
 
   constructor() {
+    // Ready before the picker or a shortcut needs it: from this browser after the first visit.
+    afterNextRender(() => void this.api.catalogue());
     const destroy = inject(DestroyRef);
     afterNextRender(() => {
       const onSelection = () => this.onSelectionChange();
@@ -716,31 +713,19 @@ export class ChatComposer {
     }
 
     if (!before.includes(':')) return this.closeSuggestions();
-    // The catalogue loads the first time a shortcut is typed; without one, unicode shortcodes still work.
+    // The catalogue loads the first time a shortcut is typed.
     const catalogue = await this.api.catalogue();
-    let data;
-    try {
-      data = await loadEmoji();
-    } catch {
-      return this.closeSuggestions();
-    }
+    if (!catalogue) return this.closeSuggestions();
     const now = this.selectionInEditor();
     if (!now || now.startContainer !== text || now.startOffset !== caret) return;
     const complete = /(^|[\s([{])(:([a-z0-9_+-]+):)([\s.,!?;)\]}])$/i.exec(text.data.slice(0, caret));
-    const teamsDone = complete ? catalogue?.byShortcut.get(normalizeShortcut(complete[3])) : undefined;
-    if (complete && teamsDone) {
-      this.replaceText(text, caret - complete[2].length - 1, caret - 1, [this.emojiNode(teamsDone)]);
-      return this.closeSuggestions();
-    }
-    const done = emojiCompleteAt(data, text.data, caret);
-    if (done) {
-      this.replaceText(text, done.start, done.end, [document.createTextNode(done.char)]);
+    const done = complete ? catalogue.byShortcut.get(normalizeShortcut(complete[3])) : undefined;
+    if (complete && done) {
+      this.replaceText(text, caret - complete[2].length - 1, caret - 1, [this.emojiNode(done)]);
       return this.closeSuggestions();
     }
     const at = emojiQueryAt(text.data, caret);
-    const teamsMatches: Suggestion[] = at && catalogue ? searchShortcuts(catalogue, at.query).map((m) => ({ key: `t-${m.code}`, label: m.code, teams: m.emoji })) : [];
-    const unicodeMatches: Suggestion[] = at ? searchEmoji(data, at.query, 8 - teamsMatches.length).map((m: EmojiMatch) => ({ key: m.code, label: m.code, char: m.char })) : [];
-    const items = [...teamsMatches, ...unicodeMatches].slice(0, 8);
+    const items: Suggestion[] = at ? searchShortcuts(catalogue, at.query).map((m) => ({ key: m.code, label: m.code, teams: m.emoji })) : [];
     this.suggest.set(at && items.length ? { kind: 'emoji', items, node: text, start: at.start, end: caret } : null);
     this.active.set(0);
   }
@@ -762,8 +747,6 @@ export class ChatComposer {
     if (!sg) return;
     if (sg.kind === 'emoji' && item.teams) {
       this.replaceText(sg.node, sg.start, sg.end, [this.emojiNode(item.teams), document.createTextNode(' ')]);
-    } else if (sg.kind === 'emoji' && item.char) {
-      this.replaceText(sg.node, sg.start, sg.end, [document.createTextNode(`${item.char} `)]);
     } else if (item.userId) {
       const span = document.createElement('span');
       span.className = 'mention';
@@ -799,23 +782,34 @@ export class ChatComposer {
 
   // --- emoji and GIFs ---------------------------------------------------------
 
-  protected insertEmoji(e: EmojiRef): void {
-    this.restore();
-    if (e.kind === 'unicode') {
-      document.execCommand('insertText', false, e.char);
-    } else {
-      const img = this.emojiNode(e.emoji);
-      const range = this.selectionInEditor();
-      if (range) {
-        range.deleteContents();
-        range.insertNode(img);
-        range.setStartAfter(img);
-        range.collapse(true);
-        document.getSelection()?.removeAllRanges();
-        document.getSelection()?.addRange(range);
-      } else {
-        this.editor().nativeElement.append(img);
+  /** On intent to open the picker: the catalogue, then the pictures of its first screen, so it opens drawn. */
+  protected warmEmoji(): void {
+    if (this.warmed) return;
+    this.warmed = true;
+    void this.api.catalogue().then((catalogue) => {
+      if (!catalogue) this.warmed = false;
+      for (const e of catalogue?.all.slice(0, FIRST_SCREEN_EMOJI) ?? []) {
+        if (!e.staticUrl) continue;
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        img.src = e.staticUrl;
       }
+    });
+  }
+
+  protected insertEmoji(emoji: ChatEmoji): void {
+    this.restore();
+    const img = this.emojiNode(emoji);
+    const range = this.selectionInEditor();
+    if (range) {
+      range.deleteContents();
+      range.insertNode(img);
+      range.setStartAfter(img);
+      range.collapse(true);
+      document.getSelection()?.removeAllRanges();
+      document.getSelection()?.addRange(range);
+    } else {
+      this.editor().nativeElement.append(img);
     }
     this.onInput();
   }

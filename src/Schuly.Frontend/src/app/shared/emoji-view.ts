@@ -1,9 +1,9 @@
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { ChatApi } from '../core/chat-api';
-import { EmojiRef, ChatEmoji } from '../core/chat-emoji';
+import { ChatEmoji } from '../core/chat-emoji';
 
 /**
- * One emoji, either a unicode character or a Teams emoji (a still image, or a vertical sprite strip of square frames).
+ * One Teams emoji (a still image, or a vertical sprite strip of square frames).
  * Animated Teams emojis play once when first scrolled into view and again on hover; with `prefers-reduced-motion`
  * they stay on their idle frame. Any image that fails to load falls back to the unicode character.
  */
@@ -34,37 +34,34 @@ import { EmojiRef, ChatEmoji } from '../core/chat-emoji';
     }
   `,
   template: `
-    @if (teams(); as e) {
-      @if (failed() || !shown()) {
-        <span role="img" class="inline-block leading-none" [attr.aria-label]="e.label || e.alt" [style.font-size.px]="size() * 0.85">{{ e.alt }}</span>
-      } @else if (sprite()) {
-        <span
-          class="sprite"
-          role="img"
-          [attr.aria-label]="e.label || e.alt"
-          [class.playing]="playing()"
-          [style.width.px]="size()"
-          [style.height.px]="size()"
-          [style.--frames]="e.frames"
-          [style.--frame-ms]="e.frameMs"
-          [style.background-image]="'url(' + shown() + ')'"
-          [style.background-position-y]="idle()"
-          (animationend)="playing.set(false)"
-        ></span>
-      } @else {
-        <img
-          class="inline-block align-middle"
-          [src]="shown()"
-          [alt]="e.label || e.alt"
-          [width]="size()"
-          [height]="size()"
-          referrerpolicy="no-referrer"
-          decoding="async"
-          (error)="failed.set(true)"
-        />
-      }
-    } @else if (unicode(); as u) {
-      <span role="img" [attr.aria-label]="u.label || u.char" [style.font-size.px]="size() * 0.85" class="inline-block leading-none">{{ u.char }}</span>
+    @let e = emoji();
+    @if (failed() || (!shown() && !stillFirst())) {
+      <span role="img" class="inline-block leading-none" [attr.aria-label]="e.label || e.alt" [style.font-size.px]="size() * 0.85">{{ e.alt }}</span>
+    } @else if (sprite() && shown()) {
+      <span
+        class="sprite"
+        role="img"
+        [attr.aria-label]="e.label || e.alt"
+        [class.playing]="playing()"
+        [style.width.px]="size()"
+        [style.height.px]="size()"
+        [style.--frames]="e.frames"
+        [style.--frame-ms]="e.frameMs"
+        [style.background-image]="'url(' + shown() + ')'"
+        [style.background-position-y]="idle()"
+        (animationend)="playing.set(false)"
+      ></span>
+    } @else {
+      <img
+        class="inline-block align-middle"
+        [src]="shown() ?? e.staticUrl"
+        [alt]="e.label || e.alt"
+        [width]="size()"
+        [height]="size()"
+        referrerpolicy="no-referrer"
+        decoding="async"
+        (error)="failed.set(true)"
+      />
     }
   `,
   host: { class: 'inline-block align-middle leading-none', '(mouseenter)': 'replay()' },
@@ -74,18 +71,12 @@ export class EmojiView {
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly emoji = input.required<EmojiRef>();
+  readonly emoji = input.required<ChatEmoji>();
   /** Edge of the emoji on screen, in pixels. */
   readonly size = input(24);
+  /** Shows the still picture until the animation has loaded, rather than the unicode character. */
+  readonly stillWhileLoading = input(false);
 
-  protected readonly teams = computed<ChatEmoji | null>(() => {
-    const e = this.emoji();
-    return e.kind === 'native' ? e.emoji : null;
-  });
-  protected readonly unicode = computed(() => {
-    const e = this.emoji();
-    return e.kind === 'unicode' ? e : null;
-  });
   protected readonly failed = signal(false);
   protected readonly playing = signal(false);
   private readonly blob = signal<string | null>(null);
@@ -94,20 +85,20 @@ export class EmojiView {
 
   /** True when the picture is a sprite strip rather than a single image. */
   protected readonly sprite = computed(() => {
-    const e = this.teams();
-    return !!e && e.kind === 'native' && e.animated && e.frames > 1 && !!e.animatedUrl;
+    const e = this.emoji();
+    return e.kind === 'native' && e.animated && e.frames > 1 && !!e.animatedUrl;
   });
   /** The URL being drawn. */
   protected readonly shown = computed(() => {
-    const e = this.teams();
-    if (!e) return null;
+    const e = this.emoji();
     if (e.kind === 'custom') return this.blob();
     if (this.sprite()) return this.loadedSprite() ? e.animatedUrl : null;
     return e.staticUrl;
   });
+  protected readonly stillFirst = computed(() => this.stillWhileLoading() && !!this.emoji().staticUrl);
   protected readonly idle = computed(() => {
-    const e = this.teams();
-    return e && e.frames > 1 ? `${((e.firstFrame - 1) / (e.frames - 1)) * 100}%` : '0%';
+    const e = this.emoji();
+    return e.frames > 1 ? `${((e.firstFrame - 1) / (e.frames - 1)) * 100}%` : '0%';
   });
 
   private readonly reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -126,8 +117,8 @@ export class EmojiView {
       this.destroyRef.onDestroy(() => observer.disconnect());
     });
     effect(() => {
-      const e = this.teams();
-      if (!e || !this.visible()) return;
+      const e = this.emoji();
+      if (!this.visible()) return;
       untracked(() => {
         this.failed.set(false);
         if (e.kind === 'custom' && e.documentId) {
@@ -155,8 +146,8 @@ export class EmojiView {
 
   /** Plays the animation from its first frame; a still emoji or reduced motion does nothing. */
   protected replay(): void {
-    const e = this.teams();
-    if (!e || this.reduced || this.failed()) return;
+    const e = this.emoji();
+    if (this.reduced || this.failed()) return;
     if (e.kind === 'custom') {
       if (!e.documentId) return;
       // A custom emoji is a GIF or WEBP: the animated file is shown while hovered, the still one otherwise.

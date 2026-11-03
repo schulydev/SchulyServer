@@ -37,7 +37,7 @@ const PHOTO_CANDIDATES = 4;
         />
       </span>
     } @else {
-      <span aria-hidden="true">
+      <span class="flex" aria-hidden="true">
         <app-person-avatar [size]="main()" [userId]="shown()[0]?.id ?? null" [name]="shown()[0]?.name ?? title()" />
       </span>
     }
