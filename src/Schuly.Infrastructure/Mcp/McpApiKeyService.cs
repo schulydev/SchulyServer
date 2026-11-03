@@ -33,8 +33,8 @@ namespace Schuly.Infrastructure.Mcp
                 Name = trimmed,
                 Prefix = secret[..DisplayPrefixLength],
                 KeyHash = McpSecrets.Hash(secret),
-                Permissions = McpScopes.Normalize(permissions ?? McpPermissionSet.ReadOnly()),
-                ExpiresAt = expiresAt?.ToUniversalTime(),
+                Permissions = McpScopes.Normalize(permissions ?? McpPermissionSet.SchoolDataOnly()),
+                ExpiresAt = expiresAt?.ToUniversalTime() ?? Now + options.Value.DefaultApiKeyLifetime,
             };
             db.McpApiKeys.Add(key);
             await db.SaveChangesAsync(ct);

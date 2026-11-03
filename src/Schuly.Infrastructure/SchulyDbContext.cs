@@ -6,6 +6,7 @@ using Schuly.Domain;
 using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure.Mcp;
+using Schuly.Infrastructure.Services;
 
 namespace Schuly.Infrastructure
 {
@@ -69,6 +70,7 @@ namespace Schuly.Infrastructure
                 // not unique to avoid a login-time collision.
                 entity.HasIndex(au => au.Email);
                 entity.Property(au => au.Email).HasMaxLength(255);
+                entity.Property(au => au.PolicyVersionAccepted).HasMaxLength(50);
                 entity.Property(au => au.DisplayName).HasMaxLength(200);
 
                 entity.HasMany(au => au.SchoolUsers)
@@ -131,13 +133,8 @@ namespace Schuly.Infrastructure
                 // one Schuly account; each account provisions its own SchoolUser.
                 entity.HasIndex(su => new { su.ApplicationUserId, su.SchoolId, su.Email }).IsUnique();
                 entity.Property(su => su.Email).HasMaxLength(255);
-                entity.Property(su => su.PrivateEmail).HasMaxLength(255);
-                entity.Property(su => su.PhoneNumber).HasMaxLength(50);
                 entity.Property(su => su.FirstName).HasMaxLength(100);
                 entity.Property(su => su.LastName).HasMaxLength(100);
-                entity.Property(su => su.Street).HasMaxLength(200);
-                entity.Property(su => su.City).HasMaxLength(100);
-                entity.Property(su => su.Zip).HasMaxLength(20);
                 entity.Property(su => su.Source).HasMaxLength(SourceMaxLength);
                 entity.Property(su => su.Role).IsRequired();
 
@@ -221,7 +218,6 @@ namespace Schuly.Infrastructure
                 entity.Property(t => t.FirstName).HasMaxLength(100).IsRequired();
                 entity.Property(t => t.LastName).HasMaxLength(100).IsRequired();
                 entity.Property(t => t.Code).HasMaxLength(20).IsRequired();
-                entity.Property(t => t.Email).HasMaxLength(255);
 
                 entity.HasOne(t => t.School)
                     .WithMany(s => s.Teachers)
@@ -284,7 +280,7 @@ namespace Schuly.Infrastructure
             modelBuilder.Entity<Absence>(entity =>
             {
                 entity.HasKey(a => a.Id);
-                entity.Property(a => a.Reason).HasMaxLength(500);
+                entity.Property(a => a.Reason).HasColumnType("text").HasConversion(SensitiveText.Converter);
 
                 entity.HasOne(a => a.SchoolUser)
                     .WithMany(su => su.Absences)
@@ -304,20 +300,19 @@ namespace Schuly.Infrastructure
             modelBuilder.Entity<StudentDocument>(entity =>
             {
                 entity.HasKey(d => d.Id);
-                entity.Property(d => d.Title).HasMaxLength(300).IsRequired();
-                entity.Property(d => d.Comment).HasMaxLength(2000);
-                entity.Property(d => d.Category).HasMaxLength(100);
-                entity.Property(d => d.EnteredBy).HasMaxLength(200);
-                entity.Property(d => d.FileName).HasMaxLength(300);
+                entity.Property(d => d.Title).HasColumnType("text").HasConversion(SensitiveText.Converter).IsRequired();
+                entity.Property(d => d.Comment).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.Category).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.EnteredBy).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.FileName).HasColumnType("text").HasConversion(SensitiveText.Converter!);
                 entity.Property(d => d.FileUrl).HasMaxLength(2000);
-                entity.Property(d => d.FollowUpAction).HasMaxLength(500);
+                entity.Property(d => d.FollowUpAction).HasColumnType("text").HasConversion(SensitiveText.Converter!);
 
                 entity.HasOne(d => d.SchoolUser)
                     .WithMany(su => su.Documents)
                     .HasForeignKey(d => d.SchoolUserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(d => new { d.SchoolUserId, d.Category });
                 ConfigureSynced(entity, d => new { d.SchoolUserId, d.Source, d.ExternalId });
             });
 

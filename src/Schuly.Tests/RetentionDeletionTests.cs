@@ -67,6 +67,57 @@ namespace Schuly.Tests
         private static DateTime MonthsAgo(int months) => DateTime.UtcNow.AddMonths(-months);
         private static DateOnly LeftMonthsAgo(int months) => DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(-months);
 
+        // --- O5: school rows without an owner
+
+        [Test]
+        public async Task A_class_nobody_attends_goes_with_its_exams_agenda_and_unlinked_teacher()
+        {
+            using var env = new Env();
+            var (user, _) = await env.AccountAsync(DateTime.UtcNow);
+            var student = await env.SchoolUserAsync(user.Id, null, null);
+
+            var orphanTeacher = new Teacher { SchoolId = student.SchoolId, FirstName = "T", LastName = "O", Code = "TO" };
+            var orphan = new Class { Name = "Gone", SchoolId = student.SchoolId, Teachers = { orphanTeacher } };
+            var orphanExam = new Exam { Name = "Old", Class = orphan };
+            var orphanAgenda = new AgendaEntry { Title = "Trip", Date = DateTime.UtcNow, EntryType = default, Class = orphan };
+            var liveTeacher = new Teacher { SchoolId = student.SchoolId, FirstName = "T", LastName = "L", Code = "TL" };
+            var live = new Class { Name = "Live", SchoolId = student.SchoolId, Students = { student }, Teachers = { liveTeacher } };
+            var liveExam = new Exam { Name = "Upcoming", Class = live };
+            var linkedTeacher = new Teacher { SchoolId = student.SchoolId, FirstName = "T", LastName = "M", Code = "TM", ApplicationUserId = user.Id };
+            env.Db.AddRange(orphanExam, orphanAgenda, liveExam, linkedTeacher);
+            await env.Db.SaveChangesAsync();
+
+            var result = await env.SweepAsync();
+
+            await Assert.That(env.Db.Classes.Select(c => c.Name).ToList()).IsEquivalentTo(new[] { "Live" });
+            await Assert.That(env.Db.Exams.Select(e => e.Name).ToList()).IsEquivalentTo(new[] { "Upcoming" });
+            await Assert.That(env.Db.AgendaEntries.Any(a => a.Title == "Trip")).IsFalse();
+            await Assert.That(env.Db.Teachers.Select(t => t.Code).ToList()).IsEquivalentTo(new[] { "TL", "TM" });
+            await Assert.That(result.OrphanedSchoolRows).IsEqualTo(3);
+        }
+
+        [Test]
+        public async Task A_class_whose_exam_still_has_a_grade_stays()
+        {
+            using var env = new Env();
+            var (user, _) = await env.AccountAsync(DateTime.UtcNow);
+            var student = await env.SchoolUserAsync(user.Id, null, null);
+            var cls = new Class { Name = "Graded", SchoolId = student.SchoolId };
+            env.Db.Exams.Add(new Exam { Name = "E", Class = cls, Grades = { new Grade { Score = 5, Weighting = 1, SchoolUserId = student.Id } } });
+            await env.Db.SaveChangesAsync();
+
+            await env.SweepAsync();
+
+            await Assert.That(env.Db.Classes.Any(c => c.Name == "Graded")).IsTrue();
+        }
+
+        [Test]
+        public async Task Teachers_have_no_stored_email()
+        {
+            await Assert.That(typeof(Teacher).GetProperty("Email")).IsNull();
+            await Assert.That(typeof(Schuly.Application.Dtos.TeacherDto).GetProperty("Email")).IsNull();
+        }
+
         // --- S5: warning and deletion
 
         [Test]

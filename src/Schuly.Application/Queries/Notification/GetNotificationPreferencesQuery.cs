@@ -22,8 +22,8 @@ namespace Schuly.Application.Queries.Notification
                 .SingleOrDefaultAsync(p => p.ApplicationUserId == userId, cancellationToken);
 
             var dto = preference is null
-                ? new NotificationPreferencesDto(true, true, true, false)
-                : new NotificationPreferencesDto(preference.Grades, preference.Absences, preference.Agenda, preference.IncludeGradeValue);
+                ? new NotificationPreferencesDto(true, true, true, false, false)
+                : new NotificationPreferencesDto(preference.Grades, preference.Absences, preference.Agenda, preference.IncludeGradeValue, preference.IncludeDetails);
 
             return Result<NotificationPreferencesDto>.Success(dto);
         }

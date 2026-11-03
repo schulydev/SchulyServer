@@ -12,5 +12,8 @@
 export interface AppDto { 
     version: string;
     registrationEnabled: boolean;
+    policyVersion: string;
+    policyUrl: string;
+    swissSchoolConfirmationRequired: boolean;
 }
 

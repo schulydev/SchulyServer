@@ -21,7 +21,7 @@ namespace Schuly.Application.Queries.App
 
         public async ValueTask<Result<AppDto>> Handle(AppQuery query, CancellationToken cancellationToken)
         {
-            return Result<AppDto>.Success(new AppDto(Version, configuration.GetValue("LocalLogin:AllowSelfRegistration", false)));
+            return Result<AppDto>.Success(new AppDto(Version, configuration.GetValue("LocalLogin:AllowSelfRegistration", false), PrivacyNotice.Version(configuration), PrivacyNotice.Url(configuration), PrivacyNotice.SwissSchoolConfirmationRequired(configuration)));
         }
     }
 }

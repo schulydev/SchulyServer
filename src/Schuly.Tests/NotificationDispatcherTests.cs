@@ -178,12 +178,31 @@ namespace Schuly.Tests
             var row = NewRow(userId, NotificationType.AbsenceAdded, now);
             row.OccursAt = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
             ctx.NotificationOutbox.Add(row);
+            ctx.NotificationPreferences.Add(new NotificationPreference { ApplicationUserId = userId, IncludeDetails = true });
             ctx.SaveChanges();
 
             var sender = new FakePushSender();
             await new NotificationDispatcher(ctx, sender, NullLogger<NotificationDispatcher>.Instance).DrainOnceAsync(CancellationToken.None);
 
             await Assert.That(sender.Sends.Single().Message.Body).IsEqualTo("02.03.2026");
+        }
+
+        [Test]
+        public async Task A_user_who_never_chose_gets_a_push_without_the_subject()
+        {
+            using var ctx = TestDb.NewContext(Guid.NewGuid().ToString());
+            var now = DateTime.UtcNow;
+            var userId = Guid.NewGuid();
+            ctx.DeviceTokens.Add(new DeviceToken { ApplicationUserId = userId, Token = "t", Platform = "android", Locale = "en", LastSeenAt = now });
+            var row = NewRow(userId, NotificationType.GradeAdded, now);
+            row.SubjectName = "Mathematik";
+            ctx.NotificationOutbox.Add(row);
+            ctx.SaveChanges();
+
+            var sender = new FakePushSender();
+            await new NotificationDispatcher(ctx, sender, NullLogger<NotificationDispatcher>.Instance).DrainOnceAsync(CancellationToken.None);
+
+            await Assert.That(sender.Sends.Single().Message.Title).IsEqualTo("New grade");
         }
 
         [Test]

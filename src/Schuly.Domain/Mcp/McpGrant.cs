@@ -9,7 +9,7 @@ namespace Schuly.Domain.Mcp
         public Guid McpOAuthClientId { get; set; }
         public McpOAuthClient? McpOAuthClient { get; set; }
 
-        public McpPermissionSet Permissions { get; set; } = McpPermissionSet.ReadOnly();
+        public McpPermissionSet Permissions { get; set; } = McpPermissionSet.SchoolDataOnly();
 
         /// <summary>The account's Toamaisutaa security stamp when the user approved. A password change or a new second factor moves it and ends the grant.</summary>
         public string? SecurityStamp { get; set; }

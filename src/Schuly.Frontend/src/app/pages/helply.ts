@@ -11,6 +11,7 @@ import { SplitHandle } from '../shared/split-handle';
 import { Composer } from './helply/composer';
 import { ConversationList } from './helply/conversation-list';
 import { HelplySettingsSheet } from './helply/helply-settings-sheet';
+import { HelplyAiNotice, aiNoticeSeen } from './helply/ai-notice';
 import { HelplyStore } from './helply/helply-store';
 import { MessageList } from './helply/message-list';
 
@@ -34,6 +35,7 @@ function readListWidth(): number {
   imports: [
     Composer,
     ConversationList,
+    HelplyAiNotice,
     HelplySettingsSheet,
     FileViewer,
     HlmAlertImports,
@@ -49,6 +51,9 @@ function readListWidth(): number {
   template: `
     <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ store.announcement() }}</div>
 
+    @if (store.availability() === 'on' && aiNotice.value() === 'no') {
+      <app-helply-ai-notice class="w-full" (understood)="aiNotice.set('yes')" />
+    } @else {
     @if (store.availability() === 'on') {
       @if (wide() && navOpen()) {
         <aside
@@ -184,10 +189,12 @@ function readListWidth(): number {
 
     <app-helply-settings-sheet [(open)]="settingsOpen" (saved)="store.settings.set($event)" />
     <app-file-viewer [file]="viewing()" [files]="viewerFiles()" (closed)="viewing.set(null)" />
+      }
   `,
 })
 export class Helply implements OnInit {
   protected readonly store = inject(HelplyStore);
+  protected readonly aiNotice = aiNoticeSeen();
   protected readonly listMin = LIST_MIN;
   protected readonly listMax = LIST_MAX;
   protected readonly listDefault = LIST_DEFAULT;

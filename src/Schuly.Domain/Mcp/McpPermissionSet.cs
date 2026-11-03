@@ -39,7 +39,22 @@ namespace Schuly.Domain.Mcp
 
         public bool AllowsMicrosoftAccount(Guid accountId) => MicrosoftAccountIds is null || MicrosoftAccountIds.Contains(accountId);
 
-        /// <summary>The default for every new connection: read everything, change nothing.</summary>
+        /// <summary>The default for Helply and every new connection: read school data, change nothing, and no Microsoft account, its calendars included.</summary>
+        public static McpPermissionSet SchoolDataOnly() => new()
+        {
+            Areas = new()
+            {
+                [McpArea.Grades] = McpAccessLevel.Read,
+                [McpArea.Exams] = McpAccessLevel.Read,
+                [McpArea.Calendar] = McpAccessLevel.Read,
+                [McpArea.Absences] = McpAccessLevel.Read,
+                [McpArea.Documents] = McpAccessLevel.Read,
+                [McpArea.SchoolAccounts] = McpAccessLevel.Read,
+            },
+            MicrosoftAccountIds = [],
+        };
+
+        /// <summary>Read everything, change nothing. Only ever chosen by the user.</summary>
         public static McpPermissionSet ReadOnly() => new() { Areas = Enum.GetValues<McpArea>().ToDictionary(a => a, _ => McpAccessLevel.Read) };
 
         public static McpPermissionSet None() => new();

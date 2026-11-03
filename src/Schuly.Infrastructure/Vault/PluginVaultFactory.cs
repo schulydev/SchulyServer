@@ -34,6 +34,7 @@ namespace Schuly.Infrastructure.Vault
             // startup, before the app runs, rather than silently losing every plugin
             // credential on the next restart.
             var keyring = new VaultKeyring(ResolveMasterKey(configuration, isDevelopment, out var warning), ResolvePreviousMasterKey(configuration));
+            Schuly.Infrastructure.Services.SensitiveText.UseKeyring(keyring);
 
             services.AddSingleton(sp =>
             {

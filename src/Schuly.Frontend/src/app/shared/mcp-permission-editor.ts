@@ -14,7 +14,9 @@ import {
   fullAccessPreset,
   hasWrite,
   levelOf,
+  presetAccounts,
   readOnlyPreset,
+  schoolDataPreset,
   withLevel,
 } from '../core/mcp-permissions';
 
@@ -28,6 +30,7 @@ let nextId = 0;
     <div class="@container flex min-w-0 flex-col gap-5">
       <div class="flex flex-wrap items-center gap-2" role="group" [attr.aria-label]="'Presets'">
         <span class="text-muted-foreground text-sm">Presets</span>
+        <button hlmBtn type="button" variant="outline" size="sm" (click)="applySchoolData()">School data</button>
         <button hlmBtn type="button" variant="outline" size="sm" (click)="applyReadOnly()">Read-only</button>
         <button hlmBtn type="button" variant="outline" size="sm" (click)="applyFull()">Full access</button>
       </div>
@@ -89,7 +92,7 @@ let nextId = 0;
         </div>
       </div>
 
-      @if (accounts().length > 1) {
+      @if (accounts().length > 0) {
         <fieldset hlmFieldSet>
           <legend hlmFieldLegend>Linked accounts</legend>
           <div class="flex flex-col gap-2 rounded-lg border px-3 py-2.5">
@@ -156,12 +159,16 @@ export class McpPermissionEditor implements OnInit {
     this.value.update((current) => ({ ...current, allowDestructive: allow && hasWrite(current) }));
   }
 
+  protected applySchoolData(): void {
+    this.value.set(schoolDataPreset());
+  }
+
   protected applyReadOnly(): void {
-    this.value.set(readOnlyPreset(this.value().microsoftAccountIds));
+    this.value.set(readOnlyPreset(presetAccounts(this.value().microsoftAccountIds)));
   }
 
   protected applyFull(): void {
-    this.value.set(fullAccessPreset(this.value().microsoftAccountIds));
+    this.value.set(fullAccessPreset(presetAccounts(this.value().microsoftAccountIds)));
   }
 
   protected accountChecked(id: string): boolean {

@@ -14,5 +14,6 @@ export interface UpdateNotificationPreferencesCommand {
     absences: boolean;
     agenda: boolean;
     includeGradeValue: boolean;
+    includeDetails?: boolean;
 }
 

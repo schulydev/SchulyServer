@@ -17,7 +17,7 @@ namespace Schuly.API.Helply
 
     /// <summary>
     /// The OpenAI-compatible gateway behind Helply. It builds the SDK client over the "Helply.Gateway" HTTP client (which has no logging) and, when <c>Helply:Model</c> is not
-    /// set, asks the gateway's <c>/models</c> and probes the chat candidates in order with a tiny tool-call request, taking the first that answers 200. A discovery failure is not remembered: the next run tries again. Neither the model id, the
+    /// set, asks the gateway's <c>/models</c> and probes the chat candidates in order with a tiny tool-call request, taking the first that answers 200. Discovery only runs in Development. A discovery failure is not remembered: the next run tries again. Neither the model id, the
     /// URL nor the key is ever logged or returned from here.
     /// </summary>
     public sealed class HelplyGateway(IOptions<HelplyOptions> options, IHttpClientFactory clients)
@@ -75,6 +75,8 @@ namespace Schuly.API.Helply
         {
             if (!string.IsNullOrWhiteSpace(Settings.Model))
                 return Settings.Model;
+            if (!Settings.AllowModelDiscovery)
+                throw new HelplyUnavailableException();
             if (_discovered is { } known)
                 return known;
 

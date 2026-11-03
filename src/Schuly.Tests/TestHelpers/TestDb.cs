@@ -33,7 +33,6 @@ namespace Schuly.Tests.TestHelpers
             FirstName = "Test",
             LastName = last,
             Email = $"{last}@example.com",
-            Birthday = new DateOnly(2000, 1, 1),
             EntryDate = new DateOnly(2020, 1, 1),
             Role = Roles.Student,
         };

@@ -5,7 +5,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { McpActivity } from '../../core/mcp-api';
-import { McpPermissionSet, readOnlyPreset, samePermissions } from '../../core/mcp-permissions';
+import { McpPermissionSet, samePermissions, schoolDataPreset } from '../../core/mcp-permissions';
 import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
 import { formatDateTime } from './format';
 
@@ -80,7 +80,7 @@ export class McpEditSheet {
   readonly error = input<string | null>(null);
   readonly save = output<McpPermissionSet>();
 
-  protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? readOnlyPreset());
+  protected readonly draft = linkedSignal<McpPermissionSet>(() => this.initial() ?? schoolDataPreset());
   protected readonly changed = computed(() => {
     const initial = this.initial();
     return !!initial && !samePermissions(initial, this.draft());

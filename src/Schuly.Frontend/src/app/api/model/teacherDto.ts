@@ -16,6 +16,5 @@ export interface TeacherDto {
     firstName: string;
     lastName: string;
     code: string;
-    email?: string | null;
 }
 

@@ -147,10 +147,10 @@ avatar URL is signed, not at startup.
 
 | Key | Purpose |
 |---|---|
-| `Vault:MasterKey` | Encrypts stored plugin credentials. Base64, exactly 32 bytes. Generate with `openssl rand -base64 32`. |
+| `Vault:MasterKey` | Encrypts stored plugin credentials, absence reasons and document metadata (title, comment, category, author, file name, follow-up action). Base64, exactly 32 bytes. Generate with `openssl rand -base64 32`. |
 
 Outside Development, the server refuses to start without a valid key. Keep the key stable: under a new
-key, stored credentials become unreadable. In Development, a missing or invalid key logs a warning and the
+key, stored credentials become unreadable, and so do absence reasons and document metadata, until a sync rewrites them. Entries typed in by hand stay unreadable. In Development, a missing or invalid key logs a warning and the
 server uses a temporary key, so stored credentials don't survive a restart.
 
 `Vault:PreviousMasterKey` is set only while rotating the key. See
@@ -159,7 +159,7 @@ server uses a temporary key, so stored credentials don't survive a restart.
 ## Retention
 
 A hosted service sweeps expired data five minutes after startup and every 24 hours after that. It uses the
-same purge code as `DELETE /api/auth/me`, so a swept row leaves nothing behind in Postgres or S3.
+same purge code as `DELETE /api/auth/me`, so a swept row leaves nothing behind in Postgres or S3. It also removes classes with no student and no grade, with their exams and class agenda, and unlinked teachers with no class.
 
 | Key | Purpose |
 |---|---|
@@ -204,7 +204,7 @@ remove a lot, and later ones little:
 ## Push notifications (Firebase)
 
 A background service drains the notification outbox (grades, absences, agenda changes) and delivers it
-through Firebase Cloud Messaging.
+through Firebase Cloud Messaging. By default the text is generic, such as "New grade". A user can turn on details in the notification settings, and only then the subject, agenda title and date go through Firebase.
 
 | Key | Purpose |
 |---|---|
@@ -220,13 +220,13 @@ Helply is the optional AI assistant. It needs an OpenAI-compatible chat-completi
 
 | Key | Purpose |
 |---|---|
-| `Helply:BaseUrl` | Gateway URL. Absolute `http` or `https`. |
+| `Helply:BaseUrl` | Gateway URL. `https`, or `http` only to a private address, `localhost`, a single-label service name or a `.local`, `.internal`, `.lan` or `.home.arpa` name. |
 | `Helply:ApiKey` | Gateway API key. |
-| `Helply:Model` | Optional. Without it, the server probes the models the gateway lists and uses the first that answers tool calls. |
+| `Helply:Model` | Required outside Development. In Development only, the server may instead probe the models the gateway lists and use the first that answers tool calls. |
 
 `BaseUrl` and `ApiKey` together turn Helply on. These three settings have no default. Set them only as
 environment variables (`Helply__BaseUrl`, `Helply__ApiKey`, `Helply__Model`), never in appsettings.
-Without them, the server logs that Helply is disabled and users see it turned off.
+Without them, the server logs that Helply is disabled and users see it turned off. Outside Development, a missing model or a public plain-http gateway logs an error and also turns Helply off. The first time someone opens Helply, the web app says it is an AI and not a person.
 
 ### Limits
 
@@ -268,6 +268,17 @@ The server exposes MCP at `/mcp`, so users can connect AI apps.
 
 You normally set only these two. Token lifetimes and limits also live under `Mcp:` and have working defaults (`McpOAuthOptions`).
 
+New connections, new API keys and Helply start with school data only, read-only, with Microsoft off and no linked account allowed. A new connection or API key needs a separate tick in the web app, and the API refuses one without it. An API key without an expiry date expires after 90 days (`Mcp:DefaultApiKeyLifetime`). Connections, keys and saved Helply settings from before this stay as they were.
+
+## Privacy notice
+
+| Key | Purpose |
+|---|---|
+| `Privacy:PolicyVersion` | Version of the current privacy policy (default `2026-11-03`). Change it to ask every user once more. |
+| `Privacy:PolicyUrl` | Where the notice links to (default `https://schuly.dev/privacy`). Point it at your own policy if you self-host. |
+
+The web app and the mobile app show the sign-up notice, including that absence reasons can reveal health information. After sign-in, a user who hasn't confirmed the current version sees it once more, and the server stores the version and time on the account. Older app versions don't show the prompt and keep working.
+
 ## Limit sign-ups to Switzerland
 
 Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `config/backend.env`) to accept new accounts only from Swiss networks. It's off by default.
@@ -275,6 +286,8 @@ Set `SignUp:SwitzerlandOnly` to `true` (`SignUp__SwitzerlandOnly=true` in `confi
 - Password sign-ups from other networks get an error. The server only compares the address with a built-in list, and doesn't store or log it.
 - OIDC providers can't create accounts, whatever `AllowSignUp` says. Accounts that already linked a provider keep using it.
 - Existing accounts keep working from anywhere. Private mode has no account, so this doesn't affect it.
+- Users also confirm "I attend a school in Switzerland." The server stores the time on the account, and private mode stores it on the device. With the setting off, nobody is asked. The confirmation doesn't replace the network check.
+- New school connections only reach `.ch` hosts and `www.schul-netz.com`. This covers linking in account mode and the sign-in routes in private mode. Accounts already linked keep working. It doesn't cover Microsoft accounts, which aren't tied to a school.
 - A Swiss address must reach the server. Set `ForwardedHeaders:KnownNetworks` correctly behind a proxy, or every sign-up is refused.
 
 The list comes from RIPE registry data, which shows where a network is registered, so it isn't exact. A VPN can get around it. To refresh the list before a release, run `scripts/update-swiss-networks.sh`.
@@ -286,6 +299,7 @@ Endpoints opt out with `[AllowAnonymous]`. These need no token:
 
 - The anonymous `/api/app` surface, such as the school-systems catalog and the static logo assets under
   `wwwroot`, so the app can load its login catalog.
+- School logos at `/api/schools/{id}/logo`. The server fetches each logo itself, so the logo host never sees a user.
 - Register, login, and the other public sign-in endpoints under `/auth`.
 
 ## Plugins

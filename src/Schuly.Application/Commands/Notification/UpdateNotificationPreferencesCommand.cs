@@ -9,7 +9,7 @@ using Schuly.Infrastructure.Services;
 namespace Schuly.Application.Commands.Notification
 {
     [AllowAuthenticated]
-    public record UpdateNotificationPreferencesCommand(bool Grades, bool Absences, bool Agenda, bool IncludeGradeValue) : ICommand<Result>;
+    public record UpdateNotificationPreferencesCommand(bool Grades, bool Absences, bool Agenda, bool IncludeGradeValue, bool IncludeDetails = false) : ICommand<Result>;
 
     public class UpdateNotificationPreferencesCommandHandler(SchulyDbContext dbContext, IUserService userService) : ICommandHandler<UpdateNotificationPreferencesCommand, Result>
     {
@@ -24,6 +24,7 @@ namespace Schuly.Application.Commands.Notification
                 existing.Absences = command.Absences;
                 existing.Agenda = command.Agenda;
                 existing.IncludeGradeValue = command.IncludeGradeValue;
+                existing.IncludeDetails = command.IncludeDetails;
             }
             else
             {
@@ -33,7 +34,8 @@ namespace Schuly.Application.Commands.Notification
                     Grades = command.Grades,
                     Absences = command.Absences,
                     Agenda = command.Agenda,
-                    IncludeGradeValue = command.IncludeGradeValue
+                    IncludeGradeValue = command.IncludeGradeValue,
+                    IncludeDetails = command.IncludeDetails
                 }, cancellationToken);
             }
 

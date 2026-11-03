@@ -36,7 +36,6 @@ namespace Schuly.Application.Commands.Me
                 FirstName = command.FirstName.Trim(),
                 LastName = command.LastName.Trim(),
                 Email = email ?? "",
-                Birthday = today,
                 EntryDate = today,
                 Role = Roles.Student,
             };

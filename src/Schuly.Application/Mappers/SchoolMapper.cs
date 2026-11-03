@@ -20,7 +20,7 @@ namespace Schuly.Application.Mappers
                 State = school.State,
                 Zip = school.Zip,
                 Country = school.Country,
-                LogoUrl = school.LogoUrl,
+                LogoUrl = Queries.School.SchoolLogoPath.For(school.Id, school.LogoUrl),
                 CreatedAt = school.CreatedAt,
                 UpdatedAt = school.UpdatedAt
             };

@@ -64,6 +64,7 @@ namespace Schuly.Tests
             await Assert.That(result.Value!.Absences).IsTrue();
             await Assert.That(result.Value!.Agenda).IsTrue();
             await Assert.That(result.Value!.IncludeGradeValue).IsFalse();
+            await Assert.That(result.Value!.IncludeDetails).IsFalse();
             await Assert.That(ctx.NotificationPreferences.Any()).IsFalse();
         }
 
@@ -75,7 +76,7 @@ namespace Schuly.Tests
             var user = new FakeUserService() { CurrentUserId = Guid.NewGuid() };
 
             var updateHandler = new UpdateNotificationPreferencesCommandHandler(ctx, user);
-            var updateResult = await updateHandler.Handle(new UpdateNotificationPreferencesCommand(false, false, true, true), CancellationToken.None);
+            var updateResult = await updateHandler.Handle(new UpdateNotificationPreferencesCommand(false, false, true, true, true), CancellationToken.None);
             await Assert.That(updateResult.IsSuccess).IsTrue();
 
             var getHandler = new GetNotificationPreferencesQueryHandler(ctx, user);
@@ -85,6 +86,7 @@ namespace Schuly.Tests
             await Assert.That(getResult.Value!.Absences).IsFalse();
             await Assert.That(getResult.Value!.Agenda).IsTrue();
             await Assert.That(getResult.Value!.IncludeGradeValue).IsTrue();
+            await Assert.That(getResult.Value!.IncludeDetails).IsTrue();
         }
 
         [Test]

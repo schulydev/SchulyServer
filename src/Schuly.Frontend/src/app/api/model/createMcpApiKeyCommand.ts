@@ -14,5 +14,6 @@ export interface CreateMcpApiKeyCommand {
     name: string;
     permissions: McpPermissionSet | null;
     expiresAt: string | null;
+    aiAppSharingConfirmed?: boolean;
 }
 

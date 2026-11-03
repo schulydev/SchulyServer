@@ -13,17 +13,11 @@ namespace Schuly.Tests
             var otherSchoolId = Guid.NewGuid();
 
             var student = TestDb.NewSchoolUser(schoolId, "Student");
-            student.PrivateEmail = "student.private@example.com";
-            student.PhoneNumber = "+41 33 333 33 33";
-            student.Street = "Student Street 3";
-            student.City = "Student City";
-            student.Zip = "StudentZip3333";
             student.Grades.Add(new Grade { Score = 5, Weighting = 1, SchoolUserId = student.Id });
             student.Absences.Add(new Absence { Reason = "s", Type = default, From = default, Until = default, SchoolUserId = student.Id });
 
             var teacherSelf = TestDb.NewSchoolUser(schoolId, "Teacher");
             teacherSelf.ApplicationUserId = teacherUserId;
-            teacherSelf.PrivateEmail = "teacher.private@example.com";
             teacherSelf.Grades.Add(new Grade { Score = 4, Weighting = 1, SchoolUserId = teacherSelf.Id });
 
             var outsider = TestDb.NewSchoolUser(otherSchoolId, "Outsider");
@@ -57,7 +51,6 @@ namespace Schuly.Tests
             await Assert.That(result.Value!.Count).IsEqualTo(1);
             var mine = result.Value!.Single();
             await Assert.That(mine.Id).IsEqualTo(teacherSelf);
-            await Assert.That(mine.PrivateEmail).IsEqualTo("teacher.private@example.com");
             await Assert.That(mine.Grades.Count).IsEqualTo(1);
             await Assert.That(result.Value!.Any(su => su.Id == student || su.Id == outsider)).IsFalse();
         }

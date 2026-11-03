@@ -14,5 +14,6 @@ export interface NotificationPreferencesDto {
     absences: boolean;
     agenda: boolean;
     includeGradeValue: boolean;
+    includeDetails: boolean;
 }
 

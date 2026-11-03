@@ -49,7 +49,6 @@ namespace Schuly.Infrastructure.Plugins
                     FirstName = "",
                     LastName = "",
                     Email = "",
-                    Birthday = student.Birthday ?? today,
                     EntryDate = student.EntryDate ?? today,
                     Role = Roles.Student,
                     State = UserState.Active,
@@ -380,11 +379,6 @@ namespace Schuly.Infrastructure.Plugins
             if (string.IsNullOrWhiteSpace(user.FirstName) && student.FirstName is not null) user.FirstName = Clip(student.FirstName, 100)!;
             if (string.IsNullOrWhiteSpace(user.LastName) && student.LastName is not null) user.LastName = Clip(student.LastName, 100)!;
             if (string.IsNullOrWhiteSpace(user.Email) && student.Email is not null) user.Email = Clip(student.Email, 255)!;
-            user.PrivateEmail ??= Clip(student.PrivateEmail, 255);
-            user.PhoneNumber ??= Clip(student.PhoneNumber, 50);
-            user.Street ??= Clip(student.Street, 200);
-            user.City ??= Clip(student.City, 100);
-            user.Zip ??= Clip(student.Zip, 20);
             user.LeaveDate ??= student.LeaveDate;
             if (student.ProfilePictureUrl is not null) user.ProfilePictureUrl = student.ProfilePictureUrl;
         }

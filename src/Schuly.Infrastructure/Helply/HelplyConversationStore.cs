@@ -105,7 +105,7 @@ namespace Schuly.Infrastructure.Helply
         }
 
         public async Task<McpPermissionSet> GetPermissionsAsync(Guid applicationUserId, CancellationToken ct = default) =>
-            (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.Permissions ?? McpPermissionSet.ReadOnly();
+            (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.Permissions ?? McpPermissionSet.SchoolDataOnly();
 
         public async Task<bool> GetWorkspaceEnabledAsync(Guid applicationUserId, CancellationToken ct = default) =>
             (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.WorkspaceEnabled ?? false;
@@ -115,7 +115,7 @@ namespace Schuly.Infrastructure.Helply
             var settings = await db.HelplySettings.FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct);
             var now = Now;
             if (settings is null)
-                db.HelplySettings.Add(new HelplySettings { Id = Guid.NewGuid(), ApplicationUserId = applicationUserId, Permissions = McpPermissionSet.ReadOnly(), WorkspaceEnabled = enabled, CreatedAt = now, UpdatedAt = now });
+                db.HelplySettings.Add(new HelplySettings { Id = Guid.NewGuid(), ApplicationUserId = applicationUserId, Permissions = McpPermissionSet.SchoolDataOnly(), WorkspaceEnabled = enabled, CreatedAt = now, UpdatedAt = now });
             else
             {
                 settings.WorkspaceEnabled = enabled;

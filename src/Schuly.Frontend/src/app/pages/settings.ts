@@ -70,7 +70,7 @@ import { UserStore } from '../stores/user.store';
       <section hlmCard>
         <div hlmCardHeader>
           <h3 hlmCardTitle>Your data</h3>
-          <p hlmCardDescription>Download everything Schuly stores about you as a JSON file.</p>
+          <p hlmCardDescription>Download your account, school data, Helply chats, connected apps and devices as a JSON file. Document files stay in Documents, and the file lists anything else it leaves out.</p>
         </div>
         <div hlmCardFooter>
           <button hlmBtn variant="outline" [disabled]="user.busy()" (click)="user.exportData()">

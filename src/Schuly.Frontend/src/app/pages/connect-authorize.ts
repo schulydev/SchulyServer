@@ -5,6 +5,7 @@ import { lucideTriangleAlert } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -13,13 +14,14 @@ import {
   McpAuthorizationRequestResult,
   authorizationParameters,
   mcpErrorMessage,
+  AI_APP_OPT_IN,
 } from '../core/mcp-api';
-import { McpPermissionSet, readOnlyPreset } from '../core/mcp-permissions';
+import { McpPermissionSet, schoolDataPreset } from '../core/mcp-permissions';
 import { McpPermissionEditor } from '../shared/mcp-permission-editor';
 
 @Component({
   selector: 'app-connect-authorize',
-  imports: [HlmAlertImports, HlmButton, HlmCardImports, HlmSpinner, NgIcon, McpPermissionEditor],
+  imports: [HlmAlertImports, HlmButton, HlmCardImports, HlmCheckbox, HlmSpinner, NgIcon, McpPermissionEditor],
   providers: [provideIcons({ lucideTriangleAlert })],
   host: { class: 'bg-sidebar text-foreground flex min-h-svh items-start justify-center p-4 sm:items-center' },
   template: `
@@ -55,6 +57,11 @@ import { McpPermissionEditor } from '../shared/mcp-permission-editor';
 
               <app-mcp-permission-editor [(value)]="permissions" />
 
+              <label class="flex items-start gap-2 text-sm" for="ai-app-opt-in">
+                <hlm-checkbox class="mt-0.5" inputId="ai-app-opt-in" [checked]="optIn()" (checkedChange)="optIn.set($event)" />
+                {{ optInText }}
+              </label>
+
               <div aria-live="polite" role="status">
                 @if (error()) {
                   <div hlmAlert variant="destructive">
@@ -67,7 +74,7 @@ import { McpPermissionEditor } from '../shared/mcp-permission-editor';
                 <button hlmBtn variant="outline" type="button" [disabled]="submitting()" (click)="decide(false)">
                   Deny
                 </button>
-                <button hlmBtn type="button" [disabled]="submitting()" [attr.aria-busy]="submitting()" (click)="decide(true)">
+                <button hlmBtn type="button" [disabled]="submitting() || !optIn()" [attr.aria-busy]="submitting()" (click)="decide(true)">
                   @if (submitting()) {
                     <hlm-spinner aria-hidden="true" />
                   }
@@ -107,11 +114,13 @@ export class ConnectAuthorize implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   private parameters!: McpAuthorizationParameters;
+  protected readonly optInText = AI_APP_OPT_IN;
+  protected readonly optIn = signal(false);
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly request = signal<McpAuthorizationRequestResult | null>(null);
-  protected readonly permissions = signal<McpPermissionSet>(readOnlyPreset());
+  protected readonly permissions = signal<McpPermissionSet>(schoolDataPreset());
 
   async ngOnInit(): Promise<void> {
     const query = this.route.snapshot.queryParamMap;
@@ -141,6 +150,7 @@ export class ConnectAuthorize implements OnInit {
           parameters: this.parameters,
           approve,
           permissions: approve ? this.permissions() : null,
+          aiAppSharingConfirmed: approve && this.optIn(),
         }),
       );
       window.location.assign(redirectUrl);

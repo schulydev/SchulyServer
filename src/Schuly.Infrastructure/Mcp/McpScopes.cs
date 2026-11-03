@@ -16,6 +16,8 @@ namespace Schuly.Infrastructure.Mcp
         /// <summary>Areas that have write tools. The others only ever read, so offering them write access would mean nothing.</summary>
         public static readonly IReadOnlySet<McpArea> WritableAreas = new HashSet<McpArea> { McpArea.Absences, McpArea.Mail, McpArea.Teams, McpArea.OneNote };
 
+        public static readonly IReadOnlySet<McpArea> MicrosoftAreas = new HashSet<McpArea> { McpArea.Mail, McpArea.Teams, McpArea.Drive, McpArea.OneNote };
+
         public static string Prefix(McpArea area) => area switch
         {
             McpArea.Grades => "schuly.grades",
@@ -63,18 +65,19 @@ namespace Schuly.Infrastructure.Mcp
         public static string Format(McpPermissionSet permissions) => string.Join(' ', Granted(permissions));
 
         /// <summary>
-        /// The checklist the consent screen starts from. Without a recognised scope that is read-only for everything; with scopes, the areas they name, read-only.
+        /// The checklist the consent screen starts from. Without a recognised scope that is school data, read-only; with scopes, the school areas they name, read-only. Microsoft areas always start off, whatever the app asks for.
         /// Scopes this server does not know (openid, offline_access) are ignored rather than refused.
         /// </summary>
         public static McpPermissionSet Requested(string? scope)
         {
             var parts = (scope ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
             if (!parts.Overlaps(Supported))
-                return McpPermissionSet.ReadOnly();
+                return McpPermissionSet.SchoolDataOnly();
 
             // Asking for an area preselects it, but only ever for reading: write and delete start off, and only the user switches them on.
             var set = McpPermissionSet.None();
-            foreach (var area in Enum.GetValues<McpArea>())
+            set.MicrosoftAccountIds = [];
+            foreach (var area in Enum.GetValues<McpArea>().Where(a => !MicrosoftAreas.Contains(a)))
             {
                 if (parts.Contains(For(area, McpAccessLevel.Read)) || (WritableAreas.Contains(area) && parts.Contains(For(area, McpAccessLevel.ReadWrite))))
                     set.Areas[area] = McpAccessLevel.Read;

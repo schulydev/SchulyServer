@@ -9,9 +9,15 @@ using Schuly.Infrastructure.Services;
 
 namespace Schuly.Application.Commands.Mcp
 {
+    /// <summary>Connecting an AI app sends school data to a third party, so it takes its own tick on every new connection. Connections made before this stay as they are.</summary>
+    internal static class McpOptIn
+    {
+        public const string Missing = "Confirm that this app may receive the data you allow.";
+    }
+
     /// <summary>The signed-in user approves or denies an app. The request is validated again here, since nothing the consent page sends is trusted.</summary>
     [AllowAuthenticated]
-    public record DecideMcpAuthorizationCommand(McpAuthorizationParameters Parameters, bool Approve, McpPermissionSet? Permissions) : ICommand<Result<McpAuthorizationDecisionDto>>;
+    public record DecideMcpAuthorizationCommand(McpAuthorizationParameters Parameters, bool Approve, McpPermissionSet? Permissions, bool AiAppSharingConfirmed = false) : ICommand<Result<McpAuthorizationDecisionDto>>;
 
     public class DecideMcpAuthorizationCommandHandler(McpOAuthService oauth, McpPublicUrls urls, IUserService userService) : ICommandHandler<DecideMcpAuthorizationCommand, Result<McpAuthorizationDecisionDto>>
     {
@@ -27,9 +33,12 @@ namespace Schuly.Application.Commands.Mcp
             if (!command.Approve)
                 return Result.Success(new McpAuthorizationDecisionDto(McpRedirects.Error(check.RedirectUri!, "access_denied", "The user denied access.", request.State, urls.Issuer)));
 
+            if (!command.AiAppSharingConfirmed)
+                return Result.Failure<McpAuthorizationDecisionDto>(McpOptIn.Missing);
+
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             // The user's checklist wins over whatever the app asked for; with none, the safe default.
-            var code = await oauth.ApproveAsync(userId, request, check.Resource!, command.Permissions ?? McpPermissionSet.ReadOnly(), cancellationToken);
+            var code = await oauth.ApproveAsync(userId, request, check.Resource!, command.Permissions ?? McpPermissionSet.SchoolDataOnly(), cancellationToken);
             return Result.Success(new McpAuthorizationDecisionDto(McpRedirects.Code(check.RedirectUri!, code, request.State, urls.Issuer)));
         }
     }
@@ -48,12 +57,15 @@ namespace Schuly.Application.Commands.Mcp
     }
 
     [AllowAuthenticated]
-    public record CreateMcpApiKeyCommand(string Name, McpPermissionSet? Permissions, DateTime? ExpiresAt) : ICommand<Result<CreatedMcpApiKeyDto>>;
+    public record CreateMcpApiKeyCommand(string Name, McpPermissionSet? Permissions, DateTime? ExpiresAt, bool AiAppSharingConfirmed = false) : ICommand<Result<CreatedMcpApiKeyDto>>;
 
     public class CreateMcpApiKeyCommandHandler(McpApiKeyService keys, IUserService userService) : ICommandHandler<CreateMcpApiKeyCommand, Result<CreatedMcpApiKeyDto>>
     {
         public async ValueTask<Result<CreatedMcpApiKeyDto>> Handle(CreateMcpApiKeyCommand command, CancellationToken cancellationToken)
         {
+            if (!command.AiAppSharingConfirmed)
+                return Result.Failure<CreatedMcpApiKeyDto>(McpOptIn.Missing);
+
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var (created, error) = await keys.CreateAsync(userId, command.Name, command.Permissions, command.ExpiresAt, cancellationToken);
             return created is null ? Result.Failure<CreatedMcpApiKeyDto>(error!) : Result.Success(new CreatedMcpApiKeyDto(McpRedirects.ToDto(created.Key), created.Secret));

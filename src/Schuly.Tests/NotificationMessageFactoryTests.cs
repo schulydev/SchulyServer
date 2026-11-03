@@ -19,12 +19,36 @@ namespace Schuly.Tests
         };
 
         [Test]
+        public async Task By_default_no_subject_title_or_date_leaves_the_server()
+        {
+            var at = new DateTime(2026, 3, 4, 8, 0, 0, DateTimeKind.Utc);
+            var rows = new[]
+            {
+                new NotificationOutbox { ApplicationUserId = Guid.NewGuid(), Type = NotificationType.GradeAdded, EntityId = Guid.NewGuid(), SubjectName = "Mathematik", NextAttemptAt = at },
+                new NotificationOutbox { ApplicationUserId = Guid.NewGuid(), Type = NotificationType.GradeChanged, EntityId = Guid.NewGuid(), SubjectName = "Mathematik", NextAttemptAt = at },
+                new NotificationOutbox { ApplicationUserId = Guid.NewGuid(), Type = NotificationType.AbsenceAdded, EntityId = Guid.NewGuid(), OccursAt = at, NextAttemptAt = at },
+                new NotificationOutbox { ApplicationUserId = Guid.NewGuid(), Type = NotificationType.AgendaAdded, EntityId = Guid.NewGuid(), Summary = "Ausflug", OccursAt = at, NextAttemptAt = at },
+                new NotificationOutbox { ApplicationUserId = Guid.NewGuid(), Type = NotificationType.AgendaChanged, EntityId = Guid.NewGuid(), Summary = "Ausflug", OccursAt = at, NextAttemptAt = at },
+            };
+
+            foreach (var row in rows)
+            {
+                var message = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
+                var text = message.Title + " " + message.Body;
+                await Assert.That(text).DoesNotContain("Mathematik");
+                await Assert.That(text).DoesNotContain("Ausflug");
+                await Assert.That(text).DoesNotContain("2026");
+                await Assert.That(message.Body).IsNull();
+            }
+        }
+
+        [Test]
         public async Task Grade_added_title_is_localized()
         {
             var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Neue Note in Mathematik");
             await Assert.That(en.Title).IsEqualTo("New grade in Mathematik");
@@ -35,8 +59,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.GradeChanged, subjectName: "Mathematik");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Note geändert in Mathematik");
             await Assert.That(en.Title).IsEqualTo("Grade changed in Mathematik");
@@ -47,8 +71,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AbsenceAdded, summary: "Krank");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Neue Absenz");
             await Assert.That(en.Title).IsEqualTo("New absence");
@@ -59,8 +83,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AgendaAdded, summary: "Ausflug");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Neuer Termin");
             await Assert.That(en.Title).IsEqualTo("New agenda entry");
@@ -71,8 +95,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AgendaChanged, summary: "Ausflug");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Termin geändert");
             await Assert.That(en.Title).IsEqualTo("Agenda entry changed");
@@ -83,7 +107,7 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AbsenceAdded, summary: "Krank");
 
-            var message = NotificationMessageFactory.Create(row, "fr", includeGradeValue: false);
+            var message = NotificationMessageFactory.Create(row, "fr", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(message.Title).IsEqualTo("Neue Absenz");
         }
@@ -93,8 +117,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
-            var withValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: true, score: 5.5m);
-            var withoutValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, score: 5.5m);
+            var withValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: true, score: 5.5m, includeDetails: true);
+            var withoutValue = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, score: 5.5m, includeDetails: true);
 
             await Assert.That(withValue.Body).IsEqualTo("Note: 5.50");
             await Assert.That(withoutValue.Body).IsNull();
@@ -105,7 +129,7 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
-            var message = NotificationMessageFactory.Create(row, "en", includeGradeValue: true);
+            var message = NotificationMessageFactory.Create(row, "en", includeGradeValue: true, includeDetails: true);
 
             await Assert.That(message.Body).IsNull();
         }
@@ -115,8 +139,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.GradeAdded, subjectName: "   ");
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Title).IsEqualTo("Neue Note");
             await Assert.That(en.Title).IsEqualTo("New grade");
@@ -127,8 +151,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AbsenceAdded, summary: "Krank", occursAt: new DateTime(2026, 3, 4));
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Body).IsEqualTo("04.03.2026");
             await Assert.That(en.Body).IsEqualTo("03/04/2026");
@@ -139,7 +163,7 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AbsenceAdded, summary: "Krank");
 
-            var message = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
+            var message = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(message.Body).IsEqualTo("Krank");
         }
@@ -149,8 +173,8 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.AgendaAdded, summary: "Ausflug", occursAt: new DateTime(2026, 3, 4));
 
-            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
-            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false);
+            var de = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
+            var en = NotificationMessageFactory.Create(row, "en", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(de.Body).IsEqualTo("Ausflug - 04.03.2026");
             await Assert.That(en.Body).IsEqualTo("Ausflug - 03/04/2026");
@@ -161,7 +185,7 @@ namespace Schuly.Tests
         {
             var row = NewRow(NotificationType.GradeAdded, subjectName: "Mathematik");
 
-            var message = NotificationMessageFactory.Create(row, "de", includeGradeValue: false);
+            var message = NotificationMessageFactory.Create(row, "de", includeGradeValue: false, includeDetails: true);
 
             await Assert.That(message.Data["type"]).IsEqualTo("gradeAdded");
             await Assert.That(message.Data["entityId"]).IsEqualTo(row.EntityId.ToString());

@@ -39,7 +39,7 @@ export const MCP_GROUPS: McpAreaGroup[] = [
       {
         area: 'Calendar',
         label: 'Calendar & agenda',
-        description: 'Your school agenda and the calendars of your linked accounts.',
+        description: 'Your school agenda, and the calendars of the linked accounts you allow below.',
         canWrite: false,
       },
       {
@@ -92,11 +92,28 @@ export const levelOf = (permissions: McpPermissionSet, area: McpArea): McpAccess
 export const hasWrite = (permissions: McpPermissionSet): boolean =>
   MCP_AREAS.some((info) => info.canWrite && levelOf(permissions, info.area) === 'ReadWrite');
 
+const LINKED_AREAS = new Set<McpArea>(['Mail', 'Teams', 'Drive', 'OneNote']);
+
+/** The default for Helply and new connections: school data, read-only, and no Microsoft account. */
+export const schoolDataPreset = (): McpPermissionSet => ({
+  areas: Object.fromEntries(
+    MCP_AREAS.filter((info) => !LINKED_AREAS.has(info.area)).map((info) => [info.area, 'Read']),
+  ) as McpPermissionSet['areas'],
+  allowDestructive: false,
+  microsoftAccountIds: [],
+});
+
+/** An empty list means "no account yet", which would make a preset or a Microsoft area silently empty. */
+const usableAccounts = (ids: string[] | null): string[] | null => (ids?.length ? ids : null);
+
 export const readOnlyPreset = (microsoftAccountIds: string[] | null = null): McpPermissionSet => ({
   areas: Object.fromEntries(MCP_AREAS.map((info) => [info.area, 'Read'])) as McpPermissionSet['areas'],
   allowDestructive: false,
   microsoftAccountIds,
 });
+
+/** Applies a preset from the editor: a preset with Microsoft areas needs an account to work on. */
+export const presetAccounts = usableAccounts;
 
 export const fullAccessPreset = (microsoftAccountIds: string[] | null = null): McpPermissionSet => ({
   areas: Object.fromEntries(
@@ -112,7 +129,9 @@ export function withLevel(
   area: McpArea,
   level: McpAccessLevel,
 ): McpPermissionSet {
-  const next = { ...permissions, areas: { ...permissions.areas, [area]: level } };
+  const microsoftAccountIds =
+    LINKED_AREAS.has(area) && level !== 'Off' ? usableAccounts(permissions.microsoftAccountIds) : permissions.microsoftAccountIds;
+  const next = { ...permissions, microsoftAccountIds, areas: { ...permissions.areas, [area]: level } };
   return hasWrite(next) ? next : { ...next, allowDestructive: false };
 }
 

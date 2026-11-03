@@ -48,6 +48,7 @@ const RAN_CODE_STREAM = sse(
 );
 
 async function install(page: Page, options: MockOptions = {}): Promise<Mock> {
+  await page.addInitScript(() => localStorage.setItem('schuly.helply.aiNoticeSeen', 'yes'));
   const server = new FakeServer();
   await server.install(page);
   const mock: Mock = {

@@ -74,8 +74,7 @@ namespace Schuly.Infrastructure.Migrations
 
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("SchoolUserId")
                         .HasColumnType("uuid");
@@ -202,8 +201,18 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("PolicyAcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PolicyVersionAccepted")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SwissSchoolConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -963,6 +972,9 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<bool>("Grades")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IncludeDetails")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IncludeGradeValue")
                         .HasColumnType("boolean");
 
@@ -1207,13 +1219,6 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<Guid>("ApplicationUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateOnly>("Birthday")
-                        .HasColumnType("date");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1238,14 +1243,6 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<DateOnly?>("LeaveDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PrivateEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("text");
 
@@ -1262,16 +1259,8 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<int>("State")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Street")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Zip")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
@@ -1436,12 +1425,10 @@ namespace Schuly.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Comment")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly?>("CompletedDate")
                         .HasColumnType("date");
@@ -1450,16 +1437,14 @@ namespace Schuly.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("EnteredBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ExternalId")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<string>("FileName")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("text");
 
                     b.Property<long?>("FileSizeBytes")
                         .HasColumnType("bigint");
@@ -1469,8 +1454,7 @@ namespace Schuly.Infrastructure.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<string>("FollowUpAction")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly?>("FollowUpDate")
                         .HasColumnType("date");
@@ -1487,15 +1471,12 @@ namespace Schuly.Infrastructure.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SchoolUserId", "Category");
 
                     b.HasIndex("SchoolUserId", "Source", "ExternalId")
                         .IsUnique()
@@ -1520,10 +1501,6 @@ namespace Schuly.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()

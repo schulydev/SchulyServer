@@ -10,18 +10,18 @@ namespace Schuly.API.Services.Notifications
         private const string DateFormatDe = "dd.MM.yyyy";
         private const string DateFormatEn = "MM/dd/yyyy";
 
-        public static PushMessage Create(NotificationOutbox row, string locale, bool includeGradeValue, decimal? score = null)
+        public static PushMessage Create(NotificationOutbox row, string locale, bool includeGradeValue, decimal? score = null, bool includeDetails = false)
         {
             var isGerman = Normalize(locale) == "de";
             var data = new Dictionary<string, string> { ["type"] = CamelCase(row.Type), ["entityId"] = row.EntityId.ToString() };
 
             return row.Type switch
             {
-                NotificationType.GradeAdded => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: false), GradeBody(isGerman, score, includeGradeValue), data),
-                NotificationType.GradeChanged => new PushMessage(GradeTitle(isGerman, row.SubjectName, changed: true), GradeBody(isGerman, score, includeGradeValue), data),
-                NotificationType.AbsenceAdded => new PushMessage(isGerman ? "Neue Absenz" : "New absence", AbsenceBody(isGerman, row), data),
-                NotificationType.AgendaAdded => new PushMessage(isGerman ? "Neuer Termin" : "New agenda entry", AgendaBody(isGerman, row), data),
-                NotificationType.AgendaChanged => new PushMessage(isGerman ? "Termin geändert" : "Agenda entry changed", AgendaBody(isGerman, row), data),
+                NotificationType.GradeAdded => new PushMessage(GradeTitle(isGerman, includeDetails ? row.SubjectName : null, changed: false), GradeBody(isGerman, score, includeGradeValue), data),
+                NotificationType.GradeChanged => new PushMessage(GradeTitle(isGerman, includeDetails ? row.SubjectName : null, changed: true), GradeBody(isGerman, score, includeGradeValue), data),
+                NotificationType.AbsenceAdded => new PushMessage(isGerman ? "Neue Absenz" : "New absence", includeDetails ? AbsenceBody(isGerman, row) : null, data),
+                NotificationType.AgendaAdded => new PushMessage(isGerman ? "Neuer Termin" : "New agenda entry", includeDetails ? AgendaBody(isGerman, row) : null, data),
+                NotificationType.AgendaChanged => new PushMessage(isGerman ? "Termin geändert" : "Agenda entry changed", includeDetails ? AgendaBody(isGerman, row) : null, data),
                 _ => throw new ArgumentOutOfRangeException(nameof(row), row.Type, "Unknown notification type"),
             };
         }

@@ -11,7 +11,7 @@ namespace Schuly.Domain.Mcp
         /// <summary>The first characters of the key, so the user can tell keys apart without the key itself.</summary>
         public required string Prefix { get; set; }
         public required string KeyHash { get; set; }
-        public McpPermissionSet Permissions { get; set; } = McpPermissionSet.ReadOnly();
+        public McpPermissionSet Permissions { get; set; } = McpPermissionSet.SchoolDataOnly();
         public DateTime? ExpiresAt { get; set; }
         public DateTime? LastUsedAt { get; set; }
         public DateTime? RevokedAt { get; set; }

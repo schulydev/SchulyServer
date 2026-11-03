@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth';
+import { privacyNoticeGuard } from './core/privacy-notice';
 
 export const routes: Routes = [
   { path: 'login', title: 'Sign in', canActivate: [guestGuard], loadComponent: () => import('./pages/auth/login').then((m) => m.Login) },
@@ -7,9 +8,10 @@ export const routes: Routes = [
   { path: 'forgot-password', title: 'Forgot password', loadComponent: () => import('./pages/auth/forgot-password').then((m) => m.ForgotPassword) },
   { path: 'reset-password', title: 'Reset password', loadComponent: () => import('./pages/auth/reset-password').then((m) => m.ResetPassword) },
   { path: 'verify-email', title: 'Verify email', loadComponent: () => import('./pages/auth/verify-email').then((m) => m.VerifyEmail) },
+  { path: 'privacy-notice', title: 'Privacy notice', canActivate: [authGuard], loadComponent: () => import('./pages/auth/privacy-notice').then((m) => m.PrivacyNotice) },
   {
     path: '',
-    canActivate: [authGuard],
+    canActivate: [authGuard, privacyNoticeGuard],
     loadComponent: () => import('./layout/app-layout').then((m) => m.AppLayout),
     children: [
       { path: '', title: 'Overview', loadComponent: () => import('./pages/overview').then((m) => m.Overview) },
@@ -28,6 +30,6 @@ export const routes: Routes = [
       { path: 'ai/mcp', title: 'MCP', loadComponent: () => import('./pages/mcp').then((m) => m.Mcp) },
     ],
   },
-  { path: 'connect/authorize', title: 'Authorize app', canActivate: [authGuard], loadComponent: () => import('./pages/connect-authorize').then((m) => m.ConnectAuthorize) },
+  { path: 'connect/authorize', title: 'Authorize app', canActivate: [authGuard, privacyNoticeGuard], loadComponent: () => import('./pages/connect-authorize').then((m) => m.ConnectAuthorize) },
   { path: '**', redirectTo: '' },
 ];
