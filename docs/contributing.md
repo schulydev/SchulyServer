@@ -1,45 +1,40 @@
 # Contributing
 
-A short, enforced workflow keeps history clean and releasable.
+Use this page for the rules and checks specific to the server. For issues, branches, pull requests,
+and labels, follow the [shared workflow](/contribute/).
 
-## Workflow
+## Code rules
 
-1. **Open a labeled issue** describing the change. Apply a label from the taxonomy
-   below.
-2. **Branch off `main`**: `feature/<issue#>_PascalCase` or `fix/<issue#>_PascalCase`.
-   Never commit directly to `main`.
-3. **Open a PR** (also labeled) targeting `main`. The PR body is **Summary** plus
-   `Closes #<issue>` - nothing else (no test plans).
-4. **Squash-merge** and delete the branch.
-
-## Commit messages
-
-- Short, imperative subject (e.g. `Add absences endpoint`).
-- No noise in the body; keep it focused on the what/why.
-
-## Labels
-
-Use a label consistent with the org taxonomy:
-
-| Label | Use for |
-|---|---|
-| `bug` | A defect / incorrect behavior. |
-| `enhancement` | Improvement to existing behavior. |
-| `feature` | New functionality. |
-| `refactor` | Internal restructuring, no behavior change. |
-| `CI/CD` | Build, release, and workflow changes. |
-| `dependencies` | Dependency bumps. |
-| `documentation` | Docs-only changes. |
+- Respect the [layering rules](architecture.md#layering-rules): `Schuly.Application` must not reference
+  `Schuly.Infrastructure`.
+- Keep controllers thin. They delegate to Mediator, and handlers hold the logic.
+- Add tests to `Schuly.Tests` where it makes sense.
+- Keep declaration signatures on one line, however long. Don't wrap the parameter list of a `record`,
+  a primary-constructor `class` or `struct`, a method, or a constructor. Leave method chains, LINQ
+  queries, and multi-line conditions wrapped.
+- Use Bun for frontend tasks, not npm, npx, or node.
+- Keep the commit body focused on what changed and why.
 
 ## Versioning
 
-`application.properties` is the single source of truth for the version and is synced
-from the release tag automatically when a release is published - see
-[Production](setup/production.md). Don't bump it by hand in feature PRs.
+Don't bump `application.properties` by hand in feature pull requests. Publishing a release syncs it
+from the tag. See [Images and releases](setup/production.md).
 
-## Code expectations
+## Checks
 
-- Respect the [layering rules](architecture.md): `Schuly.Application` must not
-  reference `Schuly.Infrastructure`.
-- Controllers stay thin and delegate to Mediator; handlers hold the logic.
-- Add tests in `Schuly.Tests` where it makes sense.
+CI runs these on every pull request. To run them yourself:
+
+```sh
+dotnet restore Schuly.API.slnx
+dotnet build Schuly.API.slnx -c Release --no-restore -warnaserror
+dotnet test Schuly.API.slnx -c Release --no-build
+```
+
+```sh
+cd src/Schuly.Frontend
+bun install --frozen-lockfile
+bun run build
+bun run test --watch=false
+```
+
+CI also builds the sandbox image when a pull request changes `src/Schuly.Sandbox/**`.

@@ -61,7 +61,7 @@ services:
     env_file: [./config/backend.env]
     volumes:
       - ./data/plugins:/app/plugins                        # downloaded plugin DLLs (host folder)
-      - ./config/plugins.yml:/app/plugins.yml              # desired plugin set (writable: endpoints rewrite it)
+      - ./config/plugins.yml:/app/plugins.yml              # desired plugin set
       - ./config/plugins-config:/app/plugins-config:ro     # per-plugin config
     networks:
       - default

@@ -114,7 +114,7 @@ sent is removed after 24 hours. No extra setting is needed.
 
 ## Notes
 
-- Plugin changes made via the API are persisted back to `config/plugins.yml`.
+- To change the plugins, edit `config/plugins.yml` and restart the backend.
 - All state is **bind-mounted to host folders under `./data`** (recommended over
   named volumes - visible and easy to back up): `data/postgres`, `data/seaweedfs`,
   `data/plugins`, `data/caddy*`. They're created on first `up`; the one-shot

@@ -1,5 +1,5 @@
 # Plugins the backend loads on startup (downloaded from the registry, hot-loaded).
-# Manage at runtime via POST/DELETE /api/plugins/* - those rewrite this file.
+# To change the list, edit this file and restart the backend.
 plugins:
   - name: Schuly.Plugin.Schulware
     version: latest
