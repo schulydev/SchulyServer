@@ -35,8 +35,8 @@ can't get a certificate until it does.
 ## 2. Get the deploy files
 
 ```sh
-git clone https://github.com/schulydev/SchulyServer.git
-cd SchulyServer/deploy
+curl -fsSL https://github.com/schulydev/SchulyServer/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 SchulyServer-main/deploy
+cd deploy
 cp .env.example .env
 ```
 
