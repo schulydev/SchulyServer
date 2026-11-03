@@ -20,6 +20,7 @@ api/notifications.service.ts
 api/schoolUsers.service.ts
 api/schools.service.ts
 api/semesterReports.service.ts
+api/sessions.service.ts
 api/studentDocuments.service.ts
 api/teachers.service.ts
 api/trustedDevices.service.ts
@@ -51,6 +52,7 @@ model/createMcpApiKeyCommand.ts
 model/createMySchoolCommand.ts
 model/createdMcpApiKeyDto.ts
 model/decideMcpAuthorizationCommand.ts
+model/deleteAccountRequest.ts
 model/disableTwoFactorRequest.ts
 model/entityTagHeaderValue.ts
 model/errorResponse.ts
@@ -70,6 +72,7 @@ model/exportNotificationsDto.ts
 model/exportPasskeyDto.ts
 model/exportPrivacyNoticeDto.ts
 model/exportQueuedNotificationDto.ts
+model/exportSecurityEventDto.ts
 model/exportSessionDto.ts
 model/exportSignInDto.ts
 model/fileContentResult.ts
@@ -140,6 +143,7 @@ model/schoolUserSummaryDto.ts
 model/semesterReportDto.ts
 model/semesterSubjectGradeDto.ts
 model/sendHelplyMessageRequest.ts
+model/sessionSummary.ts
 model/startLinkRequest.ts
 model/stepUpChallengeResponse.ts
 model/stepUpResponse.ts

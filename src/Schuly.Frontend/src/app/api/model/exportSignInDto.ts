@@ -10,6 +10,7 @@
 import { ExportExternalLoginDto } from './exportExternalLoginDto';
 import { ExportSessionDto } from './exportSessionDto';
 import { ExportPasskeyDto } from './exportPasskeyDto';
+import { ExportSecurityEventDto } from './exportSecurityEventDto';
 
 
 export interface ExportSignInDto { 
@@ -22,5 +23,6 @@ export interface ExportSignInDto {
     passkeys: Array<ExportPasskeyDto>;
     sessions: Array<ExportSessionDto>;
     trustedDevices: Array<ExportSessionDto>;
+    securityEvents: Array<ExportSecurityEventDto>;
 }
 
