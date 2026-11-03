@@ -1,7 +1,4 @@
-/**
- * An emoji in a message or in the picker is either a unicode character or one of Teams' own emojis
- * (a still image, or a vertical sprite strip of `frames` square frames that animates).
- */
+/** One of Teams' own emojis, in a message or in the picker: a still image, or a vertical sprite strip of `frames` square frames that animates. */
 export interface ChatEmoji {
   /** Catalogue id (sent back as `<emoji id>`); the message key for emojis read from a message. */
   id: string;
@@ -22,8 +19,6 @@ export interface ChatEmoji {
   /** Edge of one frame in the asset, in pixels. */
   size: number;
 }
-
-export type EmojiRef = { kind: 'unicode'; char: string; label?: string } | { kind: 'native'; emoji: ChatEmoji };
 
 /** An item of a message's `emojis[]`. */
 export interface MessageEmoji {
@@ -124,9 +119,14 @@ export function tonedChar(char: string, tone: SkinTone): string {
   return first ? first + TONE_MODIFIERS[tone - 1] + rest.join('') : char;
 }
 
-/** The emoji in a skin tone: same emoji, id `<id>-tone<n>` as Teams expects, and the matching character as its fallback. */
+/** The Teams picture in a skin tone: `.../30_f.png` is `.../30_f_s<tone+1>.png`, stills and sprites alike. */
+function tonedUrl(url: string | null, tone: SkinTone): string | null {
+  return url && url.replace(/_f(?:_s[2-6])?\.png/, `_f_s${tone + 1}.png`);
+}
+
+/** The emoji in a skin tone: id `<id>-tone<n>` as Teams expects, its picture in that tone, and the matching character as its fallback. */
 export function toneEmoji<T extends ChatEmoji>(emoji: T, tone: SkinTone): T {
-  return { ...emoji, id: `${emoji.id.replace(/-tone[1-5]$/, '')}-tone${tone}`, alt: tonedChar(emoji.alt, tone) };
+  return { ...emoji, id: `${emoji.id.replace(/-tone[1-5]$/, '')}-tone${tone}`, alt: tonedChar(emoji.alt, tone), staticUrl: tonedUrl(emoji.staticUrl, tone), animatedUrl: tonedUrl(emoji.animatedUrl, tone) };
 }
 
 /** `:smile:`, `(laugh)` and `laugh` all become `laugh`. */
@@ -160,7 +160,7 @@ export function parseCatalogue(raw: unknown): Catalogue | null {
   return categories.length ? { categories, byShortcut, all } : null;
 }
 
-/** Teams emojis whose shortcut starts with, then contains, the query; at most `limit`. */
+/** Teams emojis whose shortcut starts with, then contains, the query; each emoji once, under its best shortcut; at most `limit`. */
 export function searchShortcuts(catalogue: Catalogue, query: string, limit = 8): { code: string; emoji: CatalogueEmoji }[] {
   const q = normalizeShortcut(query);
   if (!q) return [];
@@ -171,7 +171,14 @@ export function searchShortcuts(catalogue: Catalogue, query: string, limit = 8):
     else if (code.includes(q)) contains.push({ code, emoji });
   }
   starts.sort((a, b) => Number(b.code === q) - Number(a.code === q) || a.code.length - b.code.length || a.code.localeCompare(b.code));
-  return [...starts, ...contains].slice(0, limit);
+  const seen = new Set<CatalogueEmoji>();
+  return [...starts, ...contains].filter((m) => !seen.has(m.emoji) && seen.add(m.emoji)).slice(0, limit);
+}
+
+/** The `:query` ending at the caret, when it starts a word and has at least two letters. */
+export function emojiQueryAt(text: string, caret: number): { start: number; query: string } | null {
+  const match = /(^|[\s([{])(:([a-z][a-z0-9_+-]+))$/i.exec(text.slice(0, caret));
+  return match ? { start: caret - match[2].length, query: match[3] } : null;
 }
 
 /** Search over title, keywords and shortcuts: every word of the query must appear. */
@@ -188,9 +195,23 @@ export function searchCatalogue(catalogue: Catalogue, query: string, limit = 120
   return out;
 }
 
-/** The locale the catalogue is asked for: the browser language lower-cased with a region ("de-de", "en-us"). */
-export function catalogueLocale(language: string | undefined): string {
-  const lang = (language ?? 'en-US').toLowerCase();
-  if (/^[a-z]{2,3}-[a-z0-9]{2,}/.test(lang)) return lang;
-  return lang === 'en' ? 'en-us' : `${lang}-${lang}`;
+/** The app is in English, so the catalogue is too; emoji stay findable by words in the browser's language. Null when that is English anyway. */
+export function searchLanguage(language: string | undefined): string | null {
+  const lang = (language ?? '').toLowerCase().split('-')[0];
+  return /^[a-z]{2,3}$/.test(lang) && lang !== 'en' ? lang : null;
+}
+
+/** Each emoji's title and keywords from a catalogue in another language, by id. */
+export function searchTerms(raw: unknown): Record<string, string> {
+  const categories = (raw as { categories?: { emojis?: CatalogueEmojiRaw[] }[] } | null)?.categories;
+  const terms: Record<string, string> = {};
+  for (const c of Array.isArray(categories) ? categories : []) {
+    for (const e of c.emojis ?? []) if (e.id) terms[e.id] = [e.title ?? '', ...(e.keywords ?? [])].join(' ').toLowerCase();
+  }
+  return terms;
+}
+
+/** Adds words in another language to what search looks through. */
+export function addSearchTerms(catalogue: Catalogue, terms: Record<string, string>): void {
+  for (const e of catalogue.all) if (terms[e.id]) e.haystack += ` ${terms[e.id]}`;
 }

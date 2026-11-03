@@ -38,7 +38,7 @@ export class EmojiSlots {
           slot.textContent = '';
           slot.append(holder);
           const ref = createComponent(EmojiView, { environmentInjector: this.injector, elementInjector: this.node, hostElement: holder });
-          ref.setInput('emoji', { kind: 'native', emoji });
+          ref.setInput('emoji', emoji);
           ref.setInput('size', size);
           this.app.attachView(ref.hostView);
           undo.push(() => {
