@@ -21,6 +21,7 @@ namespace Schuly.Infrastructure.Services
 
         private sealed record Row(Guid Id, string Value);
 
+#pragma warning disable EF1003 // Table and column names come only from the constant Targets list; every value is a parameter.
         private async Task<int> RotateAsync(CancellationToken cancellationToken)
         {
             var total = 0;

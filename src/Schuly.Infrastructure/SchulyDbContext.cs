@@ -301,12 +301,12 @@ namespace Schuly.Infrastructure
             {
                 entity.HasKey(d => d.Id);
                 entity.Property(d => d.Title).HasColumnType("text").HasConversion(SensitiveText.Converter).IsRequired();
-                entity.Property(d => d.Comment).HasColumnType("text").HasConversion(SensitiveText.Converter);
-                entity.Property(d => d.Category).HasColumnType("text").HasConversion(SensitiveText.Converter);
-                entity.Property(d => d.EnteredBy).HasColumnType("text").HasConversion(SensitiveText.Converter);
-                entity.Property(d => d.FileName).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(d => d.Comment).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.Category).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.EnteredBy).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(d => d.FileName).HasColumnType("text").HasConversion(SensitiveText.Converter!);
                 entity.Property(d => d.FileUrl).HasMaxLength(2000);
-                entity.Property(d => d.FollowUpAction).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(d => d.FollowUpAction).HasColumnType("text").HasConversion(SensitiveText.Converter!);
 
                 entity.HasOne(d => d.SchoolUser)
                     .WithMany(su => su.Documents)
