@@ -163,6 +163,34 @@ namespace Schuly.Tests
         }
 
         [Test]
+        public async Task SyncAbsences_deletes_nothing_when_a_sync_returns_an_empty_list()
+        {
+            const string db = nameof(SyncAbsences_deletes_nothing_when_a_sync_returns_an_empty_list);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt"), new AbsenceRecord("b", day.AddDays(1), day.AddDays(1), "Arzt")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, []);
+
+            using var check = TestDb.NewContext(db);
+            await Assert.That(await check.Absences.CountAsync()).IsEqualTo(2);
+        }
+
+        [Test]
+        public async Task SyncAbsences_keeps_the_same_reason_on_other_dates()
+        {
+            const string db = nameof(SyncAbsences_keeps_the_same_reason_on_other_dates);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt"), new AbsenceRecord("b", day.AddDays(1), day.AddDays(1), "Arzt"), new AbsenceRecord("c", day, day.AddDays(1), "Arzt")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt")]);
+
+            using var check = TestDb.NewContext(db);
+            await Assert.That(await check.Absences.CountAsync()).IsEqualTo(3);
+        }
+
+        [Test]
         public async Task SyncAbsences_leaves_other_absences_on_the_same_dates_alone()
         {
             const string db = nameof(SyncAbsences_leaves_other_absences_on_the_same_dates_alone);

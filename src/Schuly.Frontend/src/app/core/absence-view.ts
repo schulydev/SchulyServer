@@ -40,14 +40,6 @@ export interface AbsenceContext {
   website: (schoolId: string | null) => string | null;
 }
 
-export const isBbbWebsite = (website: string | null | undefined): boolean => {
-  try {
-    return !!website && new URL(website).hostname.toLowerCase() === 'schulnetz.bbbaden.ch';
-  } catch {
-    return false;
-  }
-};
-
 const SWISS = 'Europe/Zurich';
 const swissDay = new Intl.DateTimeFormat('en-CA', { timeZone: SWISS, year: 'numeric', month: '2-digit', day: '2-digit' });
 const swissTime = new Intl.DateTimeFormat('en-GB', { timeZone: SWISS, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AbsenceDto, SemesterReportDto } from '../api';
 import { absenceSteps, approvalState, rejectedLabel, waitingLabel } from './absence-steps';
-import { AbsenceContext, ReportInput, absenceAnswer, absenceMonths, absenceSemesters, buildAbsenceRows, dayOf, daysMissed, isBbbWebsite, lessonsMissed, semesterKeyOf } from './absence-view';
+import { AbsenceContext, ReportInput, absenceAnswer, absenceMonths, absenceSemesters, buildAbsenceRows, dayOf, daysMissed, lessonsMissed, semesterKeyOf } from './absence-view';
 
 const TODAY = '2026-11-04';
 const context = (bbb = false): AbsenceContext => ({ today: TODAY, isBbb: () => bbb, website: () => (bbb ? 'https://schulnetz.bbbaden.ch' : 'https://other.example') });
@@ -218,11 +218,6 @@ describe('semesters and counts', () => {
     expect(months.map((m) => m.key)).toEqual(['2026-10', '2026-09']);
   });
 
-  it('recognises BBB by its exact host', () => {
-    expect(isBbbWebsite('https://schulnetz.bbbaden.ch')).toBe(true);
-    expect(isBbbWebsite('https://schulnetz.bbbaden.ch.evil.example')).toBe(false);
-    expect(isBbbWebsite(null)).toBe(false);
-  });
 
   it('reads a date-only value as its date', () => {
     expect(dayOf('2026-11-05T00:00:00Z')).toBe('2026-11-05');
