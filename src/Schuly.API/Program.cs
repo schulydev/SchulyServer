@@ -75,6 +75,7 @@ await app.EncryptSensitiveTextAsync();
 await app.SeedSchoolSystemsAsync();
 
 app.UseForwardedHeaders();
+app.UseMiddleware<SecurityHeaders>();
 
 app.UseExceptionHandler();
 

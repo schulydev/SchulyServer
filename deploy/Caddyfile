@@ -1,16 +1,5 @@
 # Automatic HTTPS for the public surface. Caddy obtains a Let's Encrypt
 # certificate on first start (needs public DNS + ports 80/443 reachable).
 {$API_HOST} {
-	# "?" sets a header only when the backend hasn't: the consent page and file downloads send stricter ones of their own.
-	header {
-		?Strict-Transport-Security "max-age=31536000"
-		?X-Content-Type-Options "nosniff"
-		?X-Frame-Options "DENY"
-		?Referrer-Policy "same-origin"
-		?Permissions-Policy "camera=(), microphone=(), geolocation=()"
-		# Report-only for now: browsers log what it would block in the console, and nothing breaks.
-		# https: images and media are for mail, Teams and OneNote content. blob: is for the file viewer, chat clips and previews.
-		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-	}
 	reverse_proxy backend:8080
 }

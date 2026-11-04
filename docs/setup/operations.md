@@ -79,8 +79,9 @@ either, because the `Caddyfile` has no `log` directive.
 
 ## Security headers
 
-Caddy adds HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` to every
-response. The Content Security Policy is in report-only mode, so it blocks nothing yet: violations
+The server adds `nosniff`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy` to every
+response (`src/Schuly.API/Extensions/SecurityHeaders.cs`), so they apply behind any proxy. It adds HSTS over
+HTTPS, which behind a proxy needs that proxy in `ForwardedHeaders:KnownNetworks`. The Content Security Policy is in report-only mode, so it blocks nothing yet: violations
 appear in the browser console. It allows `https:` images and media because mail, Teams, and OneNote
 content loads them.
 
