@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ExamGrade, OTHER_GROUP, SemesterReport, chooseGradeCase, gradeHeadline, promotionOutlook, allSemestersAverage, buildGradeGroups, cleanExamName, countsInAverage, halfGrade, isBbbWebsite, negativeDeviation, oneDecimal, promotionText, semesterAverage, semesterOfDate, subjectKey, subjectLabel, weightedMean } from './grade-report';
+import { ExamGrade, OTHER_GROUP, SemesterReport, hasPromotionDecisions, chooseGradeCase, gradeHeadline, promotionOutlook, allSemestersAverage, buildGradeGroups, cleanExamName, countsInAverage, halfGrade, isBbbWebsite, negativeDeviation, oneDecimal, promotionText, semesterAverage, semesterOfDate, subjectKey, subjectLabel, weightedMean } from './grade-report';
 
 let id = 0;
 const exam = (subject: string, date: string | null, score: number, weighting = 1, name = 'Test'): ExamGrade => ({ id: `e${++id}`, subject, exam: name, date, score, weighting, classAverage: 4.5, schoolId: 's1' });
@@ -257,12 +257,23 @@ describe('promotionOutlook', () => {
 
 describe('gradeHeadline', () => {
   it('BBB this semester: expected number and a hint', () => {
-    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 5), exam('Physik', '2026-09-03', 4)], [], bbb);
-    const headline = gradeHeadline(group, group.semesters[0], 0);
+    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 5), exam('Physik', '2026-09-03', 4)], [report('BM23d', 2025, 2, { Deutsch: 5 }, 5)], bbb);
+    const headline = gradeHeadline(group, group.semesters[group.semesters.length - 1], 0);
     expect(headline.value).toBe(4.5);
     expect(headline.state).toBe('On track for promotion');
     expect(headline.tone).toBe('good');
     expect(headline.hint).toBe('Expected, based on 2 grades so far. Your school decides.');
+  });
+
+  it.each([['kein Promotionsentscheid'], [null]])('a class without real decisions (%s) keeps its expected average but gets no promotion status', (decision) => {
+    const past = { ...report('IN23a', 2025, 2, { Sport: 5 }, 5), promotionDecision: decision };
+    const [group] = buildGradeGroups([exam('Sport', '2026-09-03', 5)], [past], bbb);
+    expect(hasPromotionDecisions(group)).toBe(false);
+    const headline = gradeHeadline(group, group.semesters[group.semesters.length - 1], 0);
+    expect(headline.value).toBe(5);
+    expect(headline.state).toBe('');
+    expect(headline.tone).toBe('');
+    expect(headline.hint).toBe('Expected, based on 1 grade so far.');
   });
 
   it('a past semester quotes the real decision, not a fixed word', () => {

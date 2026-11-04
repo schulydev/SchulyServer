@@ -281,6 +281,9 @@ export function chooseGradeCase(group: GradeGroup | null): GradeCase {
   return group.semesters.some((s) => s.report?.gradeAverage != null) ? 'reports-average' : 'reports-no-average';
 }
 
+/** Only a class whose real reports carry a decision gets promoted at all: an apprenticeship's say "kein Promotionsentscheid" or nothing. */
+export const hasPromotionDecisions = (group: GradeGroup): boolean => group.semesters.some((s) => !!promotionText(s.report?.promotionDecision));
+
 export interface PromotionOutlook {
   atRisk: boolean;
   text: string;
@@ -324,8 +327,9 @@ export function gradeHeadline(group: GradeGroup, semester: SemesterResult | null
   const fromReport = { state: promotion ? `Promotion: ${promotion}` : '', tone: '' as const };
 
   if (semester.expected) {
-    const outlook = promotionOutlook(countedGrades(semester));
-    return { label, value: semester.average, state: outlook?.text ?? '', tone: outlook ? (outlook.atRisk ? 'bad' : 'good') : '', hint: `Expected, based on ${semester.gradeCount} ${semester.gradeCount === 1 ? 'grade' : 'grades'} so far. Your school decides.` };
+    const outlook = hasPromotionDecisions(group) ? promotionOutlook(countedGrades(semester)) : null;
+    const basis = `Expected, based on ${semester.gradeCount} ${semester.gradeCount === 1 ? 'grade' : 'grades'} so far.`;
+    return { label, value: semester.average, state: outlook?.text ?? '', tone: outlook ? (outlook.atRisk ? 'bad' : 'good') : '', hint: outlook ? `${basis} Your school decides.` : basis };
   }
   if (semester.report && (gradeCase === 'bbb' || gradeCase === 'reports-average')) {
     return { ...none, ...fromReport, label, value: semester.report.gradeAverage ?? null, hint: 'From your Zeugnis.' };

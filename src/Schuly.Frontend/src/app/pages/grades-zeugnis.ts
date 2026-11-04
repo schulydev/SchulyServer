@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { GradeGroup, SemesterResult, SubjectResult, oneDecimal, promotionText } from '../core/grade-report';
+import { GradeGroup, SemesterResult, SubjectResult, hasPromotionDecisions, oneDecimal, promotionText } from '../core/grade-report';
 
 interface Row {
   key: string;
@@ -128,7 +128,7 @@ export class GradesZeugnis {
     };
     const lines = [
       { label: 'Durchschnitt', value: (n: number) => text(n, (s) => (s.average != null ? oneDecimal(s.average) : '')) },
-      { label: 'Promotion', value: (n: number) => text(n, (s) => (s.expected ? 'offen' : promotionText(s.report?.promotionDecision))) },
+      { label: 'Promotion', value: (n: number) => text(n, (s) => (s.expected ? (hasPromotionDecisions(this.group()) ? 'offen' : '') : promotionText(s.report?.promotionDecision))) },
       { label: 'Negative Notenabweichung', value: (n: number) => text(n, (s) => (s.deviation ? String(s.deviation) : '')) },
       { label: 'Absenzen unentschuldigt', value: (n: number) => text(n, (s) => (s.report?.unexcusedAbsences != null ? String(s.report.unexcusedAbsences) : '')) },
     ];
