@@ -17,6 +17,16 @@ export interface AbsenceDto {
     from: string;
     until: string;
     isExcused?: boolean | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    parentStatus?: string | null;
+    parentStatusDate?: string | null;
+    trainerStatus?: string | null;
+    trainerStatusDate?: string | null;
+    trainerComment?: string | null;
+    comment?: string | null;
+    excuseDeadline?: string | null;
+    lessons?: number | null;
     schoolUserId?: string;
     schoolId?: string | null;
 }

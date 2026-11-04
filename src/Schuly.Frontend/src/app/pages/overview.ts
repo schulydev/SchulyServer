@@ -159,7 +159,7 @@ import { AppDatePipe } from '../core/date-format';
           </div>
           <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
             <div class="line-clamp-1 flex gap-2 font-medium">
-              {{ absences.hoursAbsent() | number: '1.0-1' }} hours missed
+              {{ absences.daysMissed() }} days missed
             </div>
             <div class="text-muted-foreground">Recorded by your school</div>
           </div>

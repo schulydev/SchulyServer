@@ -15,6 +15,16 @@ namespace Schuly.Application.Mappers
                 From = absence.From,
                 Until = absence.Until,
                 IsExcused = absence.IsExcused,
+                StartTime = absence.StartTime,
+                EndTime = absence.EndTime,
+                ParentStatus = absence.ParentStatus,
+                ParentStatusDate = absence.ParentStatusDate,
+                TrainerStatus = absence.TrainerStatus,
+                TrainerStatusDate = absence.TrainerStatusDate,
+                TrainerComment = absence.TrainerComment,
+                Comment = absence.Comment,
+                ExcuseDeadline = absence.ExcuseDeadline,
+                Lessons = absence.Lessons,
                 SchoolUserId = absence.SchoolUserId,
                 SchoolId = absence.SchoolUser?.SchoolId
             };

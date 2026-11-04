@@ -281,6 +281,11 @@ namespace Schuly.Infrastructure
             {
                 entity.HasKey(a => a.Id);
                 entity.Property(a => a.Reason).HasColumnType("text").HasConversion(SensitiveText.Converter);
+                entity.Property(a => a.Comment).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(a => a.TrainerComment).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                // No school's values have been seen yet, so these get the same protection as free text.
+                entity.Property(a => a.ParentStatus).HasColumnType("text").HasConversion(SensitiveText.Converter!);
+                entity.Property(a => a.TrainerStatus).HasColumnType("text").HasConversion(SensitiveText.Converter!);
 
                 entity.HasOne(a => a.SchoolUser)
                     .WithMany(su => su.Absences)
