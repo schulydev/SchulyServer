@@ -6,6 +6,8 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { dayKey } from '../core/dates';
 import { renderBody } from '../core/message-html';
+import { presenceView } from '../core/presence';
+import { keepFresh } from '../core/response-cache';
 import { EmptyState } from '../shared/empty-state';
 import { BubbleFile, BubbleMedia, BubbleSticker, CardView, Importance, allowedMediaUrl, cardView, isHttps } from '../core/chat-media';
 import { describeEvent } from '../core/chat-events';
@@ -24,6 +26,7 @@ import { ChatStore, MessageQuote, bodyText } from '../stores/chat.store';
 import { AppDatePipe, relativeDayLabel } from '../core/date-format';
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
+const PRESENCE_POLL_MS = 60_000;
 const NEAR_BOTTOM_PX = 80;
 
 interface Attachment {
@@ -91,11 +94,18 @@ function quoteView(q: MessageQuote): QuoteView {
           <ng-icon name="lucideArrowLeft" aria-hidden="true" />
           <span class="sr-only">Back to chats</span>
         </button>
-        <app-chat-avatar [people]="chat.people" [oneOnOne]="chat.oneOnOne" [title]="chat.title" [image]="chat.image" [imageAvailable]="chat.hasImage" [chatId]="chat.id" size="compact" />
+        <span class="relative inline-flex shrink-0">
+          <app-chat-avatar [people]="chat.people" [oneOnOne]="chat.oneOnOne" [title]="chat.title" [image]="chat.image" [imageAvailable]="chat.hasImage" [chatId]="chat.id" size="compact" />
+          @if (presence(); as status) {
+            <span class="ring-background absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2" [class]="status.dot" aria-hidden="true"></span>
+          }
+        </span>
         <div class="min-w-0 flex-1">
           <h2 class="truncate text-sm leading-4 font-semibold">{{ chat.title }}</h2>
           @if (!chat.oneOnOne && chat.memberCount > 1) {
             <p class="text-muted-foreground truncate text-[11px] leading-3">{{ chat.memberCount }} people</p>
+          } @else if (presence(); as status) {
+            <p class="text-muted-foreground truncate text-[11px] leading-3">{{ status.label }}</p>
           }
         </div>
         @if (chat.link) {
@@ -304,12 +314,28 @@ function quoteView(q: MessageQuote): QuoteView {
   host: { class: 'flex min-h-0 flex-1 flex-col' },
 })
 export class ChatConversation {
+  private loadPresence(): void {
+    const id = this.oneOnOneId();
+    if (!id) return;
+    void this.api.presence(id).then((availability) => {
+      if (this.oneOnOneId() === id) this.availability.set(availability);
+    });
+  }
+
   protected readonly store = inject(ChatStore);
   private readonly injector = inject(Injector);
 
   readonly back = output<void>();
 
   private readonly api = inject(ChatApi);
+
+  /** The open chat when it is 1:1: a status belongs to one person, and a list refresh must not restart this. */
+  private readonly oneOnOneId = computed(() => {
+    const chat = this.store.openChat();
+    return chat?.oneOnOne ? chat.id : null;
+  });
+  private readonly availability = signal<string | null>(null);
+  protected readonly presence = computed(() => presenceView(this.availability()));
   protected readonly viewing = signal<ViewerFile | null>(null);
   private readonly localUrls = new Map<File, string>();
   protected readonly newBelow = signal(false);
@@ -469,6 +495,14 @@ export class ChatConversation {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.localUrls.forEach((url) => URL.revokeObjectURL(url)));
+    effect(() => {
+      this.oneOnOneId();
+      untracked(() => {
+        this.availability.set(null);
+        this.loadPresence();
+      });
+    });
+    inject(DestroyRef).onDestroy(keepFresh(() => this.loadPresence(), PRESENCE_POLL_MS));
     // A different chat starts empty and jumps to its newest message once loaded.
     effect(() => {
       this.store.openId();
