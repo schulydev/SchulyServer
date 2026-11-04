@@ -8,6 +8,7 @@ import { ExamGrade, GradeGroup, SubjectResult, allSemestersAverage, buildGradeGr
 import { EmptyState } from '../shared/empty-state';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { GradesStore } from '../stores/grades.store';
+import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { MySchoolsStore, SemesterReportsStore } from '../stores/semester-reports.store';
 import { GradesExamRow } from './grades-exam-row';
 import { gradeDot, gradeTone, scalePosition } from './grades-tone';
@@ -27,38 +28,8 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
   providers: [provideIcons({ lucideSearch, lucideChartColumn, lucideChevronDown })],
   template: `
     <div class="flex flex-col gap-5 p-4 md:gap-6 lg:p-6">
-      <app-syncing-notice />
-      <div class="flex flex-wrap items-center justify-end gap-3">
-        <h2 class="sr-only">Grades</h2>
-        <div class="flex flex-wrap items-center gap-2">
-          @if (groups().length > 1) {
-            <div class="bg-muted flex flex-wrap gap-0.5 rounded-lg p-[3px]" role="group" aria-label="Class">
-              @for (item of groups(); track item.key) {
-                <button type="button" [class]="segment" [attr.aria-pressed]="item.key === group()?.key" (click)="groupKey.set(item.key)">{{ item.label }}</button>
-              }
-            </div>
-          }
-          @if (group()) {
-            <label class="sr-only" for="grades-semester">Semester</label>
-            <hlm-select class="w-56" [value]="semesterKey()" [itemToString]="semesterLabel" (valueChange)="semesterKey.set($event ?? null)">
-              <hlm-select-trigger buttonId="grades-semester" class="w-full">
-                <hlm-select-value />
-              </hlm-select-trigger>
-              <hlm-select-content *hlmSelectPortal>
-                <hlm-select-group>
-                  @for (semester of newestFirst(); track semester.key) {
-                    <hlm-select-item [value]="semester.key">{{ semester.label }}</hlm-select-item>
-                  }
-                  @if (group()?.undated?.length) {
-                    <hlm-select-item [value]="noDate">No date</hlm-select-item>
-                  }
-                  <hlm-select-item [value]="all">All semesters</hlm-select-item>
-                </hlm-select-group>
-              </hlm-select-content>
-            </hlm-select>
-          }
-        </div>
-      </div>
+      <app-syncing-notice [class.absolute]="!accounts.syncing()" />
+      <h2 class="sr-only">Grades</h2>
 
       @if (loading()) {
         <div class="flex flex-col gap-2">
@@ -91,20 +62,50 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
               </div>
             </div>
           </div>
-          <dl class="flex gap-7">
-            <div class="flex flex-col-reverse">
-              <dt class="text-muted-foreground text-sm">Grades</dt>
-              <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ gradeCount() }}</dd>
-            </div>
-            <div class="flex flex-col-reverse">
-              <dt class="text-muted-foreground text-sm">Subjects</dt>
-              <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ subjectCount() }}</dd>
-            </div>
-            <div class="flex flex-col-reverse">
-              <dt class="text-muted-foreground text-sm">Negative Abweichung</dt>
-              <dd class="text-2xl font-semibold tracking-tight tabular-nums" [class.text-destructive]="deviation()">{{ deviationText() }}</dd>
-            </div>
-          </dl>
+          <div class="flex flex-col items-start justify-between gap-6 self-stretch sm:items-end">
+          <div class="flex flex-wrap items-center gap-2">
+            @if (groups().length > 1) {
+              <div class="bg-muted flex flex-wrap gap-0.5 rounded-lg p-[3px]" role="group" aria-label="Class">
+                @for (item of groups(); track item.key) {
+                  <button type="button" [class]="segment" [attr.aria-pressed]="item.key === group()?.key" (click)="groupKey.set(item.key)">{{ item.label }}</button>
+                }
+              </div>
+            }
+            @if (group()) {
+              <label class="sr-only" for="grades-semester">Semester</label>
+              <hlm-select class="w-56" [value]="semesterKey()" [itemToString]="semesterLabel" (valueChange)="semesterKey.set($event ?? null)">
+                <hlm-select-trigger buttonId="grades-semester" class="w-full">
+                  <hlm-select-value />
+                </hlm-select-trigger>
+                <hlm-select-content *hlmSelectPortal>
+                  <hlm-select-group>
+                    @for (semester of newestFirst(); track semester.key) {
+                      <hlm-select-item [value]="semester.key">{{ semester.label }}</hlm-select-item>
+                    }
+                    @if (group()?.undated?.length) {
+                      <hlm-select-item [value]="noDate">No date</hlm-select-item>
+                    }
+                    <hlm-select-item [value]="all">All semesters</hlm-select-item>
+                  </hlm-select-group>
+                </hlm-select-content>
+              </hlm-select>
+            }
+          </div>
+            <dl class="flex gap-7">
+              <div class="flex flex-col-reverse">
+                <dt class="text-muted-foreground text-sm">Grades</dt>
+                <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ gradeCount() }}</dd>
+              </div>
+              <div class="flex flex-col-reverse">
+                <dt class="text-muted-foreground text-sm">Subjects</dt>
+                <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ subjectCount() }}</dd>
+              </div>
+              <div class="flex flex-col-reverse">
+                <dt class="text-muted-foreground text-sm">Negative Abweichung</dt>
+                <dd class="text-2xl font-semibold tracking-tight tabular-nums" [class.text-destructive]="deviation()">{{ deviationText() }}</dd>
+              </div>
+            </dl>
+          </div>
         </section>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -191,6 +192,7 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
   `,
 })
 export class Grades {
+  protected readonly accounts = inject(LinkedAccountsStore);
   private readonly grades = inject(GradesStore);
   private readonly reports = inject(SemesterReportsStore);
   private readonly schools = inject(MySchoolsStore);
