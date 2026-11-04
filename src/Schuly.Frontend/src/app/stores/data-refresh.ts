@@ -5,6 +5,7 @@ import { AgendaStore } from './agenda.store';
 import { ClassesStore } from './classes.store';
 import { DocumentsStore } from './documents.store';
 import { GradesStore } from './grades.store';
+import { MySchoolsStore, SemesterReportsStore } from './semester-reports.store';
 import { UserStore } from './user.store';
 
 /**
@@ -17,6 +18,8 @@ export class DataRefresh {
   private readonly user = inject(UserStore);
   private readonly classes = inject(ClassesStore);
   private readonly grades = inject(GradesStore);
+  private readonly semesterReports = inject(SemesterReportsStore);
+  private readonly mySchools = inject(MySchoolsStore);
   private readonly absences = inject(AbsencesStore);
   private readonly agenda = inject(AgendaStore);
   private readonly documents = inject(DocumentsStore);
@@ -29,6 +32,8 @@ export class DataRefresh {
     swrCache.clear();
     this.classes.clear();
     this.grades.clear();
+    this.semesterReports.clear();
+    this.mySchools.clear();
     this.absences.clear();
     this.agenda.clear();
     this.documents.clear();
@@ -40,6 +45,8 @@ export class DataRefresh {
     this.user.load();
     this.classes.load();
     this.grades.load();
+    this.semesterReports.load();
+    this.mySchools.load();
     this.absences.load();
     this.agenda.load();
     this.documents.load();

@@ -15,6 +15,7 @@ export interface MySchoolDto {
     email: string;
     fullName: string;
     logoUrl?: string | null;
+    website?: string | null;
     schoolSystemKey?: string | null;
     profilePictureUrl?: string | null;
 }
