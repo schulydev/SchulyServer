@@ -280,7 +280,7 @@ import { AppDatePipe } from '../core/date-format';
                     }}</span>
                   </div>
                   <hlm-progress
-                    [value]="((subject.average - 1) / 5) * 100"
+                    [value]="gradeBar(subject.average)"
                     [attr.aria-label]="subject.subject + ' average'"
                   >
                     <hlm-progress-indicator />
@@ -295,6 +295,11 @@ import { AppDatePipe } from '../core/date-format';
   `,
 })
 export class Overview {
+  /** Grades run from 1 to 6, but a school can report an average of 0, and a progress bar throws outside 0 to 100. */
+  protected gradeBar(average: number): number {
+    return Math.min(100, Math.max(0, ((average - 1) / 5) * 100));
+  }
+
   protected readonly grades = inject(GradesStore);
   protected readonly agenda = inject(AgendaStore);
   protected readonly absences = inject(AbsencesStore);

@@ -196,6 +196,18 @@ export class ChatApi {
     this.urls.clear();
   }
 
+  /** The other person's Teams status in a 1:1 chat. Failing is the same as having none: the header shows no dot. */
+  async presence(chatId: string): Promise<string | null> {
+    const base = this.base();
+    if (!base) return null;
+    try {
+      const answer = await firstValueFrom(this.http.get<{ availability?: string | null }>(`${base}/chats/${encodeURIComponent(chatId)}/presence`));
+      return answer?.availability ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async gifs(query: string | null, limit = 24): Promise<GifResult> {
     const base = this.base();
     if (!base) return { status: 'error' };
