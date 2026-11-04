@@ -4,7 +4,7 @@ import { lucideChartColumn, lucideChevronDown, lucideSearch } from '@ng-icons/lu
 import { HlmInputGroupImports } from '@spartan-ng/helm/input-group';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { ExamGrade, GradeGroup, SubjectResult, allSemestersAverage, buildGradeGroups, countsInAverage, groupClassNames, isBbbWebsite, isGraded, oneDecimal, subjectLabel, weightedMean } from '../core/grade-report';
+import { ExamGrade, GradeGroup, GradeHeadline, SubjectResult, buildGradeGroups, chooseGradeCase, countsInAverage, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, subjectLabel, subjectsBelowFour, weightedMean } from '../core/grade-report';
 import { EmptyState } from '../shared/empty-state';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { GradesStore } from '../stores/grades.store';
@@ -37,30 +37,39 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
             <hlm-skeleton class="h-12 w-full" />
           }
         </div>
+      } @else if (noGrades()) {
+        <app-empty-state icon="lucideChartColumn" title="No grades here" description="Your school hasn't shared any grades with Schuly." />
       } @else if (group(); as current) {
         <section class="flex flex-wrap items-end justify-between gap-x-10 gap-y-6 border-b pb-6" aria-label="Summary">
           <div class="min-w-64 flex-1">
-            <p class="text-muted-foreground text-sm">{{ averageLabel() }}</p>
-            <div class="mt-1 mb-4 flex flex-wrap items-baseline gap-x-3">
-              <p class="text-6xl leading-none font-semibold tracking-tighter tabular-nums">{{ averageText() }}</p>
-              @if (current.bbbRules && average() != null) {
-                <p class="text-muted-foreground text-sm">every subject counts the same</p>
+            <p class="text-muted-foreground text-sm">{{ headline().label }}</p>
+            <div class="mt-1.5 mb-4 flex flex-wrap items-center gap-x-4.5 gap-y-1.5">
+              @if (headline().value != null) {
+                <p class="text-6xl leading-none font-semibold tracking-tighter tabular-nums">{{ averageText() }}</p>
               }
-            </div>
-            <div class="relative h-9 max-w-[32.5rem]" aria-hidden="true">
-              <div class="bg-muted absolute inset-x-0 top-2 h-1.5 overflow-hidden rounded-full">
-                <div class="bg-destructive/25 h-full w-3/5"></div>
-              </div>
-              <div class="bg-muted-foreground absolute top-[3px] left-3/5 h-4 w-0.5"></div>
-              @if (average(); as value) {
-                <div class="bg-foreground border-background absolute top-[3px] -ml-2 size-4 rounded-full border-[3px]" [style.left.%]="position(value)"></div>
-              }
-              <div class="text-muted-foreground absolute inset-x-0 top-5 text-[11px]">
-                @for (tick of ticks; track tick) {
-                  <span class="absolute first:translate-x-0 last:-translate-x-full [&:not(:first-child,:last-child)]:-translate-x-1/2" [style.left.%]="position(tick)">{{ tick }}</span>
+              <div class="min-w-56 flex-1">
+                @if (headline().state) {
+                  <p class="text-lg font-semibold tracking-tight text-balance" [class.text-green-700]="headline().tone === 'good'" [class.dark:text-green-400]="headline().tone === 'good'" [class.text-destructive]="headline().tone === 'bad'">{{ headline().state }}</p>
+                }
+                @if (headline().hint) {
+                  <p class="text-muted-foreground max-w-prose text-sm">{{ headline().hint }}</p>
                 }
               </div>
             </div>
+            @if (headline().value; as value) {
+              <div class="relative h-9 max-w-[32.5rem]" aria-hidden="true">
+                <div class="bg-muted absolute inset-x-0 top-2 h-1.5 overflow-hidden rounded-full">
+                  <div class="bg-destructive/25 h-full w-3/5"></div>
+                </div>
+                <div class="bg-muted-foreground absolute top-[3px] left-3/5 h-4 w-0.5"></div>
+                <div class="bg-foreground border-background absolute top-[3px] -ml-2 size-4 rounded-full border-[3px]" [style.left.%]="position(value)"></div>
+                <div class="text-muted-foreground absolute inset-x-0 top-5 text-[11px]">
+                  @for (tick of ticks; track tick) {
+                    <span class="absolute first:translate-x-0 last:-translate-x-full [&:not(:first-child,:last-child)]:-translate-x-1/2" [style.left.%]="position(tick)">{{ tick }}</span>
+                  }
+                </div>
+              </div>
+            }
           </div>
           <div class="flex flex-col items-start justify-between gap-6 self-stretch sm:items-end">
           <div class="flex flex-wrap items-center gap-2">
@@ -85,7 +94,9 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
                     @if (group()?.undated?.length) {
                       <hlm-select-item [value]="noDate">No date</hlm-select-item>
                     }
-                    <hlm-select-item [value]="all">All semesters</hlm-select-item>
+                    @if (hasAllOption()) {
+                      <hlm-select-item [value]="all">All semesters</hlm-select-item>
+                    }
                   </hlm-select-group>
                 </hlm-select-content>
               </hlm-select>
@@ -101,15 +112,15 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
                 <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ subjectCount() }}</dd>
               </div>
               <div class="flex flex-col-reverse">
-                <dt class="text-muted-foreground text-sm">Negative Abweichung</dt>
-                <dd class="text-2xl font-semibold tracking-tight tabular-nums" [class.text-destructive]="deviation()">{{ deviationText() }}</dd>
+                <dt class="text-muted-foreground text-sm">{{ showDeviation() ? 'Negative Abweichung' : 'Subjects below 4' }}</dt>
+                <dd class="text-2xl font-semibold tracking-tight tabular-nums" [class.text-destructive]="showDeviation() ? deviation() : belowFour()">{{ showDeviation() ? deviationText() : belowFour() }}</dd>
               </div>
             </dl>
           </div>
         </section>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
-          @if (view() !== 'zeugnis') {
+          @if (activeView() !== 'zeugnis') {
             <hlm-input-group class="w-full sm:max-w-xs">
               <input hlmInputGroupInput placeholder="Search exams or subjects" aria-label="Search exams or subjects" autocomplete="off" [value]="query()" (input)="query.set($any($event.target).value)" />
               <hlm-input-group-addon>
@@ -120,13 +131,13 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
             <span></span>
           }
           <div class="bg-muted flex flex-wrap gap-0.5 rounded-lg p-[3px]" role="group" aria-label="View">
-            @for (item of views; track item.id) {
-              <button type="button" [class]="segment" [attr.aria-pressed]="view() === item.id" (click)="view.set(item.id)">{{ item.label }}</button>
+            @for (item of views(); track item.id) {
+              <button type="button" [class]="segment" [attr.aria-pressed]="activeView() === item.id" (click)="view.set(item.id)">{{ item.label }}</button>
             }
           </div>
         </div>
 
-        @switch (view()) {
+        @switch (activeView()) {
           @case ('subject') {
             <div class="flex flex-col">
               @for (subject of subjects(); track subject.key) {
@@ -182,11 +193,9 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
             }
           }
         }
-        @if (view() !== 'zeugnis' && !current.bbbRules) {
+        @if (activeView() !== 'zeugnis' && !current.bbbRules && !isZeugnisSemester()) {
           <p class="text-muted-foreground text-xs">Subjects show their plain average, which may differ from what your school prints on its reports.</p>
         }
-      } @else {
-        <app-empty-state icon="lucideChartColumn" title="No grades yet" description="Grades show up here once your school publishes them." />
       }
     </div>
   `,
@@ -203,12 +212,6 @@ export class Grades {
   protected readonly ticks = [1, 2, 3, 4, 5, 6];
   protected readonly position = scalePosition;
   protected readonly tone = gradeTone;
-  protected readonly views: { id: View; label: string }[] = [
-    { id: 'subject', label: 'By subject' },
-    { id: 'date', label: 'By date' },
-    { id: 'zeugnis', label: 'Zeugnis' },
-  ];
-
   protected readonly view = signal<View>('subject');
   protected readonly query = signal('');
   private readonly touched = signal(new Map<string, boolean>());
@@ -248,27 +251,6 @@ export class Grades {
     return this.group()?.semesters.find((s) => s.key === key)?.label ?? '';
   };
 
-  protected readonly average = computed(() => {
-    const group = this.group();
-    if (!group) return null;
-    if (this.semesterKey() === ALL) return allSemestersAverage(group);
-    return this.semester()?.average ?? null;
-  });
-  protected readonly averageText = computed(() => {
-    const value = this.average();
-    return value != null ? oneDecimal(value) : '–';
-  });
-  protected readonly averageLabel = computed(() => {
-    const group = this.group();
-    const semester = this.semester();
-    const className = this.groups().length > 1 ? `, ${group?.label}` : '';
-    if (this.semesterKey() === NO_DATE) return `Grades without a date${className}`;
-    if (!semester) return `Average of all semesters${className}`;
-    if (semester.report) return `Zeugnis average, ${semester.label}${className}`;
-    if (semester.expected) return `Expected average, ${semester.label}${className}`;
-    return `No Zeugnis yet, ${semester.label}${className}`;
-  });
-
   private readonly selectedSubjects = computed<SubjectResult[]>(() => {
     const group = this.group();
     if (!group) return [];
@@ -305,6 +287,29 @@ export class Grades {
     }
     return [...subjects.values()];
   }
+
+  protected readonly gradeCase = computed(() => chooseGradeCase(this.group()));
+  protected readonly noGrades = computed(() => this.groups().every((g) => chooseGradeCase(g) === 'none'));
+  /** Without a report there's nothing a Zeugnis view could print. */
+  protected readonly views = computed<{ id: View; label: string }[]>(() => [{ id: 'subject', label: 'By subject' }, { id: 'date', label: 'By date' }, ...(this.gradeCase() === 'no-reports' ? [] : [{ id: 'zeugnis' as const, label: 'Zeugnis' }])]);
+  protected readonly activeView = computed<View>(() => (this.views().some((v) => v.id === this.view()) ? this.view() : 'subject'));
+  protected readonly hasAllOption = computed(() => (this.group()?.semesters.length ?? 0) > 1 || !!this.group()?.undated.length);
+  /** This semester's subject grades are Zeugnis grades: from the report, or expected under confirmed rules. */
+  protected readonly isZeugnisSemester = computed(() => !!this.semester()?.report || !!this.semester()?.expected);
+  protected readonly belowFour = computed(() => subjectsBelowFour(this.selectedSubjects()));
+  protected readonly showDeviation = computed(() => !!this.group()?.bbbRules && !!this.semester());
+
+  protected readonly headline = computed<GradeHeadline>(() => {
+    const group = this.group();
+    if (!group) return { label: '', value: null, state: '', tone: '', hint: '' };
+    const suffix = this.groups().length > 1 ? `, ${group.label}` : '';
+    if (this.semesterKey() === NO_DATE) return { label: `Grades without a date${suffix}`, value: null, state: '', tone: '', hint: "These grades have no date, so they aren't in a semester." };
+    return gradeHeadline(group, this.semester(), this.belowFour(), suffix);
+  });
+  protected readonly averageText = computed(() => {
+    const value = this.headline().value;
+    return value != null ? oneDecimal(value) : '';
+  });
 
   private readonly selectedRows = computed(() => this.selectedSubjects().flatMap((s) => s.rows));
   protected readonly gradeCount = computed(() => this.selectedRows().filter((r) => isGraded(r.score)).length);
@@ -367,7 +372,7 @@ export class Grades {
   protected subjectDetail(subject: SubjectResult): string {
     const graded = subject.rows.filter((r) => isGraded(r.score)).length;
     const parts = [subject.rows.length ? (graded ? `${graded} ${graded === 1 ? 'grade' : 'grades'}` : 'Not graded') : 'Zeugnis only'];
-    if (graded > 1 && subject.exact != null) parts.push(`average ${subject.exact.toFixed(2)}`);
+    if (graded > 1 && subject.exact != null && this.isZeugnisSemester()) parts.push(`average ${subject.exact.toFixed(2)}`);
     if (!subject.counted) parts.push('not in the average');
     return parts.join(' · ');
   }
@@ -378,12 +383,12 @@ export class Grades {
   }
 
   protected pillText(subject: SubjectResult): string {
-    if (subject.grade != null) return subject.grade * 2 === Math.round(subject.grade * 2) ? subject.grade.toFixed(1) : subject.grade.toFixed(2);
+    if (subject.grade != null) return this.isZeugnisSemester() && subject.grade * 2 === Math.round(subject.grade * 2) ? subject.grade.toFixed(1) : subject.grade.toFixed(2);
     return subject.marker ?? '–';
   }
 
   protected pillLabel(subject: SubjectResult): string {
     const text = this.pillText(subject);
-    return this.group()?.bbbRules && this.semesterKey() !== ALL ? `Zeugnis grade ${text}` : `Average ${text}`;
+    return this.isZeugnisSemester() ? `Zeugnis grade ${text}` : `Average ${text}`;
   }
 }

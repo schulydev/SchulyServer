@@ -64,8 +64,8 @@ interface Row {
     @if (expectedNumber(); as number) {
       <p class="text-muted-foreground mt-3 text-xs">Semester {{ number }} is expected until the real Zeugnis is out.</p>
     }
-    @if (!group().bbbRules) {
-      <p class="text-muted-foreground mt-3 text-xs">Without a report, a subject shows its plain average. It may differ from what your school prints.</p>
+    @if (!expectedNumber() && hasPendingSemester()) {
+      <p class="text-muted-foreground mt-3 text-xs">This semester stays empty until the real Zeugnis is out.</p>
     }
   `,
 })
@@ -79,6 +79,7 @@ export class GradesZeugnis {
   protected readonly isExpected = (number: number) => this.semesterAt(number)?.expected ?? false;
   protected readonly selectedNumber = computed(() => this.group().semesters.find((s) => s.key === this.selectedKey())?.number ?? null);
   protected readonly expectedNumber = computed(() => [...this.group().semesters].reverse().find((s) => s.expected)?.number ?? null);
+  protected readonly hasPendingSemester = computed(() => this.group().semesters.some((s) => !s.report && !s.expected));
 
   // ponytail: an even number of columns, at least eight. Fewer years just leave empty columns.
   protected readonly columns = computed(() => {
@@ -101,7 +102,8 @@ export class GradesZeugnis {
   protected readonly rows = computed<Row[]>(() => {
     const seen = new Map<string, Map<number, SubjectResult>>();
     const names = new Map<string, SubjectResult>();
-    for (const semester of this.group().semesters) {
+    // A semester with no report and no confirmed rules has nothing to print yet.
+    for (const semester of this.group().semesters.filter((s) => s.report || s.expected)) {
       for (const subject of semester.subjects) {
         if (!seen.has(subject.key)) seen.set(subject.key, new Map());
         seen.get(subject.key)!.set(semester.number, subject);
@@ -124,12 +126,13 @@ export class GradesZeugnis {
       const semester = this.semesterAt(number);
       return semester ? read(semester) : '';
     };
-    return [
+    const lines = [
       { label: 'Durchschnitt', value: (n: number) => text(n, (s) => (s.average != null ? oneDecimal(s.average) : '')) },
       { label: 'Promotion', value: (n: number) => text(n, (s) => (s.expected ? 'offen' : promotionText(s.report?.promotionDecision))) },
       { label: 'Negative Notenabweichung', value: (n: number) => text(n, (s) => (s.deviation ? String(s.deviation) : '')) },
       { label: 'Absenzen unentschuldigt', value: (n: number) => text(n, (s) => (s.report?.unexcusedAbsences != null ? String(s.report.unexcusedAbsences) : '')) },
     ];
+    return lines.filter((line) => this.group().semesters.some((s) => line.value(s.number)));
   });
 
   private gradeText(subject: SubjectResult): string {

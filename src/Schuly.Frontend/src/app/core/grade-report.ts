@@ -193,7 +193,8 @@ export function buildGradeGroups(grades: ExamGrade[], reports: SemesterReport[],
   for (const key of new Set([...reportGroups.keys(), ...placed.keys()])) {
     const list = reportGroups.get(key) ?? [];
     const entries = placed.get(key) ?? [];
-    const bbbRules = entries.length ? entries.some((e) => usesBbbRules(e.row.schoolId)) : usesBbbRules(null);
+    // What couldn't be placed in a class isn't a Zeugnis, so nothing is predicted for it.
+    const bbbRules = key !== OTHER_GROUP && (entries.length ? entries.some((e) => usesBbbRules(e.row.schoolId)) : usesBbbRules(null));
     const keys = new Set([...list.map((r) => semesterKey(r.schoolYearStart, r.semesterHalf)), ...entries.flatMap((e) => (e.semester ? [e.semester] : []))]);
     const ordered = [...keys].sort();
     const parse = (k: string) => k.split('-').map(Number);
@@ -263,6 +264,83 @@ export const allSemestersAverage = (group: GradeGroup): number | null => semeste
 
 /** "kein Promotionsentscheid" is a sentence in a one-word column, and means there's nothing to show. */
 export const promotionText = (decision: string | null | undefined): string => (decision && !/^kein/i.test(decision) ? decision : '');
+
+/**
+ * What Schuly can honestly say about a class, read from the data: BBB's rules are confirmed, a school's real reports can only be quoted,
+ * and without an average on them there's no overall number to show. When unsure, the version without a number wins.
+ */
+export type GradeCase = 'bbb' | 'reports-average' | 'reports-no-average' | 'no-reports' | 'none';
+
+export function chooseGradeCase(group: GradeGroup | null): GradeCase {
+  if (!group) return 'none';
+  const hasGrades = group.undated.some((r) => isGraded(r.score)) || group.semesters.some((s) => s.gradeCount > 0);
+  const hasReports = group.semesters.some((s) => s.report);
+  if (!hasGrades && !hasReports) return 'none';
+  if (group.bbbRules) return 'bbb';
+  if (!hasReports) return 'no-reports';
+  return group.semesters.some((s) => s.report?.gradeAverage != null) ? 'reports-average' : 'reports-no-average';
+}
+
+export interface PromotionOutlook {
+  atRisk: boolean;
+  text: string;
+}
+
+/** BM's pass rule applied to a semester so far: at most 2 grades below 4, at most 2 points below 4, and an average of at least 4 once rounded to one decimal, so 3.95 counts as 4.0. */
+export function promotionOutlook(grades: number[]): PromotionOutlook | null {
+  const average = semesterAverage(grades);
+  if (average == null) return null;
+  const below = grades.filter((g) => g < 4).length;
+  const points = negativeDeviation(grades);
+  const risk = below > 2 ? `${below} subjects below 4, the limit is 2` : points > 2 ? `${points.toFixed(1)} points below 4, the limit is 2` : Number(oneDecimal(average)) < 4 ? 'the average is below 4' : '';
+  return { atRisk: !!risk, text: risk ? `Promotion at risk: ${risk}` : 'On track for promotion' };
+}
+
+export const countedGrades = (semester: SemesterResult): number[] => semester.subjects.flatMap((s) => (s.counted && s.grade != null ? [s.grade] : []));
+
+export const subjectsBelowFour = (subjects: SubjectResult[]): number => subjects.filter((s) => s.counted && (s.grade ?? 6) < 4).length;
+
+export interface GradeHeadline {
+  label: string;
+  value: number | null;
+  state: string;
+  tone: 'good' | 'bad' | '';
+  hint: string;
+}
+
+const belowText = (count: number) => (count ? `${count} ${count === 1 ? 'subject' : 'subjects'} below 4 so far` : 'No subject below 4 so far');
+const NO_AVERAGE_HINT = "Your school's reports have no overall average, so Schuly doesn't show one.";
+
+/** The top of the page for one semester, or for all of them when `semester` is null. */
+export function gradeHeadline(group: GradeGroup, semester: SemesterResult | null, below: number, classSuffix = ''): GradeHeadline {
+  const gradeCase = chooseGradeCase(group);
+  const none: GradeHeadline = { label: '', value: null, state: '', tone: '', hint: '' };
+  if (!semester) {
+    const value = gradeCase === 'bbb' || gradeCase === 'reports-average' ? allSemestersAverage(group) : null;
+    return { ...none, label: `All semesters${classSuffix}`, value, hint: value != null ? 'Average of the semester averages.' : '' };
+  }
+  const label = `${semester.label}${classSuffix}`;
+  const promotion = promotionText(semester.report?.promotionDecision);
+  const fromReport = { state: promotion ? `Promotion: ${promotion}` : '', tone: '' as const };
+
+  if (semester.expected) {
+    const outlook = promotionOutlook(countedGrades(semester));
+    return { label, value: semester.average, state: outlook?.text ?? '', tone: outlook ? (outlook.atRisk ? 'bad' : 'good') : '', hint: `Expected, based on ${semester.gradeCount} ${semester.gradeCount === 1 ? 'grade' : 'grades'} so far. Your school decides.` };
+  }
+  if (semester.report && (gradeCase === 'bbb' || gradeCase === 'reports-average')) {
+    return { ...none, ...fromReport, label, value: semester.report.gradeAverage ?? null, hint: 'From your Zeugnis.' };
+  }
+  if (semester.report) {
+    return promotion ? { ...none, ...fromReport, label, hint: `From your Zeugnis. ${NO_AVERAGE_HINT}` } : { ...none, label, state: belowText(below).replace(' so far', ''), tone: below ? 'bad' : '', hint: NO_AVERAGE_HINT };
+  }
+  if (gradeCase === 'reports-average') {
+    const last = [...group.semesters].reverse().find((s) => s.key < semester.key && s.report?.gradeAverage != null);
+    const pending = `This semester's average appears when the Zeugnis is out. ${belowText(below)}.`;
+    return last ? { ...none, label: `Last Zeugnis, ${last.label}${classSuffix}`, value: last.report?.gradeAverage ?? null, hint: pending } : { ...none, label, hint: pending };
+  }
+  const hint = group.key === OTHER_GROUP ? "Schuly couldn't match these subjects to a class." : gradeCase === 'reports-no-average' ? NO_AVERAGE_HINT : group.semesters.length > 1 ? 'Schuly has no Zeugnis for you yet.' : 'Your first Zeugnis comes at the end of this semester.';
+  return { ...none, label, state: belowText(below), tone: below ? 'bad' : '', hint };
+}
 
 export function isBbbWebsite(website: string | null | undefined): boolean {
   if (!website) return false;

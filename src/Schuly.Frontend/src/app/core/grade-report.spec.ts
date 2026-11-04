@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ExamGrade, OTHER_GROUP, SemesterReport, allSemestersAverage, buildGradeGroups, cleanExamName, countsInAverage, halfGrade, isBbbWebsite, negativeDeviation, oneDecimal, promotionText, semesterAverage, semesterOfDate, subjectKey, subjectLabel, weightedMean } from './grade-report';
+import { ExamGrade, OTHER_GROUP, SemesterReport, chooseGradeCase, gradeHeadline, promotionOutlook, allSemestersAverage, buildGradeGroups, cleanExamName, countsInAverage, halfGrade, isBbbWebsite, negativeDeviation, oneDecimal, promotionText, semesterAverage, semesterOfDate, subjectKey, subjectLabel, weightedMean } from './grade-report';
 
 let id = 0;
 const exam = (subject: string, date: string | null, score: number, weighting = 1, name = 'Test'): ExamGrade => ({ id: `e${++id}`, subject, exam: name, date, score, weighting, classAverage: 4.5, schoolId: 's1' });
@@ -189,5 +189,120 @@ describe('buildGradeGroups', () => {
   it('averages all semesters from those that have a number', () => {
     const [group] = buildGradeGroups([], [report('BM23d', 2024, 1, { Deutsch: 5 }, 4), report('BM23d', 2024, 2, { Deutsch: 5 }, 5), report('BM23d', 2025, 1, { Deutsch: 5 })], bbb);
     expect(allSemestersAverage(group)).toBe(4.5);
+  });
+});
+
+describe('chooseGradeCase', () => {
+  it('confirmed rules first', () => {
+    expect(chooseGradeCase(buildGradeGroups([exam('Deutsch', '2026-09-03', 5)], [], bbb)[0])).toBe('bbb');
+    expect(chooseGradeCase(buildGradeGroups([exam('Deutsch', '2026-03-03', 5)], [report('BM23d', 2025, 2, { Deutsch: 5 }, 5)], bbb)[0])).toBe('bbb');
+  });
+
+  it('a real average on any report means the school uses one', () => {
+    const reports = [report('A1', 2024, 1, { Deutsch: 5 }), report('A1', 2024, 2, { Deutsch: 5 }, 5)];
+    expect(chooseGradeCase(buildGradeGroups([], reports, other)[0])).toBe('reports-average');
+  });
+
+  it('reports without any average get no number', () => {
+    expect(chooseGradeCase(buildGradeGroups([], [report('G1a', 2025, 1, { Deutsch: 5 })], other)[0])).toBe('reports-no-average');
+  });
+
+  it('grades without reports', () => {
+    expect(chooseGradeCase(buildGradeGroups([exam('Deutsch', '2026-09-03', 5)], [], other)[0])).toBe('no-reports');
+  });
+
+  it('nothing at all, or only ungraded entries, is no grades', () => {
+    expect(chooseGradeCase(null)).toBe('none');
+    expect(chooseGradeCase(buildGradeGroups([exam('Modul 106', null, 0)], [], other)[0])).toBe('none');
+  });
+
+  it('subjects that fit no class never follow the rules of one', () => {
+    const groups = buildGradeGroups([exam('Unknown', '2026-09-03', 5)], [report('A1', 2025, 1, { Deutsch: 5 }), report('B1', 2025, 1, { Physik: 5 })], bbb);
+    const left = groups.find((g) => g.key === OTHER_GROUP)!;
+    expect(left.bbbRules).toBe(false);
+    expect(left.semesters[0].expected).toBe(false);
+  });
+});
+
+describe('promotionOutlook', () => {
+  it('has nothing to say without grades', () => {
+    expect(promotionOutlook([])).toBeNull();
+  });
+
+  it('is on track with two low grades within the limits', () => {
+    expect(promotionOutlook([3.5, 3.5, 5, 5, 5])).toEqual({ atRisk: false, text: 'On track for promotion' });
+  });
+
+  it('at risk with a third grade below 4', () => {
+    expect(promotionOutlook([3.5, 3.5, 3.5, 6, 6, 6])?.text).toBe('Promotion at risk: 3 subjects below 4, the limit is 2');
+  });
+
+  it('at risk with more than 2 points below 4', () => {
+    expect(promotionOutlook([1.5, 6, 6, 6])?.text).toBe('Promotion at risk: 2.5 points below 4, the limit is 2');
+  });
+
+  it('exactly 2 points is within the limit', () => {
+    expect(promotionOutlook([2, 6, 6])?.atRisk).toBe(false);
+  });
+
+  it('at risk when the rounded average is below 4', () => {
+    expect(promotionOutlook([3.5, 4, 4, 4])?.text).toBe('Promotion at risk: the average is below 4');
+  });
+
+  it('3.95 rounds to 4.0 and passes', () => {
+    expect(promotionOutlook([3.5, 3.9, 4.45])?.atRisk).toBe(false);
+    expect(promotionOutlook([3.75, 4.15])?.atRisk).toBe(false);
+  });
+});
+
+describe('gradeHeadline', () => {
+  it('BBB this semester: expected number and a hint', () => {
+    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 5), exam('Physik', '2026-09-03', 4)], [], bbb);
+    const headline = gradeHeadline(group, group.semesters[0], 0);
+    expect(headline.value).toBe(4.5);
+    expect(headline.state).toBe('On track for promotion');
+    expect(headline.tone).toBe('good');
+    expect(headline.hint).toBe('Expected, based on 2 grades so far. Your school decides.');
+  });
+
+  it('a past semester quotes the real decision, not a fixed word', () => {
+    const [group] = buildGradeGroups([], [report('BM23d', 2025, 1, { Deutsch: 5 }, 5)], bbb);
+    group.semesters[0].report!.promotionDecision = 'prov.';
+    expect(gradeHeadline(group, group.semesters[0], 0).state).toBe('Promotion: prov.');
+    expect(gradeHeadline(group, group.semesters[0], 0).value).toBe(5);
+  });
+
+  it('another school this semester: the last real Zeugnis, nothing predicted', () => {
+    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 3)], [report('A1', 2025, 2, { Deutsch: 5 }, 4.6)], other);
+    const current = group.semesters[group.semesters.length - 1];
+    const headline = gradeHeadline(group, current, 1);
+    expect(headline.value).toBe(4.6);
+    expect(headline.label).toContain('Last Zeugnis');
+    expect(headline.state).toBe('');
+    expect(headline.hint).toContain('1 subject below 4 so far');
+  });
+
+  it('reports without an average: no number, and it says why', () => {
+    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 3)], [report('G1a', 2025, 2, { Deutsch: 5 })], other);
+    const current = group.semesters[group.semesters.length - 1];
+    const headline = gradeHeadline(group, current, 1);
+    expect(headline.value).toBeNull();
+    expect(headline.state).toBe('1 subject below 4 so far');
+    expect(headline.hint).toContain('no overall average');
+  });
+
+  it('no reports: no number, and the first Zeugnis is still to come', () => {
+    const [group] = buildGradeGroups([exam('Deutsch', '2026-09-03', 5)], [], other);
+    const headline = gradeHeadline(group, group.semesters[0], 0);
+    expect(headline.value).toBeNull();
+    expect(headline.state).toBe('No subject below 4 so far');
+    expect(headline.hint).toBe('Your first Zeugnis comes at the end of this semester.');
+  });
+
+  it('all semesters only has a number where a semester average exists', () => {
+    const [withAverage] = buildGradeGroups([], [report('A1', 2025, 1, { Deutsch: 5 }, 5), report('A1', 2025, 2, { Deutsch: 4 }, 4)], other);
+    expect(gradeHeadline(withAverage, null, 0).value).toBe(4.5);
+    const [without] = buildGradeGroups([], [report('G1a', 2025, 1, { Deutsch: 5 })], other);
+    expect(gradeHeadline(without, null, 0).value).toBeNull();
   });
 });
