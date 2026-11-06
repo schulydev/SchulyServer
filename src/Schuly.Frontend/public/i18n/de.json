@@ -276,7 +276,8 @@
       "privacy": "Datenschutz",
       "terms": "Nutzungsbedingungen",
       "imprint": "Impressum",
-      "contact": "Kontakt"
+      "contact": "Kontakt",
+      "trademarks": "Microsoft 365, Microsoft Outlook, Microsoft Teams, Microsoft OneDrive und Microsoft OneNote sind Marken der Microsoft Corporation. Schulnetz ist eine Marke der Centerboard AG. Schuly ist ein unabhängiges Projekt und steht in keiner Verbindung zu Microsoft oder Centerboard."
     },
     "confirm": {
       "checkEmail": "Schau in deine E-Mails, um deine Adresse zu bestätigen.",
@@ -326,7 +327,8 @@
       "codeHint": "Gib den 6-stelligen Code aus deiner Authentifizierungs-App ein.",
       "mismatch": "Das stimmt nicht. Prüf Benutzername und Passwort.",
       "recoveryFailed": "Dieser Wiederherstellungscode hat nicht funktioniert.",
-      "codeFailed": "Dieser Code hat nicht funktioniert. Warte auf den nächsten Code in deiner App und gib diesen ein."
+      "codeFailed": "Dieser Code hat nicht funktioniert. Warte auf den nächsten Code in deiner App und gib diesen ein.",
+      "signInWithMicrosoft": "Mit Microsoft anmelden"
     },
     "password": "Passwort",
     "confirmEmail": "E-Mail bestätigen",
@@ -637,7 +639,7 @@
       "shared": "Hier erscheinen Dateien, die andere mit dir teilen.",
       "recent": "Hier erscheinen Dateien, die du zuletzt verwendet hast.",
       "team": "Hier erscheinen die Dateien dieses Teams.",
-      "drive": "Hier erscheinen Dateien und Ordner aus OneDrive."
+      "drive": "Hier erscheinen Dateien und Ordner aus Microsoft OneDrive."
     },
     "column": {
       "name": "Name",
@@ -746,7 +748,7 @@
     "moveToFolder": "In Ordner verschieben",
     "attachments": "Anhänge",
     "noPreview": "Keine Vorschau verfügbar.",
-    "openOutlook": "In Outlook öffnen",
+    "openOutlook": "In Microsoft Outlook öffnen",
     "previewOnlyServer": "Dieser Server kann noch keine ganzen Nachrichten anzeigen. Es wird eine Vorschau gezeigt.",
     "previewOnlyFailed": "Die ganze Nachricht konnte nicht geladen werden. Es wird eine Vorschau gezeigt.",
     "unavailable": "Auf diesem Server noch nicht verfügbar.",
@@ -941,13 +943,13 @@
       "schoolAccounts": "Schulkonten",
       "schoolAccountsHint": "Welche Schulen und Klassen verbunden sind.",
       "mail": "Mail",
-      "mailHint": "Mails lesen. Schreiben sendet, beantwortet, leitet weiter, verschiebt, markiert und setzt auf gelesen.",
+      "mailHint": "Mails in Microsoft Outlook lesen. Schreiben sendet, beantwortet, leitet weiter, verschiebt, markiert und setzt auf gelesen.",
       "teams": "Teams",
-      "teamsHint": "Chats lesen. Schreiben sendet auch Chatnachrichten.",
+      "teamsHint": "Chats in Microsoft Teams lesen. Schreiben sendet auch Chatnachrichten.",
       "drive": "Drive",
-      "driveHint": "Deine OneDrive-Dateien durchsuchen.",
+      "driveHint": "Deine Dateien in Microsoft OneDrive durchsuchen.",
       "onenote": "OneNote",
-      "onenoteHint": "Deine OneNote-Notizbücher lesen und bearbeiten."
+      "onenoteHint": "Deine Notizbücher in Microsoft OneNote lesen und bearbeiten."
     },
     "level": {
       "off": "Aus",
@@ -1144,7 +1146,7 @@
     "pageTitle": "Seitentitel",
     "readOnly": "Schreibgeschützt",
     "saving": "Wird gespeichert",
-    "openOneNote": "In OneNote öffnen",
+    "openOneNote": "In Microsoft OneNote öffnen",
     "download": "(herunterladen)",
     "box": "Feld {{number}}, schreibgeschützt",
     "inkBox": "Dieses Feld enthält Bilder oder Freihand und bleibt, wie es ist",
@@ -1183,7 +1185,7 @@
     "loadingSections": "Abschnitte werden geladen",
     "noSections": "Keine Abschnitte",
     "noNotebooks": "Keine Notizbücher",
-    "noNotebooksHint": "Hier erscheinen deine OneNote-Notizbücher.",
+    "noNotebooksHint": "Hier erscheinen deine Notizbücher aus Microsoft OneNote.",
     "teamNotebook": "Team-Notizbuch",
     "signInExpired": "Anmeldung abgelaufen.",
     "notebookMissing": "Notizbuch nicht gefunden.",
