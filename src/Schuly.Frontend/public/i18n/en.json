@@ -334,8 +334,7 @@
       "codeHint": "Enter the 6-digit code from your authenticator app.",
       "mismatch": "That didn't match. Check your username and password.",
       "recoveryFailed": "That recovery code didn't work.",
-      "codeFailed": "That code didn't work. Wait for the next code in your app and enter that one.",
-      "signInWithMicrosoft": "Sign in with Microsoft"
+      "codeFailed": "That code didn't work. Wait for the next code in your app and enter that one."
     },
     "password": "Password",
     "confirmEmail": "Confirm your email",

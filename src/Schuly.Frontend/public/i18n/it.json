@@ -334,8 +334,7 @@
       "codeHint": "Inserisci il codice di 6 cifre dell'app di autenticazione.",
       "mismatch": "Non corrisponde. Controlla nome utente e password.",
       "recoveryFailed": "Questo codice di recupero non ha funzionato.",
-      "codeFailed": "Questo codice non ha funzionato. Aspetta il prossimo codice nell'app e inseriscilo.",
-      "signInWithMicrosoft": "Accedi con Microsoft"
+      "codeFailed": "Questo codice non ha funzionato. Aspetta il prossimo codice nell'app e inseriscilo."
     },
     "password": "Password",
     "confirmEmail": "Conferma la tua e-mail",

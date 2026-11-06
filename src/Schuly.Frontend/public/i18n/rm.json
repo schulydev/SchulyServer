@@ -334,8 +334,7 @@
       "codeHint": "Endatescha il code da 6 cifras da tia app d'autentificaziun.",
       "mismatch": "Quai na correspunda betg. Controllescha num d'utilisader e pled-clav.",
       "recoveryFailed": "Quest code da restabiliment n'ha betg funcziunà.",
-      "codeFailed": "Quest code n'ha betg funcziunà. Spetga sin il proxim code en tia app ed endatescha quel.",
-      "signInWithMicrosoft": "S'annunziar cun Microsoft"
+      "codeFailed": "Quest code n'ha betg funcziunà. Spetga sin il proxim code en tia app ed endatescha quel."
     },
     "password": "Pled-clav",
     "confirmEmail": "Conferma tia adressa dad e-mail",
