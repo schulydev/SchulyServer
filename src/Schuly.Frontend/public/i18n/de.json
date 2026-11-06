@@ -1470,5 +1470,19 @@
     "loadFailed": "Deine Konten konnten nicht geladen werden.",
     "providersFailed": "Die verfügbaren Schulen und Dienste konnten nicht geladen werden.",
     "unlinkFailed": "Dieses Konto konnte nicht getrennt werden. Versuch es nochmals."
+  },
+  "linkMessages": {
+    "passwordExpired": "Dein Microsoft-Passwort ist abgelaufen. Ändere es auf office.com und versuch es dann nochmals.",
+    "noPassword": "Dieses Microsoft-Konto hat kein Passwort. Verknüpfe es mit der Schuly-App auf dem Handy.",
+    "microsoftSignInExpired": "Die Microsoft-Anmeldung dieses Kontos ist abgelaufen. Melde dich nochmals bei Microsoft an.",
+    "accountExpired": "Anmeldung abgelaufen, melde dich nochmals an",
+    "wrongPassword": "E-Mail oder Passwort ist falsch.",
+    "rateLimited": "Zu viele Versuche. Versuch es später nochmals.",
+    "tooManyFailed": "Zu viele Fehlversuche. Warte ein paar Minuten und versuch es dann nochmals.",
+    "failed": "Die Microsoft-Anmeldung hat nicht geklappt. Beginne nochmals.",
+    "expired": "Die Anmeldung ist abgelaufen. Beginne nochmals.",
+    "unreachable": "Microsoft ist gerade nicht erreichbar. Versuch es später nochmals.",
+    "unsupported": "Die Microsoft-Anmeldung deiner Schule wird hier noch nicht unterstützt. Verknüpfe dieses Konto mit der Schuly-App auf dem Handy.",
+    "blocked": "Die Microsoft-Richtlinie deiner Schule blockiert diese Anmeldung hier. Verknüpfe dieses Konto mit der Schuly-App auf dem Handy."
   }
 }

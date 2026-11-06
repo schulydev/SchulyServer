@@ -1470,5 +1470,19 @@
     "loadFailed": "Betg pussaivel da chargiar tes contos.",
     "providersFailed": "Betg pussaivel da chargiar las scolas ed ils servetschs disponibels.",
     "unlinkFailed": "Betg pussaivel da separar quest conto. Emprova anc ina giada."
+  },
+  "linkMessages": {
+    "passwordExpired": "Tes pled-clav da Microsoft è scadì. Mida el sin office.com ed emprova lura anc ina giada.",
+    "noPassword": "Quest conto da Microsoft n'ha nagin pled-clav. Collia el cun l'app mobila da Schuly.",
+    "microsoftSignInExpired": "L'annunzia da Microsoft da quest conto è scadida. T'annunzia danovamain tar Microsoft.",
+    "accountExpired": "Annunzia scadida, t'annunzia danovamain",
+    "wrongPassword": "L'e-mail u il pled-clav è fallà.",
+    "rateLimited": "Memia blers emprovs. Emprova pli tard anc ina giada.",
+    "tooManyFailed": "Memia blers emprovs fallids. Spetga in pèr minutas ed emprova lura anc ina giada.",
+    "failed": "L'annunzia da Microsoft n'ha betg funcziunà. Cumenza danovamain.",
+    "expired": "L'annunzia è scadida. Cumenza danovamain.",
+    "unreachable": "Microsoft n'è betg cuntanschibel. Emprova pli tard anc ina giada.",
+    "unsupported": "L'annunzia da Microsoft da tia scola na vegn anc betg sustegnida qua. Collia quest conto cun l'app mobila da Schuly.",
+    "blocked": "La directiva da Microsoft da tia scola bloccha questa annunzia qua. Collia quest conto cun l'app mobila da Schuly."
   }
 }

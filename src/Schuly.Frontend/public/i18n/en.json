@@ -1470,5 +1470,19 @@
     "loadFailed": "Could not load your accounts.",
     "providersFailed": "Could not load the available schools and services.",
     "unlinkFailed": "Could not unlink that account. Try again."
+  },
+  "linkMessages": {
+    "passwordExpired": "Your Microsoft password has expired. Change it at office.com, then try again.",
+    "noPassword": "This Microsoft account has no password. Use the Schuly mobile app to link it.",
+    "microsoftSignInExpired": "The Microsoft sign-in of that account has expired. Sign in to Microsoft again.",
+    "accountExpired": "Sign-in expired, sign in again",
+    "wrongPassword": "The email or password is wrong.",
+    "rateLimited": "Too many attempts, try again later.",
+    "tooManyFailed": "Too many failed attempts. Wait a few minutes and try again.",
+    "failed": "The Microsoft sign-in failed. Start again.",
+    "expired": "The sign-in expired. Start again.",
+    "unreachable": "Microsoft could not be reached. Try again later.",
+    "unsupported": "Your school's Microsoft sign-in isn't supported here yet. Use the Schuly mobile app to link this account.",
+    "blocked": "Your school's Microsoft policy blocks this sign-in here. Use the Schuly mobile app to link this account."
   }
 }
