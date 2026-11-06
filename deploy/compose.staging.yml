@@ -61,7 +61,7 @@ services:
       - school
 
   schulymicrosoft:
-    image: ghcr.io/schulydev/schulymicrosoft:0.17.1@sha256:616f50cdeaf13075b65e84c8cd07ff13b05256a6e226af6e636f6668b53ec2ba
+    image: ghcr.io/schulydev/schulymicrosoft:0.18.0@sha256:99557501b5902a443b3032ba52e19c8810c336e68eefa99f4ef85d597e36f09f
     restart: unless-stopped
     logging: *logging
     environment:
