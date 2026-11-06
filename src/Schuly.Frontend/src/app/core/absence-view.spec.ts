@@ -15,9 +15,32 @@ describe('approvalState', () => {
     expect(approvalState(' BESTÄTIGT ')).toBe('confirmed');
     expect(approvalState('abgelehnt')).toBe('rejected');
     expect(approvalState('Entschuldigt')).toBe('excused');
-    expect(approvalState('confirmed')).toBeNull();
     expect(approvalState('1')).toBeNull();
     expect(approvalState(null)).toBeNull();
+  });
+});
+
+describe('Schulnetz status codes', () => {
+  it('reads the mobile API codes for the Lehrmeister', () => {
+    expect(approvalState('confirmed')).toBe('confirmed');
+    expect(approvalState('declined')).toBe('rejected');
+    expect(approvalState('open')).toBe('open');
+  });
+
+  it('treats ofAge as no parents\' step', () => {
+    expect(approvalState('ofAge')).toBeNull();
+    expect(absenceSteps({ reported: false, parentStatus: 'ofAge' })).toEqual([]);
+  });
+
+  it('shows a reported absence the Lehrmeister confirmed as waiting for the school', () => {
+    const steps = absenceSteps({ reported: true, parentStatus: 'ofAge', trainerStatus: 'confirmed' });
+    expect(steps.map((s) => `${s.label}:${s.state}`)).toEqual(['Reported:done', 'Lehrmeister:done', 'School:next']);
+    expect(waitingLabel(steps)).toBe('Waiting for school');
+  });
+
+  it('stops at a Lehrmeister who declined or hasn\'t answered', () => {
+    expect(rejectedLabel(absenceSteps({ reported: true, parentStatus: 'ofAge', trainerStatus: 'declined' }))).toBe('Rejected by Lehrmeister');
+    expect(waitingLabel(absenceSteps({ reported: true, parentStatus: 'ofAge', trainerStatus: 'open' }))).toBe('Waiting for Lehrmeister');
   });
 });
 
