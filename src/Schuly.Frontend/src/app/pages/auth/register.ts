@@ -75,7 +75,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
               <p hlmFieldDescription>{{ 'auth.minLength' | translate }}</p>
             </div>
             @if (error()) {
-              <hlm-field-error>{{ error() }}</hlm-field-error>
+              <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
             }
             <button hlmBtn size="lg" type="submit" [disabled]="account().submitting()">
               @if (account().submitting()) {

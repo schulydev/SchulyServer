@@ -7,7 +7,7 @@ interface Pending {
   state: string;
 }
 
-const EXTERNAL_ERRORS = new Set(['access_denied', 'account_not_found', 'account_exists', 'linked_to_another_account', 'provider_already_linked', 'external_login_failed']);
+const EXTERNAL_ERRORS = new Set(['access_denied', 'account_not_found', 'account_exists', 'linked_to_another_account', 'provider_already_linked', 'email_not_verified', 'external_login_failed']);
 
 /** The message for an external sign-in error code; unknown codes read as a plain failure. */
 export const externalError = (code?: string | null): string => t(`auth.external.${code && EXTERNAL_ERRORS.has(code) ? code : 'external_login_failed'}`);

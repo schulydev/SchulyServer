@@ -103,6 +103,11 @@ export const AuthStore = signalStore(
         if (!pending) throw new Error('No email confirmation is waiting for a code.');
         await firstValueFrom(api.resendEmailCode(pending.challenge));
       },
+      async changeEmailCodeAddress(newEmail: string): Promise<void> {
+        const pending = store.emailChallenge();
+        if (!pending) throw new Error('No email confirmation is waiting for a code.');
+        handle(await firstValueFrom(api.changeEmailCodeAddress(pending.challenge, newEmail)));
+      },
       cancelEmailChallenge(): void {
         patchState(store, { emailChallenge: null });
       },

@@ -113,7 +113,7 @@ const CODE_LENGTH = 6;
                   </div>
                 </div>
                 @if (error()) {
-                  <hlm-field-error>{{ error() }}</hlm-field-error>
+                  <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
                 }
               </div>
               <button hlmBtn size="lg" type="submit" [disabled]="credentials().submitting()">
@@ -195,7 +195,7 @@ const CODE_LENGTH = 6;
                 {{ 'auth.login.remember' | translate }}
               </label>
               @if (error()) {
-                <hlm-field-error>{{ error() }}</hlm-field-error>
+                <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
               }
               <button hlmBtn size="lg" type="submit" [disabled]="codeForm().submitting()">
                 @if (codeForm().submitting()) {

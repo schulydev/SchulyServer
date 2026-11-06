@@ -27,6 +27,7 @@ namespace Schuly.API.Extensions
             services.AddToamaisutaaPasswordLogin(configuration);
             services.AddToamaisutaaTwoFactor(configuration);
             services.AddToamaisutaaTrustedDevices(configuration);
+            VerifiedSignUpEmail.Apply(configuration);
             services.AddToamaisutaaExternalLogin(configuration);
             services.PostConfigure<ToamaisutaaExternalLoginOptions>(options =>
             {

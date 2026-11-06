@@ -8,6 +8,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInputOtpImports } from '@spartan-ng/helm/input-otp';
+import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { AuthStore, EmailChallenge, errorCode } from '../../stores/auth.store';
 
@@ -32,6 +33,7 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
     HlmCardImports,
     HlmFieldImports,
     HlmInputOtpImports,
+    HlmInput,
     HlmSpinner,
     TranslatePipe,
   ],
@@ -62,7 +64,7 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
           }
           <div aria-live="polite" role="status">
             @if (error()) {
-              <hlm-field-error>{{ error() }}</hlm-field-error>
+              <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
             } @else if (notice()) {
               <p class="text-muted-foreground text-center text-sm">{{ notice() }}</p>
             }
@@ -88,6 +90,26 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
             {{ cooldown() > 0 ? ('auth.confirm.resendIn' | translate: { seconds: cooldown() }) : ('auth.confirm.resend' | translate) }}
           </button>
         </form>
+        @if (changing()) {
+          <form class="mt-4 flex flex-col gap-3 border-t pt-4" (submit)="changeAddress($event)">
+            <div hlmField>
+              <label hlmFieldLabel for="new-address">Your email address</label>
+              <input hlmInput id="new-address" type="email" autocomplete="email" [value]="newAddress()" (input)="newAddress.set($any($event.target).value)" />
+              <p hlmFieldDescription>We send a new code there. The old one stops working.</p>
+            </div>
+            <div class="flex gap-2">
+              <button hlmBtn type="submit" class="flex-1" [disabled]="busy() || !newAddress().includes('@')">
+                @if (busy()) {
+                  <hlm-spinner />
+                }
+                Send code
+              </button>
+              <button hlmBtn variant="outline" type="button" (click)="changing.set(false)">Cancel</button>
+            </div>
+          </form>
+        } @else {
+          <button hlmBtn variant="link" type="button" class="w-full" (click)="changing.set(true)">Wrong address? Change email</button>
+        }
       </div>
     </section>
     <button hlmBtn variant="link" type="button" (click)="back()">{{ 'auth.backToSignIn' | translate }}</button>
@@ -107,6 +129,9 @@ export class ConfirmEmail {
   protected readonly notice = signal<string | null>(null);
   protected readonly resending = signal(false);
   protected readonly cooldown = signal(0);
+  protected readonly changing = signal(false);
+  protected readonly newAddress = signal('');
+  protected readonly busy = signal(false);
 
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -158,6 +183,33 @@ export class ConfirmEmail {
       }
     } finally {
       this.resending.set(false);
+    }
+  }
+
+  protected async changeAddress(event: Event): Promise<void> {
+    event.preventDefault();
+    this.error.set(null);
+    this.notice.set(null);
+    this.busy.set(true);
+    try {
+      await this.auth.changeEmailCodeAddress(this.newAddress().trim());
+      this.model.set({ code: '' });
+      this.changing.set(false);
+      this.notice.set('We sent a new code to your new address.');
+      document.getElementById('email-code')?.focus();
+    } catch (error) {
+      const status = error instanceof HttpErrorResponse ? error.status : 0;
+      this.error.set(
+        status === 409
+          ? 'Another account already uses that email address.'
+          : status === 400
+            ? 'Enter a valid email address.'
+            : status === 401
+              ? 'This confirmation is no longer valid. Go back to sign in and start again.'
+              : 'Something went wrong. Try again in a moment.',
+      );
+    } finally {
+      this.busy.set(false);
     }
   }
 

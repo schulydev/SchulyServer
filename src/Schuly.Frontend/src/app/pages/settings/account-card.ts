@@ -44,13 +44,9 @@ import { UserStore } from '../../stores/user.store';
             <h2 class="truncate text-lg font-semibold tracking-tight">{{ user.name() }}</h2>
             <p class="text-muted-foreground truncate text-sm">
               {{ user.email() }}
-              @if (user.email()) {
-                ·
-                @if (user.emailConfirmed()) {
-                  <span class="text-green-700 dark:text-green-400">Confirmed</span>
-                } @else {
-                  <span>Not confirmed</span>
-                }
+              <!-- Sign-in needs a confirmed address, so an unconfirmed one shows no label rather than a warning nobody can act on here. -->
+              @if (user.email() && user.emailConfirmed()) {
+                · <span class="text-green-700 dark:text-green-400">Confirmed</span>
               }
             </p>
           </div>

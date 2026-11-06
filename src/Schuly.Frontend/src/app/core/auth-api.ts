@@ -125,6 +125,11 @@ export class AuthApi {
     );
   }
 
+  /** For a mistyped address: moves the pending confirmation to `newEmail` and answers with a new challenge. */
+  changeEmailCodeAddress(challenge: string, newEmail: string): Observable<EmailVerificationResponse> {
+    return this.http.post<EmailVerificationResponse>('/auth/email/change-address', { challenge, newEmail });
+  }
+
   resendEmailCode(challenge: string): Observable<void> {
     return this.http.post<void>('/auth/email/resend-code', { challenge });
   }
