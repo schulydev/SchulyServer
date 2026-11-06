@@ -14,7 +14,9 @@ RUN bun install --frozen-lockfile
 COPY Schuly.Frontend .
 RUN bun run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# Compiled once on the runner's own platform: the output is framework-dependent and has no app host, so the same DLLs
+# run on amd64 and arm64. Building this stage per platform made arm64 compile under QEMU, about 8x slower.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS publish
 ARG BUILD_CONFIGURATION=Release
 ARG VERSION=1.0.0
 WORKDIR /src
@@ -22,11 +24,6 @@ COPY ["Schuly.API/Schuly.API.csproj", "Schuly.API/"]
 RUN dotnet restore "./Schuly.API/Schuly.API.csproj"
 COPY . .
 WORKDIR "/src/Schuly.API"
-RUN dotnet build "./Schuly.API.csproj" -c $BUILD_CONFIGURATION -o /app/build -p:Version=$VERSION
-
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-ARG VERSION=1.0.0
 RUN dotnet publish "./Schuly.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false -p:Version=$VERSION
 
 FROM base AS final
