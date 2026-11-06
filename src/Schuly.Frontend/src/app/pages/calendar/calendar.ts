@@ -27,25 +27,11 @@ interface ListGroup {
     <!-- From md up the page fits the screen: the grid takes what is left, only lists inside it scroll. -->
     <div class="flex flex-col gap-3 p-4 md:h-[calc(100dvh-var(--header-height))] lg:px-6">
       <app-syncing-notice />
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex items-center gap-2">
         <h2 class="text-lg font-semibold" aria-live="polite">{{ title() }}</h2>
         @if (calendar.loading()) {
           <hlm-spinner class="size-4" aria-label="Loading" />
         }
-        <hlm-toggle-group
-          type="single"
-          variant="outline"
-          size="sm"
-          class="ml-auto"
-          [nullable]="false"
-          [value]="calendar.view()"
-          (valueChange)="setView($event)"
-          aria-label="Calendar view"
-        >
-          <button hlmToggleGroupItem value="month" class="px-3">Month</button>
-          <button hlmToggleGroupItem value="week" class="px-3">Week</button>
-          <button hlmToggleGroupItem value="list" class="px-3">List</button>
-        </hlm-toggle-group>
       </div>
 
       @for (source of calendar.problems(); track source.id) {
@@ -89,6 +75,22 @@ interface ListGroup {
           </button>
         </div>
       </div>
+      <!-- Sits on top of the day panel, ending at its right edge. -->
+      <div class="flex justify-end md:col-start-2 md:row-start-1">
+        <hlm-toggle-group
+          type="single"
+          variant="outline"
+          size="sm"
+          [nullable]="false"
+          [value]="calendar.view()"
+          (valueChange)="setView($event)"
+          aria-label="Calendar view"
+        >
+          <button hlmToggleGroupItem value="month" class="px-3">Month</button>
+          <button hlmToggleGroupItem value="week" class="px-3">Week</button>
+          <button hlmToggleGroupItem value="list" class="px-3">List</button>
+        </hlm-toggle-group>
+      </div>
 
 
         @switch (calendar.view()) {
@@ -125,14 +127,19 @@ interface ListGroup {
             </div>
           }
         }
-        <section class="bg-card h-fit rounded-lg border md:col-start-2 md:row-start-2 md:max-h-full md:overflow-y-auto" aria-labelledby="selected-day" aria-live="polite">
-          <div class="border-b px-4 py-3">
+        <section class="bg-card/50 flex h-fit flex-col overflow-hidden rounded-lg border md:col-start-2 md:row-start-2 md:max-h-full" aria-labelledby="selected-day" aria-live="polite">
+          <!-- The date stays put; only the entries below it scroll. -->
+          <div class="bg-card flex-none border-b px-4 py-3">
             <h3 id="selected-day" class="text-sm font-semibold">
               {{ calendar.selectedDay() | appDate: 'weekdayDayMonthLong' }}{{ isToday() ? ' · Today' : '' }}
             </h3>
-            <p class="text-muted-foreground mt-0.5 text-xs">{{ summary() }}</p>
+            @if (summary()) {
+              <p class="text-muted-foreground mt-0.5 text-xs">{{ summary() }}</p>
+            }
           </div>
-          <app-day-list [items]="calendar.selectedDayItems()" />
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <app-day-list [items]="calendar.selectedDayItems()" />
+          </div>
         </section>
       </div>
     </div>

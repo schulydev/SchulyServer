@@ -73,10 +73,10 @@ describe('daySummary', () => {
     const lessons = [timed('lessons', d(2026, 11, 5, 8, 20), 45), timed('lessons', d(2026, 11, 5, 14, 5), 45)];
     expect(daySummary(d(2026, 11, 5), lessons, time)).toBe('2 lessons, 08:20 – 14:50');
   });
-  it('names a holiday, the weekend or no school', () => {
+  it('names a holiday or the weekend, and stays empty on a free school day', () => {
     const holiday = allDay('holidays', d(2026, 12, 21), d(2027, 1, 3), 'Weihnachtsferien 2026');
     expect(daySummary(d(2026, 12, 22), [holiday], time)).toBe('Weihnachtsferien 2026');
     expect(daySummary(d(2026, 11, 7), [], time)).toBe('Weekend');
-    expect(daySummary(d(2026, 11, 6), [], time)).toBe('No school today');
+    expect(daySummary(d(2026, 11, 6), [], time)).toBe('');
   });
 });

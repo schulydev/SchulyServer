@@ -209,7 +209,7 @@ export function filterItems(items: CalendarItem[], hidden: readonly string[], ke
   return items.filter((item) => !off.has(item.sourceId));
 }
 
-/** The line under the day panel's title: the lessons' count and span, the holiday, the weekend, or no school. */
+/** The line under the day panel's title: the lessons' count and span, the holiday, the weekend, or nothing. */
 export function daySummary(day: Date, items: CalendarItem[], time: (date: Date) => string): string {
   const today = items.filter((item) => overlapsDay(item, day));
   const lessons = today.filter((item) => item.sourceId === 'lessons' && !item.allDay).sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -219,5 +219,6 @@ export function daySummary(day: Date, items: CalendarItem[], time: (date: Date) 
   }
   const holiday = today.find((item) => item.sourceId === 'holidays');
   if (holiday) return holiday.title;
-  return day.getDay() === 0 || day.getDay() === 6 ? 'Weekend' : 'No school today';
+  // A school day with nothing on it needs no line of its own.
+  return day.getDay() === 0 || day.getDay() === 6 ? 'Weekend' : '';
 }
