@@ -10,6 +10,7 @@ import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { LinkFieldDto, LinkOptionDto, LinkStepDto } from '../core/linking-api';
+import { linkText } from '../core/link-messages';
 import { clock, countdownAnnouncement, formHints, initialValues, isHttps, secondsLeft, submitValues } from '../core/linking-step';
 
 export interface LinkSubmit {
@@ -40,7 +41,7 @@ export interface LinkSubmit {
     @if (step().error) {
       <div hlmAlert variant="destructive" role="alert">
         <ng-icon name="lucideTriangleAlert" hlmAlertIcon />
-        <p hlmAlertDescription class="!text-destructive">{{ step().error }}</p>
+        <p hlmAlertDescription class="!text-destructive">{{ linkText(step().error) }}</p>
       </div>
     }
     @if (error()) {
@@ -260,7 +261,7 @@ export interface LinkSubmit {
                 <span class="flex min-w-0 flex-col">
                   <span class="text-sm font-medium">{{ option.label }}</span>
                   @if (option.detail) {
-                    <span class="text-muted-foreground text-sm">{{ option.detail }}</span>
+                    <span class="text-muted-foreground text-sm">{{ linkText(option.detail) }}</span>
                   }
                 </span>
               </label>
@@ -303,6 +304,7 @@ export interface LinkSubmit {
   `,
 })
 export class LinkStepView {
+  protected readonly linkText = linkText;
   readonly step = input.required<LinkStepDto>();
   readonly busy = input(false);
   /** A problem with the last request (not part of the step itself). */

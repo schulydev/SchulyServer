@@ -1470,5 +1470,19 @@
     "loadFailed": "Impossible de charger tes comptes.",
     "providersFailed": "Impossible de charger les écoles et services disponibles.",
     "unlinkFailed": "Impossible de dissocier ce compte. Réessaie."
+  },
+  "linkMessages": {
+    "passwordExpired": "Ton mot de passe Microsoft a expiré. Change-le sur office.com, puis réessaie.",
+    "noPassword": "Ce compte Microsoft n'a pas de mot de passe. Associe-le avec l'app mobile Schuly.",
+    "microsoftSignInExpired": "La connexion Microsoft de ce compte a expiré. Reconnecte-toi à Microsoft.",
+    "accountExpired": "Connexion expirée, reconnecte-toi",
+    "wrongPassword": "L'e-mail ou le mot de passe est incorrect.",
+    "rateLimited": "Trop de tentatives. Réessaie plus tard.",
+    "tooManyFailed": "Trop de tentatives échouées. Attends quelques minutes, puis réessaie.",
+    "failed": "La connexion Microsoft a échoué. Recommence.",
+    "expired": "La connexion a expiré. Recommence.",
+    "unreachable": "Impossible de joindre Microsoft. Réessaie plus tard.",
+    "unsupported": "La connexion Microsoft de ton école n'est pas encore prise en charge ici. Associe ce compte avec l'app mobile Schuly.",
+    "blocked": "La politique Microsoft de ton école bloque cette connexion ici. Associe ce compte avec l'app mobile Schuly."
   }
 }

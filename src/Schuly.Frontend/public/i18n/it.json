@@ -1470,5 +1470,19 @@
     "loadFailed": "Impossibile caricare i tuoi account.",
     "providersFailed": "Impossibile caricare le scuole e i servizi disponibili.",
     "unlinkFailed": "Impossibile scollegare questo account. Riprova."
+  },
+  "linkMessages": {
+    "passwordExpired": "La tua password Microsoft è scaduta. Cambiala su office.com e riprova.",
+    "noPassword": "Questo account Microsoft non ha una password. Collegalo con l'app mobile Schuly.",
+    "microsoftSignInExpired": "L'accesso Microsoft di questo account è scaduto. Accedi di nuovo a Microsoft.",
+    "accountExpired": "Accesso scaduto, accedi di nuovo",
+    "wrongPassword": "L'e-mail o la password non sono corrette.",
+    "rateLimited": "Troppi tentativi. Riprova più tardi.",
+    "tooManyFailed": "Troppi tentativi falliti. Aspetta qualche minuto e riprova.",
+    "failed": "L'accesso Microsoft non è riuscito. Ricomincia.",
+    "expired": "L'accesso è scaduto. Ricomincia.",
+    "unreachable": "Impossibile raggiungere Microsoft. Riprova più tardi.",
+    "unsupported": "L'accesso Microsoft della tua scuola non è ancora supportato qui. Collega questo account con l'app mobile Schuly.",
+    "blocked": "La policy Microsoft della tua scuola blocca questo accesso qui. Collega questo account con l'app mobile Schuly."
   }
 }
