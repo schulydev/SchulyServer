@@ -1,10 +1,10 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal } from '@angular/core';
 import { CalendarItem, WeekLayout, addDays, daysBetween, overlapsDay, sameDay, startOfDay, weekLayout } from '../../core/calendar';
 import { CalendarStore } from '../../stores/calendar.store';
 import { tint } from './tint';
 import { AppDatePipe, formatWhen } from '../../core/date-format';
 
-/** A busy day never makes its week taller: three lanes show, the rest is behind "+N". */
+/** A busy day never makes its week taller: up to three lanes show, the rest is behind "+N". */
 const MAX_LANES = 3;
 
 interface MonthDay {
@@ -26,8 +26,9 @@ interface MonthWeek {
 @Component({
   selector: 'app-month-view',
   imports: [AppDatePipe],
+  host: { class: 'block md:min-h-0 md:flex-1' },
   template: `
-    <div class="overflow-hidden rounded-lg border">
+    <div class="overflow-hidden rounded-lg border md:flex md:h-full md:flex-col">
       <div class="bg-muted/50 text-muted-foreground grid grid-cols-7 border-b text-xs font-medium">
         @for (name of weekdays(); track name) {
           <div class="px-2 py-1.5">{{ name }}</div>
@@ -35,7 +36,8 @@ interface MonthWeek {
       </div>
       @for (week of weeks(); track week.start.getTime()) {
         <div
-          class="grid h-16 grid-cols-7 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b last:border-b-0 sm:h-[8.5rem] sm:grid-rows-[auto_repeat(4,1.375rem)_minmax(0,1fr)]"
+          data-week
+          class="grid h-16 grid-cols-7 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b last:border-b-0 sm:h-[8.5rem] sm:grid-rows-[auto_repeat(4,1.375rem)_minmax(0,1fr)] md:h-auto md:min-h-0 md:flex-1 md:grid-rows-[auto_repeat(4,1.25rem)_minmax(0,1fr)]"
         >
           @for (day of week.days; track day.date.getTime(); let i = $index) {
             <button
@@ -50,7 +52,7 @@ interface MonthWeek {
               (dblclick)="calendar.openDay(day.date)"
             ></button>
             <span
-              class="pointer-events-none z-[1] px-1.5 pt-1.5 pb-0.5 text-xs tabular-nums"
+              class="pointer-events-none z-[1] px-1.5 pt-1.5 pb-0.5 text-xs tabular-nums md:pt-1 md:pb-0"
               [class.text-muted-foreground]="!day.inMonth"
               [style.grid-column]="i + 1"
               style="grid-row: 1"
@@ -90,7 +92,7 @@ interface MonthWeek {
                 type="button"
                 class="bg-muted text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-ring/50 z-[1] mx-1 my-px hidden rounded-md border text-center text-xs font-medium outline-none focus-visible:ring-[3px] sm:block"
                 [style.grid-column]="i + 1"
-                [style.grid-row]="2 + maxLanes"
+                [style.grid-row]="2 + maxLanes()"
                 [attr.aria-label]="extra + ' more on ' + (week.days[i].date | appDate: 'weekdayDayMonthLong')"
                 (click)="calendar.selectDay(week.days[i].date)"
               >
@@ -106,7 +108,8 @@ interface MonthWeek {
 export class MonthView {
   protected readonly calendar = inject(CalendarStore);
   protected readonly tint = tint;
-  protected readonly maxLanes = MAX_LANES;
+  /** Where the month fills the screen, short rows give up lanes so "+N" stays visible. */
+  protected readonly maxLanes = signal(MAX_LANES);
   protected readonly holidayTint = tint('var(--cal-holiday)', 10);
 
   protected readonly weekdays = computed(() => daysBetween(this.calendar.range().start, 7).map((day) => formatWhen(day, 'weekday')));
@@ -134,10 +137,24 @@ export class MonthView {
           colors: onDay.slice(0, 4).map((item) => this.calendar.colors().get(item.sourceId) ?? 'currentColor'),
         };
       });
-      weeks.push({ start: weekStart, days, layout: weekLayout(weekStart, items, MAX_LANES) });
+      weeks.push({ start: weekStart, days, layout: weekLayout(weekStart, items, this.maxLanes()) });
     }
     return weeks;
   });
+
+  constructor() {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const observer = new ResizeObserver(() => {
+      const row = host.querySelector<HTMLElement>('[data-week]');
+      if (!row) return;
+      const [date, lane] = getComputedStyle(row).gridTemplateRows.split(' ').map(parseFloat);
+      // Lanes plus the "+N" row must fit under the date.
+      const fit = Math.floor((row.clientHeight - date) / lane) - 1;
+      this.maxLanes.set(Math.max(1, Math.min(MAX_LANES, fit || MAX_LANES)));
+    });
+    afterNextRender(() => observer.observe(host));
+    inject(DestroyRef).onDestroy(() => observer.disconnect());
+  }
 
   protected cellClass(day: MonthDay, column: number): string {
     const base = 'hover:bg-accent/40 focus-visible:ring-ring/50 border-l text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset';
@@ -148,6 +165,6 @@ export class MonthView {
 
   protected chipClass(cutStart: boolean, cutEnd: boolean): string {
     const radius = `${cutStart ? 'rounded-l-none' : 'rounded-l-md'} ${cutEnd ? 'rounded-r-none' : 'rounded-r-md'}`;
-    return `focus-visible:ring-ring/50 z-[1] mx-1 my-px hidden truncate px-1.5 text-left text-xs leading-[1.25rem] font-medium outline-none hover:brightness-110 focus-visible:ring-[3px] sm:block ${radius}`;
+    return `focus-visible:ring-ring/50 z-[1] mx-1 my-px hidden truncate px-1.5 text-left text-xs leading-[1.25rem] font-medium md:leading-[1.125rem] outline-none hover:brightness-110 focus-visible:ring-[3px] sm:block ${radius}`;
   }
 }

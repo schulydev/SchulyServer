@@ -25,18 +25,10 @@ interface ListGroup {
   imports: [SyncingNotice, HlmAlertImports, HlmButton, HlmSpinner, HlmToggleGroupImports, NgIcon, AppDatePipe, MonthView, WeekView, DayList, EventSheet],
   providers: [CalendarStore, provideIcons({ lucideChevronLeft, lucideChevronRight, lucideTriangleAlert })],
   template: `
-    <div class="flex flex-col gap-4 p-4 lg:p-6">
+    <!-- From md up the page fits the screen: the grid takes what is left, only lists inside it scroll. -->
+    <div class="flex flex-col gap-3 p-4 md:h-[calc(100dvh-var(--header-height))] lg:px-6">
       <app-syncing-notice />
       <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-1">
-          <button hlmBtn variant="outline" size="icon" aria-label="Previous" (click)="calendar.previous()">
-            <ng-icon name="lucideChevronLeft" />
-          </button>
-          <button hlmBtn variant="outline" (click)="calendar.today()">Today</button>
-          <button hlmBtn variant="outline" size="icon" aria-label="Next" (click)="calendar.next()">
-            <ng-icon name="lucideChevronRight" />
-          </button>
-        </div>
         <h2 class="text-lg font-semibold" aria-live="polite">{{ title() }}</h2>
         @if (calendar.loading()) {
           <hlm-spinner class="size-4" aria-label="Loading" />
@@ -57,6 +49,17 @@ interface ListGroup {
         </hlm-toggle-group>
       </div>
 
+      @for (source of calendar.problems(); track source.id) {
+        <div hlmAlert variant="destructive">
+          <ng-icon name="lucideTriangleAlert" hlmAlertIcon />
+          <h3 hlmAlertTitle>{{ source.detail }}</h3>
+          <p hlmAlertDescription>{{ source.problem }}</p>
+        </div>
+      }
+
+      <div class="grid gap-3 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1fr)_17rem] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div class="flex min-w-0 flex-col gap-3 md:min-h-0">
+      <div class="flex flex-wrap items-center gap-2">
       <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Show">
         @for (source of calendar.sources(); track source.id) {
           <button
@@ -77,20 +80,21 @@ interface ListGroup {
           </button>
         }
       </div>
-
-      @for (source of calendar.problems(); track source.id) {
-        <div hlmAlert variant="destructive">
-          <ng-icon name="lucideTriangleAlert" hlmAlertIcon />
-          <h3 hlmAlertTitle>{{ source.detail }}</h3>
-          <p hlmAlertDescription>{{ source.problem }}</p>
+        <div class="ml-auto flex items-center gap-1">
+          <button hlmBtn variant="outline" size="icon-sm" aria-label="Previous" (click)="calendar.previous()">
+            <ng-icon name="lucideChevronLeft" />
+          </button>
+          <button hlmBtn variant="outline" size="sm" (click)="calendar.today()">Today</button>
+          <button hlmBtn variant="outline" size="icon-sm" aria-label="Next" (click)="calendar.next()">
+            <ng-icon name="lucideChevronRight" />
+          </button>
         </div>
-      }
+      </div>
 
       @if (calendar.feedAvailable() && !calendar.feedLoading() && !calendar.accounts().length && !linked.loading()) {
         <p class="text-muted-foreground text-sm">Link an account in Settings to see its calendar here too.</p>
       }
 
-      <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         @switch (calendar.view()) {
           @case ('month') {
             <app-month-view />
@@ -99,7 +103,7 @@ interface ListGroup {
             <app-week-view />
           }
           @case ('list') {
-            <div class="flex flex-col">
+            <div class="flex flex-col md:min-h-0 md:overflow-y-auto">
               @for (group of listGroups(); track group.label) {
                 <h3 class="text-muted-foreground px-1 pt-4 pb-1 text-xs font-semibold first:pt-0">{{ group.label }}</h3>
                 @for (item of group.items; track item.id) {
@@ -125,7 +129,8 @@ interface ListGroup {
             </div>
           }
         }
-        <section class="bg-card h-fit rounded-lg border lg:sticky lg:top-4" aria-labelledby="selected-day" aria-live="polite">
+        </div>
+        <section class="bg-card h-fit rounded-lg border md:max-h-full md:overflow-y-auto" aria-labelledby="selected-day" aria-live="polite">
           <div class="border-b px-4 py-3">
             <h3 id="selected-day" class="text-sm font-semibold">
               {{ calendar.selectedDay() | appDate: 'weekdayDayMonthLong' }}{{ isToday() ? ' · Today' : '' }}

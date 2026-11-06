@@ -15,9 +15,10 @@ import { AppDatePipe } from '../../core/date-format';
 @Component({
   selector: 'app-week-view',
   imports: [AppDatePipe],
+  host: { class: 'block md:min-h-0 md:flex-1' },
   template: `
-    <div class="overflow-x-auto rounded-lg border">
-      <div class="min-w-[44rem]">
+    <div class="overflow-x-auto rounded-lg border md:flex md:h-full md:flex-col">
+      <div class="min-w-[44rem] md:flex md:min-h-0 md:flex-1 md:flex-col">
         <div class="bg-muted/50 grid border-b" [style.grid-template-columns]="columns()">
           <div></div>
           @for (day of days(); track day.date.getTime()) {
@@ -64,7 +65,7 @@ import { AppDatePipe } from '../../core/date-format';
           </div>
         }
 
-        <div class="max-h-[65vh] overflow-y-auto">
+        <div class="max-h-[65vh] overflow-y-auto md:max-h-none md:min-h-0 md:flex-1">
           <div
             class="grid"
             [style.grid-template-columns]="columns()"
