@@ -23,7 +23,6 @@ import { rememberReturnUrl, takeReturnUrl } from '../../core/return-url';
 import { AuthStore, authErrorMessage } from '../../stores/auth.store';
 import { AuthLayout } from './auth-layout';
 import { ConfirmEmail, confirmEmailHint } from './confirm-email';
-import { MicrosoftSignInButton, isMicrosoftProvider } from './microsoft-sign-in-button';
 
 const CODE_LENGTH = 6;
 
@@ -46,7 +45,6 @@ const CODE_LENGTH = 6;
     HlmSpinner,
     AuthLayout,
     ConfirmEmail,
-    MicrosoftSignInButton,
     TranslatePipe,
   ],
 
@@ -110,23 +108,19 @@ const CODE_LENGTH = 6;
               </div>
               <div class="flex flex-col gap-2">
                 @for (provider of providers(); track provider.key) {
-                  @if (isMicrosoft(provider)) {
-                    <app-microsoft-sign-in-button [disabled]="redirecting()" (pressed)="signInWith(provider.key)" />
-                  } @else {
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      size="lg"
-                      type="button"
-                      [disabled]="redirecting()"
-                      (click)="signInWith(provider.key)"
-                    >
-                      @if (provider.icon_url) {
-                        <img [src]="provider.icon_url" alt="" class="size-4" />
-                      }
-                      {{ 'auth.login.continueWith' | translate: { name: provider.display_name } }}
-                    </button>
-                  }
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    size="lg"
+                    type="button"
+                    [disabled]="redirecting()"
+                    (click)="signInWith(provider.key)"
+                  >
+                    @if (provider.icon_url) {
+                      <img [src]="provider.icon_url" alt="" class="size-4" />
+                    }
+                    {{ 'auth.login.continueWith' | translate: { name: provider.display_name } }}
+                  </button>
                 }
               </div>
             }
@@ -223,7 +217,6 @@ export class Login implements OnInit {
   protected readonly rememberDevice = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly providers = signal<SignInProvider[]>([]);
-  protected readonly isMicrosoft = isMicrosoftProvider;
   protected readonly redirecting = signal(false);
 
   private readonly credentialsModel = signal({ identifier: '', password: '' });
