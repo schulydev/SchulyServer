@@ -1,5 +1,4 @@
 import { SyncingNotice } from '../../shared/syncing-notice';
-import { LinkedAccountsStore } from '../../stores/linked-accounts.store';
 import { Component, computed, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronLeft, lucideChevronRight, lucideTriangleAlert } from '@ng-icons/lucide';
@@ -91,9 +90,6 @@ interface ListGroup {
         </div>
       </div>
 
-      @if (calendar.feedAvailable() && !calendar.feedLoading() && !calendar.accounts().length && !linked.loading()) {
-        <p class="text-muted-foreground text-sm">Link an account in Settings to see its calendar here too.</p>
-      }
 
         @switch (calendar.view()) {
           @case ('month') {
@@ -146,7 +142,6 @@ interface ListGroup {
 })
 export class Calendar {
   protected readonly calendar = inject(CalendarStore);
-  protected readonly linked = inject(LinkedAccountsStore);
 
   protected readonly title = computed(() => {
     const { start, end } = this.calendar.range();
