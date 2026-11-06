@@ -1,12 +1,13 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeft, lucideTriangleAlert } from '@ng-icons/lucide';
+import { lucideArrowLeft, lucideChevronRight, lucideTriangleAlert } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { LinkProviderDto, LinkedAccountDto } from '../../core/linking-api';
+import { stepTitle } from '../../core/linking-step';
 import { LinkStepView, LinkSubmit } from '../../shared/link-step';
 import { ProviderIcon } from '../../shared/provider-icon';
 import { LinkSessionStore } from '../../stores/link-session.store';
@@ -21,13 +22,13 @@ type Mode = { kind: 'add' } | { kind: 'reauth'; account: LinkedAccountDto };
 @Component({
   selector: 'app-link-dialog',
   imports: [NgIcon, HlmAlertImports, HlmButton, HlmDialogImports, HlmSpinner, LinkStepView, ProviderIcon],
-  providers: [provideIcons({ lucideArrowLeft, lucideTriangleAlert }), LinkSessionStore],
+  providers: [provideIcons({ lucideArrowLeft, lucideChevronRight, lucideTriangleAlert }), LinkSessionStore],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <hlm-dialog-header>
           <h2 hlmDialogTitle>{{ title() }}</h2>
-          <p hlmDialogDescription class="sr-only">Link a school or service to Schuly.</p>
+          <p hlmDialogDescription [class.sr-only]="!description()">{{ description() || 'Link a school or service to Schuly.' }}</p>
         </hlm-dialog-header>
 
         @if (session.phase() === 'starting') {
@@ -38,32 +39,29 @@ type Mode = { kind: 'add' } | { kind: 'reauth'; account: LinkedAccountDto };
           <div class="flex flex-col gap-4">
             <div hlmAlert variant="destructive" role="alert">
               <ng-icon name="lucideTriangleAlert" hlmAlertIcon />
-              <h3 hlmAlertTitle>The sign-in did not complete</h3>
               <p hlmAlertDescription class="!text-destructive">{{ session.failure() }}</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <button hlmBtn type="button" variant="ghost" class="text-muted-foreground -ml-3 mr-auto" (click)="back()">
+                <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+                {{ mode().kind === 'add' ? 'Back' : 'Close' }}
+              </button>
               <button hlmBtn type="button" data-autofocus (click)="session.restart()">Try again</button>
-              <button hlmBtn type="button" variant="outline" (click)="back()">{{ mode().kind === 'add' ? 'Choose another account' : 'Close' }}</button>
             </div>
           </div>
         } @else if (session.step(); as step) {
-          <div class="flex flex-col gap-4">
-            <app-link-step
-              [step]="step"
-              [busy]="session.busy()"
-              [error]="session.error()"
-              (submitted)="onSubmit($event)"
-              (poll)="session.poll()"
-              (linkProvider)="session.startNested($event)"
-              (restart)="session.restart()"
-            />
-            <div>
-              <button hlmBtn type="button" variant="ghost" size="sm" (click)="back()">
-                <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-                {{ session.nested() ? 'Back' : mode().kind === 'add' ? 'Choose another account' : 'Cancel' }}
-              </button>
-            </div>
-          </div>
+          <app-link-step
+            [step]="step"
+            [heading]="false"
+            [backLabel]="mode().kind === 'reauth' && !session.nested() ? 'Cancel' : 'Back'"
+            [busy]="session.busy()"
+            [error]="session.error()"
+            (submitted)="onSubmit($event)"
+            (poll)="session.poll()"
+            (linkProvider)="session.startNested($event)"
+            (restart)="session.restart()"
+            (back)="back()"
+          />
         } @else if (pendingProvider(); as provider) {
           <form class="flex flex-col gap-4" (submit)="startPending($event)">
             <fieldset class="flex flex-col gap-2">
@@ -80,11 +78,11 @@ type Mode = { kind: 'add' } | { kind: 'reauth'; account: LinkedAccountDto };
                 </label>
               }
             </fieldset>
-            <div class="flex flex-wrap gap-2">
-              <button hlmBtn type="submit">Continue</button>
-              <button hlmBtn type="button" variant="ghost" (click)="pendingProvider.set(null)">
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <button hlmBtn type="button" variant="ghost" class="text-muted-foreground -ml-3 mr-auto" (click)="pendingProvider.set(null)">
                 <ng-icon name="lucideArrowLeft" aria-hidden="true" /> Back
               </button>
+              <button hlmBtn type="submit">Continue</button>
             </div>
           </form>
         } @else {
@@ -102,17 +100,18 @@ type Mode = { kind: 'add' } | { kind: 'reauth'; account: LinkedAccountDto };
                 <li>
                   <button
                     type="button"
-                    class="hover:bg-muted/50 focus-visible:ring-ring/50 flex w-full items-start gap-3 rounded-lg border p-3 text-left outline-none focus-visible:ring-[3px]"
+                    class="hover:bg-muted/50 focus-visible:ring-ring/50 flex w-full items-center gap-3 rounded-xl border p-3 text-left outline-none focus-visible:ring-[3px]"
                     [attr.data-autofocus]="$first ? '' : null"
                     (click)="pick(provider)"
                   >
-                    <app-provider-icon [icon]="provider.icon" class="mt-0.5" />
-                    <span class="flex min-w-0 flex-col">
+                    <app-provider-icon [icon]="provider.icon" />
+                    <span class="flex min-w-0 flex-1 flex-col">
                       <span class="text-sm font-medium">{{ provider.displayName }}</span>
                       @if (provider.description) {
                         <span class="text-muted-foreground text-sm">{{ provider.description }}</span>
                       }
                     </span>
+                    <ng-icon name="lucideChevronRight" aria-hidden="true" class="text-muted-foreground shrink-0" />
                   </button>
                 </li>
               }
@@ -132,9 +131,22 @@ export class LinkDialog {
   protected readonly pendingProvider = signal<LinkProviderDto | null>(null);
   protected readonly pendingFlow = signal('');
 
+  /** The current step's title, else the dialog's own. */
   protected readonly title = computed(() => {
+    const step = this.session.phase() === 'failed' ? null : this.session.step();
+    if (step) return stepTitle(step);
+    if (this.session.phase() === 'failed') return 'The sign-in did not complete';
+    const provider = this.pendingProvider();
+    if (provider) return `Sign in to ${provider.displayName}`;
     const mode = this.mode();
     return mode.kind === 'reauth' ? `Re-authenticate ${mode.account.title}` : 'Add an account';
+  });
+
+  protected readonly description = computed(() => {
+    const step = this.session.phase() === 'failed' ? null : this.session.step();
+    if (step) return step.description ?? '';
+    if (this.session.phase() !== 'idle' || this.pendingProvider()) return '';
+    return this.mode().kind === 'add' ? 'What should Schuly connect to?' : '';
   });
 
   constructor() {

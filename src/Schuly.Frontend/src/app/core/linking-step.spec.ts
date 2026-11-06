@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { describe, expect, it } from 'vitest';
 import { LinkFieldDto, LinkSessionDto } from './linking-api';
-import { clock, countdownAnnouncement, failureMessage, fieldHint, formHints, initialValues, isHttps, isTerminal, linkErrorMessage, secondsLeft, submitValues } from './linking-step';
+import { clock, countdownAnnouncement, failureMessage, fieldHint, filterSearchOptions, formHints, initialValues, isHttps, isTerminal, linkErrorMessage, searchOption, secondsLeft, submitValues } from './linking-step';
 
 const field = (extra: Partial<LinkFieldDto>): LinkFieldDto => ({ key: 'k', label: 'Field', type: 'text', required: true, ...extra });
 const session = (status: LinkSessionDto['status'], kind: LinkSessionDto['step']['kind'], extra: Partial<LinkSessionDto['step']> = {}): LinkSessionDto => ({
@@ -122,5 +122,27 @@ describe('countdown', () => {
     expect(countdownAnnouncement(5)).toBe('About 10 seconds left.');
     expect(countdownAnnouncement(0)).toBe('The request expired.');
     expect(countdownAnnouncement(44)).toBe(countdownAnnouncement(46));
+  });
+});
+
+describe('search options', () => {
+  const schools = [
+    { value: 'https://schulnetz.bbbaden.ch', label: 'Berufsfachschule BBB Baden · AG' },
+    { value: 'https://www.schulnetz-ag.ch/ksba', label: 'Kantonsschule Baden · AG' },
+    { value: 'https://gibz.zg.ch', label: 'Gewerblich-industrielles Bildungszentrum Zug (GIBZ) · ZG' },
+    { value: 'https://schulnetz.zentrumbildung.ch', label: 'Zentrum Bildung – Wirtschaftsschule KV Baden · AG' },
+  ].map(searchOption);
+
+  it('splits the canton off the name and shows the address without https', () => {
+    expect(schools[0]).toEqual({ value: 'https://schulnetz.bbbaden.ch', name: 'Berufsfachschule BBB Baden', tag: 'AG', address: 'schulnetz.bbbaden.ch' });
+    expect(searchOption({ value: 'x', label: 'No tag here' })).toEqual({ value: 'x', name: 'No tag here', tag: null, address: null });
+  });
+
+  it('matches every word in name, canton or address, ignoring case and accents', () => {
+    expect(filterSearchOptions(schools, 'bbb').map((s) => s.tag)).toEqual(['AG']);
+    expect(filterSearchOptions(schools, 'baden kanton').map((s) => s.name)).toEqual(['Kantonsschule Baden']);
+    expect(filterSearchOptions(schools, 'zg').map((s) => s.address)).toEqual(['gibz.zg.ch']);
+    expect(filterSearchOptions(schools, 'ZENTRUM').length).toBe(2);
+    expect(filterSearchOptions(schools, '').length).toBe(4);
   });
 });
