@@ -276,7 +276,8 @@
       "privacy": "Protecziun da datas",
       "terms": "Cundiziuns d'utilisaziun",
       "imprint": "Impressum",
-      "contact": "Contact"
+      "contact": "Contact",
+      "trademarks": "Microsoft 365, Microsoft Outlook, Microsoft Teams, Microsoft OneDrive e Microsoft OneNote èn marcas da la Microsoft Corporation. Schulnetz è ina marca da la Centerboard AG. Schuly è in project independent e n'ha nagina relaziun cun Microsoft u Centerboard."
     },
     "confirm": {
       "checkEmail": "Guarda en tes e-mails per confermar tia adressa.",
@@ -326,7 +327,8 @@
       "codeHint": "Endatescha il code da 6 cifras da tia app d'autentificaziun.",
       "mismatch": "Quai na correspunda betg. Controllescha num d'utilisader e pled-clav.",
       "recoveryFailed": "Quest code da restabiliment n'ha betg funcziunà.",
-      "codeFailed": "Quest code n'ha betg funcziunà. Spetga sin il proxim code en tia app ed endatescha quel."
+      "codeFailed": "Quest code n'ha betg funcziunà. Spetga sin il proxim code en tia app ed endatescha quel.",
+      "signInWithMicrosoft": "S'annunziar cun Microsoft"
     },
     "password": "Pled-clav",
     "confirmEmail": "Conferma tia adressa dad e-mail",
@@ -637,7 +639,7 @@
       "shared": "Qua cumparan datotecas che auters partan cun tai.",
       "recent": "Qua cumparan datotecas che ti has duvrà ultimamain.",
       "team": "Qua cumparan las datotecas da quest team.",
-      "drive": "Qua cumparan datotecas ed ordinaturs da OneDrive."
+      "drive": "Qua cumparan datotecas ed ordinaturs da Microsoft OneDrive."
     },
     "column": {
       "name": "Num",
@@ -746,7 +748,7 @@
     "moveToFolder": "Spustar en in ordinatur",
     "attachments": "Agiuntas",
     "noPreview": "Nagina prevista disponibla.",
-    "openOutlook": "Avrir en Outlook",
+    "openOutlook": "Avrir en Microsoft Outlook",
     "previewOnlyServer": "Quest server na po anc betg mussar messadis entirs. Igl è ina prevista.",
     "previewOnlyFailed": "Betg pussaivel da chargiar l'entir messadi. Igl è ina prevista.",
     "unavailable": "Anc betg disponibel sin quest server.",
@@ -941,13 +943,13 @@
       "schoolAccounts": "Contos da scola",
       "schoolAccountsHint": "Tge scolas e classas èn colliadas.",
       "mail": "E-mail",
-      "mailHint": "Leger e-mails. Scriver trametta, respunda, transmetta, spusta, marca e marca sco legì.",
+      "mailHint": "Leger e-mails en Microsoft Outlook. Scriver trametta, respunda, transmetta, spusta, marca e marca sco legì.",
       "teams": "Teams",
-      "teamsHint": "Leger chats. Scriver trametta er messadis.",
+      "teamsHint": "Leger chats en Microsoft Teams. Scriver trametta er messadis.",
       "drive": "Drive",
-      "driveHint": "Navigar en tias datotecas OneDrive.",
+      "driveHint": "Navigar en tias datotecas en Microsoft OneDrive.",
       "onenote": "OneNote",
-      "onenoteHint": "Leger e modifitgar tes cudeschs da notizias OneNote."
+      "onenoteHint": "Leger e modifitgar tes cudeschs da notizias en Microsoft OneNote."
     },
     "level": {
       "off": "Deactivà",
@@ -1144,7 +1146,7 @@
     "pageTitle": "Titel da la pagina",
     "readOnly": "Mo per leger",
     "saving": "Vegn memorisà",
-    "openOneNote": "Avrir en OneNote",
+    "openOneNote": "Avrir en Microsoft OneNote",
     "download": "(telechargiar)",
     "box": "Champ {{number}}, mo per leger",
     "inkBox": "Quest champ cuntegna maletgs u tinta e resta sco ch'el è",
@@ -1183,7 +1185,7 @@
     "loadingSections": "Secziuns vegnan chargiadas",
     "noSections": "Naginas secziuns",
     "noNotebooks": "Nagins cudeschs da notizias",
-    "noNotebooksHint": "Qua cumparan tes cudeschs da notizias OneNote.",
+    "noNotebooksHint": "Qua cumparan tes cudeschs da notizias da Microsoft OneNote.",
     "teamNotebook": "Cudesch da notizias dal team",
     "signInExpired": "Annunzia scadida.",
     "notebookMissing": "Cudesch da notizias betg chattà.",

@@ -62,7 +62,7 @@ namespace Schuly.API.Extensions
             ? uri.Host.ToLowerInvariant() switch
             {
                 "accounts.google.com" => "/sso-icons/google.png",
-                "login.microsoftonline.com" or "login.live.com" => "/sso-icons/microsoft.png",
+                "login.microsoftonline.com" or "login.live.com" => "/sso-icons/microsoft.svg",
                 _ => null,
             }
             : null;

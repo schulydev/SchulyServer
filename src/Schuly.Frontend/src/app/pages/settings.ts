@@ -133,6 +133,8 @@ import { UserStore } from '../stores/user.store';
           </hlm-alert-dialog>
         </div>
       </section>
+
+      <p class="text-muted-foreground text-xs">{{ 'auth.layout.trademarks' | translate }}</p>
     </div>
   `,
 })

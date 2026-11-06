@@ -53,7 +53,7 @@ import { ThemeStore } from '../../stores/theme.store';
       </div>
 
       <footer
-        class="text-muted-foreground flex flex-col gap-3 py-6 text-sm sm:flex-row sm:items-center sm:justify-between"
+        class="text-muted-foreground flex flex-col gap-3 pt-6 pb-3 text-sm sm:flex-row sm:items-center sm:justify-between"
       >
         <nav [attr.aria-label]="'auth.layout.legal' | translate">
           <ul class="flex flex-wrap gap-x-4 gap-y-1">
@@ -75,6 +75,7 @@ import { ThemeStore } from '../../stores/theme.store';
           <p>© {{ year }} Schuly</p>
         </div>
       </footer>
+      <p class="text-muted-foreground max-w-3xl pb-6 text-xs">{{ 'auth.layout.trademarks' | translate }}</p>
     </div>
   `,
 })

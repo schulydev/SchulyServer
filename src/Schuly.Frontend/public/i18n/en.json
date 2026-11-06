@@ -276,7 +276,8 @@
       "privacy": "Privacy",
       "terms": "Terms",
       "imprint": "Imprint",
-      "contact": "Contact"
+      "contact": "Contact",
+      "trademarks": "Microsoft 365, Microsoft Outlook, Microsoft Teams, Microsoft OneDrive and Microsoft OneNote are trademarks of Microsoft Corporation. Schulnetz is a trademark of Centerboard AG. Schuly is an independent project and is not affiliated with Microsoft or Centerboard."
     },
     "confirm": {
       "checkEmail": "Check your email to confirm your address.",
@@ -326,7 +327,8 @@
       "codeHint": "Enter the 6-digit code from your authenticator app.",
       "mismatch": "That didn't match. Check your username and password.",
       "recoveryFailed": "That recovery code didn't work.",
-      "codeFailed": "That code didn't work. Wait for the next code in your app and enter that one."
+      "codeFailed": "That code didn't work. Wait for the next code in your app and enter that one.",
+      "signInWithMicrosoft": "Sign in with Microsoft"
     },
     "password": "Password",
     "confirmEmail": "Confirm your email",
@@ -637,7 +639,7 @@
       "shared": "Files others shared with you appear here.",
       "recent": "Files you used lately appear here.",
       "team": "Files of this team appear here.",
-      "drive": "Files and folders from OneDrive appear here."
+      "drive": "Files and folders from Microsoft OneDrive appear here."
     },
     "column": {
       "name": "Name",
@@ -746,7 +748,7 @@
     "moveToFolder": "Move to folder",
     "attachments": "Attachments",
     "noPreview": "No preview available.",
-    "openOutlook": "Open in Outlook",
+    "openOutlook": "Open in Microsoft Outlook",
     "previewOnlyServer": "This server cannot show full messages yet. Showing a preview.",
     "previewOnlyFailed": "The full message could not be loaded. Showing a preview.",
     "unavailable": "Not available on this server yet.",
@@ -941,13 +943,13 @@
       "schoolAccounts": "School accounts",
       "schoolAccountsHint": "Which schools and classes are connected.",
       "mail": "Mail",
-      "mailHint": "Read mail. Write also sends, replies, forwards, moves, flags and marks as read.",
+      "mailHint": "Read mail in Microsoft Outlook. Write also sends, replies, forwards, moves, flags and marks as read.",
       "teams": "Teams",
-      "teamsHint": "Read chats. Write also sends chat messages.",
+      "teamsHint": "Read chats in Microsoft Teams. Write also sends chat messages.",
       "drive": "Drive",
-      "driveHint": "Browse your OneDrive files.",
+      "driveHint": "Browse your files in Microsoft OneDrive.",
       "onenote": "OneNote",
-      "onenoteHint": "Read and edit your OneNote notebooks."
+      "onenoteHint": "Read and edit your notebooks in Microsoft OneNote."
     },
     "level": {
       "off": "Off",
@@ -1144,7 +1146,7 @@
     "pageTitle": "Page title",
     "readOnly": "Read only",
     "saving": "Saving",
-    "openOneNote": "Open in OneNote",
+    "openOneNote": "Open in Microsoft OneNote",
     "download": "(download)",
     "box": "Box {{number}}, read only",
     "inkBox": "This box holds pictures or ink and stays as it is",
@@ -1183,7 +1185,7 @@
     "loadingSections": "Loading sections",
     "noSections": "No sections",
     "noNotebooks": "No notebooks",
-    "noNotebooksHint": "Your OneNote notebooks appear here.",
+    "noNotebooksHint": "Your notebooks from Microsoft OneNote appear here.",
     "teamNotebook": "Team notebook",
     "signInExpired": "Sign-in expired.",
     "notebookMissing": "Notebook not found.",
