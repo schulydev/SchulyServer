@@ -1,3 +1,4 @@
+import { PasswordField } from '../../shared/password-field';
 import { TranslatePipe } from '@ngx-translate/core';
 import { t } from '../../core/i18n';
 import { Component, inject, input, signal } from '@angular/core';
@@ -7,7 +8,6 @@ import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
-import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
 import { AuthApi } from '../../core/auth-api';
@@ -17,6 +17,7 @@ import { AuthLayout } from './auth-layout';
 @Component({
   selector: 'app-reset-password',
   imports: [
+    PasswordField,
     FormRoot,
     FormField,
     RouterLink,
@@ -24,7 +25,6 @@ import { AuthLayout } from './auth-layout';
     HlmButton,
     HlmCardImports,
     HlmFieldImports,
-    HlmInput,
     HlmSpinner,
     AuthLayout,
     TranslatePipe,
@@ -50,13 +50,7 @@ import { AuthLayout } from './auth-layout';
             <form [formRoot]="reset" class="flex flex-col gap-4">
               <div hlmField>
                 <label hlmFieldLabel for="new-password">{{ 'auth.reset.new' | translate }}</label>
-                <input
-                  hlmInput
-                  id="new-password"
-                  type="password"
-                  autocomplete="new-password"
-                  [formField]="reset.password"
-                />
+                <app-password-field inputId="new-password" autocomplete="new-password" [formField]="reset.password" />
                 <p hlmFieldDescription>{{ 'auth.minLength' | translate }}</p>
               </div>
               @if (error()) {

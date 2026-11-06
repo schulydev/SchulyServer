@@ -291,7 +291,14 @@
       "invalid": "This confirmation is no longer valid. Go back to sign in and start again.",
       "sendFailed": "Something went wrong sending the code. Try again in a moment.",
       "mismatch": "That code didn't match. Check the email and try again.",
-      "expired": "This code has expired. We can send you a new one."
+      "expired": "This code has expired. We can send you a new one.",
+      "changeAddress": "Wrong address? Change email",
+      "newAddress": "Your email address",
+      "newAddressHint": "We send a new code there. The old one stops working.",
+      "sendCode": "Send code",
+      "sentToNew": "We sent a new code to your new address.",
+      "addressTaken": "Another account already uses that email address.",
+      "addressInvalid": "Enter a valid email address."
     },
     "verify": "Verify",
     "backToSignIn": "Back to sign in",
@@ -338,7 +345,8 @@
       "account_exists": "An account with that email already exists. Sign in with your password, then link this provider in Settings.",
       "linked_to_another_account": "That sign-in already belongs to another Schuly account.",
       "provider_already_linked": "That provider is already linked to your account.",
-      "external_login_failed": "Signing in with that provider did not work. Try again."
+      "external_login_failed": "Signing in with that provider did not work. Try again.",
+      "email_not_verified": "That provider hasn't confirmed your email address, so no account was created. Confirm it there first, or create an account with your email."
     },
     "tooMany": "Too many attempts. Wait a minute and try again.",
     "unreachable": "Schuly is not reachable right now.",
@@ -396,6 +404,208 @@
       "confirmTitle": "Delete your account?",
       "confirmDescription": "This permanently deletes your Schuly account, your linked school accounts and every grade, exam, absence and document synced to the server.",
       "password": "Your password (leave empty if you only use single sign-on)"
+    },
+    "profile": {
+      "label": "Profile",
+      "changePicture": "Change profile picture",
+      "upload": "Upload a picture…",
+      "confirmed": "Confirmed",
+      "tooLarge": "The picture must be at most 2 MB."
+    },
+    "accounts": {
+      "title": "Schools & accounts",
+      "description": "The schools and services Schuly syncs for you.",
+      "add": "Add",
+      "addAria": "Add a school or account",
+      "loading": "Loading linked accounts",
+      "groupAria": "{{name}} accounts",
+      "loadFailed": "Could not load the accounts",
+      "noAnswer": "This service did not answer. Try again later.",
+      "status": {
+        "ok": "Connected",
+        "syncing": "Syncing",
+        "expired": "Sign-in expired",
+        "error": "Problem"
+      },
+      "signInAgain": "Sign in again",
+      "signInAgainAria": "Sign in again to {{name}}",
+      "reauth": "Re-authenticate",
+      "reauthAria": "Re-authenticate {{name}}",
+      "unlink": "Unlink",
+      "unlinkAria": "Unlink {{name}}",
+      "unlinkTitle": "Unlink {{name}}?",
+      "unlinkText": "Schuly stops reading it and deletes what it stored from it. You can add it again any time.",
+      "none": "No schools or accounts linked yet. Add one to start syncing.",
+      "linked": "Linked {{name}}",
+      "accountLinked": "Account linked",
+      "finishFailed": "Could not finish the sign-in.",
+      "unlinked": "Unlinked {{name}}"
+    },
+    "security": {
+      "title": "Security",
+      "description": "How you sign in to Schuly, and where you're signed in.",
+      "password": {
+        "label": "Password",
+        "set": "Set",
+        "notSet": "Not set · you sign in with a provider",
+        "change": "Change",
+        "add": "Add password"
+      },
+      "twoFactor": {
+        "label": "Two-factor authentication",
+        "on": "On · {count, plural, one {# recovery code left} other {# recovery codes left}}",
+        "off": "Off · a code from your phone at each new sign-in",
+        "setUp": "Set up",
+        "turnOff": "Turn off"
+      },
+      "providers": {
+        "title": "Sign-in providers",
+        "link": "Link",
+        "linkAria": "Link a sign-in provider",
+        "unlink": "Unlink",
+        "unlinkAria": "Unlink {{name}}",
+        "none": "No provider linked. Link one to sign in without your password."
+      },
+      "devices": {
+        "title": "Devices",
+        "lastActive": "Last active: {{when}}",
+        "thisDevice": "This device",
+        "signOut": "Sign out",
+        "signOutAria": "Sign out {{name}}",
+        "signedOut": "Signed out {{name}}",
+        "remembered": "{count, plural, one {# device skips} other {# devices skip}} the two-factor code.",
+        "forget": "Forget remembered devices",
+        "unknown": "Unknown device",
+        "app": "Schuly app",
+        "on": "{{browser}} on {{system}}"
+      },
+      "passwordDialog": {
+        "changeTitle": "Change password",
+        "addTitle": "Add a password",
+        "changeDescription": "Then sign in again with the new one, here and on your other devices.",
+        "addDescription": "Then you can also sign in with your email and this password.",
+        "newPassword": "New password",
+        "newPasswordHint": "At least {{min}} characters. A sentence you'll remember works well.",
+        "submitChange": "Change password",
+        "submitAdd": "Add password"
+      },
+      "twoFactorDialog": {
+        "title": "Set up two-factor authentication",
+        "step": "Step {{step}} of 3 · {{label}}",
+        "steps": {
+          "proof": "confirm it's you",
+          "app": "connect your app",
+          "codes": "recovery codes"
+        },
+        "codesTitle": "Save your recovery codes",
+        "codesText": "Each one signs you in once if you lose your phone. Keep them somewhere safe, not only on this device. They're only shown now.",
+        "codesAria": "Recovery codes",
+        "copyCodes": "Copy codes",
+        "copied": "Recovery codes copied",
+        "copyFailed": "Could not copy. Select the codes and copy them yourself.",
+        "saved": "I saved them",
+        "scan": "Scan this with your authenticator app, then type the 6-digit code it shows.",
+        "qrAlt": "QR code for your authenticator app",
+        "cantScan": "Can't scan? Enter",
+        "codeLabel": "Code from the app",
+        "verify": "Verify",
+        "appTitle": "You'll need an authenticator app",
+        "appText": "Microsoft Authenticator, Google Authenticator or your password manager."
+      },
+      "twoFactorOff": {
+        "title": "Turn off two-factor authentication",
+        "description": "Signing in then needs only your password or provider.",
+        "codeLabel": "Code from your app or a recovery code"
+      },
+      "linkPick": {
+        "title": "Link a provider",
+        "description": "Pick one to sign in with, as well as the ones you have.",
+        "linkAria": "Link {{name}}"
+      },
+      "link": {
+        "title": "Link {{name}}",
+        "description": "Then you can sign in with {{name}} too.",
+        "codeLabel": "Code from your app",
+        "submit": "Continue to {{name}}"
+      },
+      "unlink": {
+        "title": "Unlink {{name}}?",
+        "description": "You won't be able to sign in with {{name}} any more, and you'll be signed out everywhere, here too."
+      },
+      "lastWayIn": {
+        "title": "You can't unlink {{name}} yet",
+        "alertTitle": "It's your only way to sign in",
+        "alertText": "Add a password or link another provider first, otherwise you'd lock yourself out.",
+        "addPassword": "Add a password"
+      },
+      "signOutDialog": {
+        "title": "Sign out {{name}}?",
+        "description": "It has to sign in again to use Schuly."
+      },
+      "signInAgain": {
+        "description": "For your safety, changing how you sign in ends every session, including this one.",
+        "button": "Sign in again"
+      },
+      "messages": {
+        "loadFailed": "Could not load your security settings.",
+        "passwordAdded": "Your password is added. Sign in again.",
+        "passwordChanged": "Your password is changed. Sign in again with the new one.",
+        "checkCurrentPassword": "That did not work. Check your current password.",
+        "emailSent": "We sent a confirmation to {{email}}. Your email changes once you confirm it.",
+        "checkPassword": "That did not work. Check your password.",
+        "codeMismatch": "That code didn't match. Try the current one from your app.",
+        "twoFactorOn": "Two-factor authentication is on. Sign in again with a code from your app.",
+        "twoFactorOff": "Two-factor authentication is off. Sign in again.",
+        "codeOrPassword": "That code or password didn't match.",
+        "unlinked": "The provider is unlinked. Sign in again.",
+        "unlinkFailed": "That did not work. Check your code or password, and keep at least one way to sign in.",
+        "linked": "The provider is linked. You can now sign in with it.",
+        "signOutFailed": "Could not sign out that device.",
+        "forgetFailed": "Could not forget your devices."
+      }
+    },
+    "proof": {
+      "currentPassword": "Current password",
+      "continueWith": "Continue with {{name}}",
+      "signOutAndIn": "Sign out and sign in again, then try once more.",
+      "reason": {
+        "addPassword": "To add a password, confirm it's you by signing in again. You come straight back here.",
+        "twoFactor": "To turn on two-factor authentication, confirm it's you by signing in again. You come straight back here.",
+        "twoFactorOff": "To turn off two-factor authentication, confirm it's you by signing in again. You come straight back here.",
+        "link": "To link {{name}}, confirm it's you by signing in again. You come straight back here.",
+        "unlink": "To unlink {{name}}, confirm it's you by signing in again. You come straight back here.",
+        "email": "To change your email, confirm it's you by signing in again. You come straight back here.",
+        "delete": "To delete your account, confirm it's you by signing in again. You come straight back here."
+      }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "Changes to the account itself.",
+      "email": {
+        "label": "Change email",
+        "text": "Where Schuly sends codes and notices.",
+        "change": "Change",
+        "description": "We send a link to the new address; your email changes once you open it.",
+        "passwordFirst": "Add a password first",
+        "passwordFirstText": "Your email here belongs to the provider you sign in with. Add a password in Security, then you can choose your own.",
+        "checkInbox": "Check your inbox",
+        "sentTo": "We sent a link to {{email}}. Open it to finish the change.",
+        "newEmail": "New email",
+        "submit": "Send link"
+      },
+      "export": {
+        "label": "Export your data",
+        "text": "A file with your profile, linked accounts and synced school data.",
+        "button": "Export"
+      },
+      "delete": {
+        "text": "Removes your account and everything Schuly stored. This can't be undone.",
+        "description": "Your profile, linked accounts and all synced school data are deleted. Your school accounts themselves stay untouched.",
+        "alertTitle": "This can't be undone",
+        "alertText": "Export your data first if you want to keep it.",
+        "typeConfirm": "Type {{word}} to confirm",
+        "word": "DELETE"
+      }
     }
   },
   "chat": {

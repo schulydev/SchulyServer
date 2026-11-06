@@ -1,3 +1,4 @@
+import { PasswordField } from './password-field';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, linkedSignal, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -23,7 +24,7 @@ export interface LinkSubmit {
  */
 @Component({
   selector: 'app-link-step',
-  imports: [NgIcon, NgTemplateOutlet, HlmAlertImports, HlmButton, HlmFieldImports, HlmInput, HlmSpinner],
+  imports: [PasswordField, NgIcon, NgTemplateOutlet, HlmAlertImports, HlmButton, HlmFieldImports, HlmInput, HlmSpinner],
   providers: [provideIcons({ lucideCircleCheck, lucideCopy, lucideExternalLink, lucideSmartphone, lucideTriangleAlert })],
   host: { class: 'flex flex-col gap-4' },
   template: `
@@ -79,6 +80,17 @@ export interface LinkSubmit {
                     <option [value]="option.value" [selected]="option.value === values()[field.key]">{{ option.label }}</option>
                   }
                 </select>
+              } @else if (field.type === 'password') {
+                <app-password-field
+                  [inputId]="fieldId(field)"
+                  [fieldName]="field.key"
+                  autocomplete="current-password"
+                  [autofocus]="$first"
+                  [markInvalid]="!!hints()[field.key]"
+                  [describedBy]="describedBy(field) ?? ''"
+                  [value]="values()[field.key] ?? ''"
+                  (valueChange)="setValue(field.key, $event)"
+                />
               } @else {
                 <input
                   hlmInput

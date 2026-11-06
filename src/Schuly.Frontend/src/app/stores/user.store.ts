@@ -38,6 +38,8 @@ export const UserStore = signalStore(
     return {
       name,
       email: computed(() => user()?.email ?? ''),
+      hasPassword: computed(() => user()?.hasPassword ?? true),
+      emailConfirmed: computed(() => user()?.emailConfirmed ?? false),
       avatar: computed(() => user()?.profilePictureUrl ?? null),
       initials: computed(() => initials(name())),
       schoolCount: computed(() => user()?.schoolUsers?.length ?? 0),

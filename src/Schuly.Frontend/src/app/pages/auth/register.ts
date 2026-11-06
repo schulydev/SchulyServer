@@ -1,3 +1,4 @@
+import { PasswordField } from '../../shared/password-field';
 import { TranslatePipe } from '@ngx-translate/core';
 import { t } from '../../core/i18n';
 import { Component, inject, signal } from '@angular/core';
@@ -17,6 +18,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
 @Component({
   selector: 'app-register',
   imports: [
+    PasswordField,
     FormRoot,
     FormField,
     RouterLink,
@@ -65,17 +67,11 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
             </div>
             <div hlmField>
               <label hlmFieldLabel for="new-password">{{ 'auth.password' | translate }}</label>
-              <input
-                hlmInput
-                id="new-password"
-                type="password"
-                autocomplete="new-password"
-                [formField]="account.password"
-              />
+              <app-password-field inputId="new-password" autocomplete="new-password" [formField]="account.password" />
               <p hlmFieldDescription>{{ 'auth.minLength' | translate }}</p>
             </div>
             @if (error()) {
-              <hlm-field-error>{{ error() }}</hlm-field-error>
+              <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
             }
             <button hlmBtn size="lg" type="submit" [disabled]="account().submitting()">
               @if (account().submitting()) {

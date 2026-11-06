@@ -291,7 +291,14 @@
       "invalid": "Diese Bestätigung ist nicht mehr gültig. Geh zurück zur Anmeldung und beginne neu.",
       "sendFailed": "Beim Senden des Codes ist etwas schiefgelaufen. Versuch es gleich nochmals.",
       "mismatch": "Der Code stimmt nicht. Prüf die E-Mail und versuch es nochmals.",
-      "expired": "Dieser Code ist abgelaufen. Wir können dir einen neuen schicken."
+      "expired": "Dieser Code ist abgelaufen. Wir können dir einen neuen schicken.",
+      "changeAddress": "Falsche Adresse? E-Mail ändern",
+      "newAddress": "Deine E-Mail-Adresse",
+      "newAddressHint": "Wir schicken dir dorthin einen neuen Code. Der alte gilt dann nicht mehr.",
+      "sendCode": "Code senden",
+      "sentToNew": "Wir haben dir einen neuen Code an die neue Adresse geschickt.",
+      "addressTaken": "Diese E-Mail-Adresse nutzt schon ein anderes Konto.",
+      "addressInvalid": "Gib eine gültige E-Mail-Adresse ein."
     },
     "verify": "Bestätigen",
     "backToSignIn": "Zurück zur Anmeldung",
@@ -338,7 +345,8 @@
       "account_exists": "Ein Konto mit dieser E-Mail gibt es schon. Melde dich mit deinem Passwort an und verknüpfe den Anbieter dann in den Einstellungen.",
       "linked_to_another_account": "Diese Anmeldung gehört schon zu einem anderen Schuly-Konto.",
       "provider_already_linked": "Dieser Anbieter ist schon mit deinem Konto verknüpft.",
-      "external_login_failed": "Die Anmeldung mit diesem Anbieter hat nicht geklappt. Versuch es nochmals."
+      "external_login_failed": "Die Anmeldung mit diesem Anbieter hat nicht geklappt. Versuch es nochmals.",
+      "email_not_verified": "Dieser Anbieter hat deine E-Mail-Adresse nicht bestätigt, darum wurde kein Konto erstellt. Bestätige sie zuerst dort oder erstelle ein Konto mit deiner E-Mail."
     },
     "tooMany": "Zu viele Versuche. Warte eine Minute und versuch es nochmals.",
     "unreachable": "Schuly ist gerade nicht erreichbar.",
@@ -396,6 +404,208 @@
       "confirmTitle": "Konto löschen?",
       "confirmDescription": "Damit löschst du dein Schuly-Konto, deine verknüpften Schulkonten und alle Noten, Prüfungen, Absenzen und Dokumente auf dem Server endgültig.",
       "password": "Dein Passwort (leer lassen, wenn du nur Single Sign-on nutzt)"
+    },
+    "profile": {
+      "label": "Profil",
+      "changePicture": "Profilbild ändern",
+      "upload": "Bild hochladen…",
+      "confirmed": "Bestätigt",
+      "tooLarge": "Das Bild darf höchstens 2 MB gross sein."
+    },
+    "accounts": {
+      "title": "Schulen & Konten",
+      "description": "Die Schulen und Dienste, die Schuly für dich synchronisiert.",
+      "add": "Hinzufügen",
+      "addAria": "Schule oder Konto hinzufügen",
+      "loading": "Verknüpfte Konten werden geladen",
+      "groupAria": "Konten bei {{name}}",
+      "loadFailed": "Die Konten konnten nicht geladen werden",
+      "noAnswer": "Dieser Dienst hat nicht geantwortet. Versuch es später nochmals.",
+      "status": {
+        "ok": "Verbunden",
+        "syncing": "Wird synchronisiert",
+        "expired": "Anmeldung abgelaufen",
+        "error": "Problem"
+      },
+      "signInAgain": "Neu anmelden",
+      "signInAgainAria": "Bei {{name}} neu anmelden",
+      "reauth": "Erneut anmelden",
+      "reauthAria": "{{name}} erneut anmelden",
+      "unlink": "Trennen",
+      "unlinkAria": "{{name}} trennen",
+      "unlinkTitle": "{{name}} trennen?",
+      "unlinkText": "Schuly liest es nicht mehr und löscht, was davon gespeichert ist. Du kannst es jederzeit wieder hinzufügen.",
+      "none": "Noch keine Schulen oder Konten verknüpft. Füge eines hinzu, damit Schuly synchronisiert.",
+      "linked": "{{name}} verknüpft",
+      "accountLinked": "Konto verknüpft",
+      "finishFailed": "Die Anmeldung konnte nicht abgeschlossen werden.",
+      "unlinked": "{{name}} getrennt"
+    },
+    "security": {
+      "title": "Sicherheit",
+      "description": "Wie du dich bei Schuly anmeldest und wo du angemeldet bist.",
+      "password": {
+        "label": "Passwort",
+        "set": "Gesetzt",
+        "notSet": "Nicht gesetzt · du meldest dich über einen Anbieter an",
+        "change": "Ändern",
+        "add": "Passwort hinzufügen"
+      },
+      "twoFactor": {
+        "label": "Zwei-Faktor-Authentifizierung",
+        "on": "An · {count, plural, one {# Wiederherstellungscode übrig} other {# Wiederherstellungscodes übrig}}",
+        "off": "Aus · ein Code von deinem Handy bei jeder neuen Anmeldung",
+        "setUp": "Einrichten",
+        "turnOff": "Ausschalten"
+      },
+      "providers": {
+        "title": "Anmeldeanbieter",
+        "link": "Verknüpfen",
+        "linkAria": "Anmeldeanbieter verknüpfen",
+        "unlink": "Trennen",
+        "unlinkAria": "{{name}} trennen",
+        "none": "Kein Anbieter verknüpft. Verknüpfe einen, um dich ohne Passwort anzumelden."
+      },
+      "devices": {
+        "title": "Geräte",
+        "lastActive": "Zuletzt aktiv: {{when}}",
+        "thisDevice": "Dieses Gerät",
+        "signOut": "Abmelden",
+        "signOutAria": "{{name}} abmelden",
+        "signedOut": "{{name}} abgemeldet",
+        "remembered": "{count, plural, one {# Gerät überspringt} other {# Geräte überspringen}} den Zwei-Faktor-Code.",
+        "forget": "Gemerkte Geräte vergessen",
+        "unknown": "Unbekanntes Gerät",
+        "app": "Schuly-App",
+        "on": "{{browser}} auf {{system}}"
+      },
+      "passwordDialog": {
+        "changeTitle": "Passwort ändern",
+        "addTitle": "Passwort hinzufügen",
+        "changeDescription": "Danach meldest du dich hier und auf deinen anderen Geräten mit dem neuen an.",
+        "addDescription": "Danach kannst du dich auch mit deiner E-Mail und diesem Passwort anmelden.",
+        "newPassword": "Neues Passwort",
+        "newPasswordHint": "Mindestens {{min}} Zeichen. Ein Satz, den du dir merken kannst, eignet sich gut.",
+        "submitChange": "Passwort ändern",
+        "submitAdd": "Passwort hinzufügen"
+      },
+      "twoFactorDialog": {
+        "title": "Zwei-Faktor-Authentifizierung einrichten",
+        "step": "Schritt {{step}} von 3 · {{label}}",
+        "steps": {
+          "proof": "bestätige, dass du es bist",
+          "app": "App verbinden",
+          "codes": "Wiederherstellungscodes"
+        },
+        "codesTitle": "Speichere deine Wiederherstellungscodes",
+        "codesText": "Jeder meldet dich einmal an, falls du dein Handy verlierst. Bewahre sie sicher auf, nicht nur auf diesem Gerät. Sie werden nur jetzt angezeigt.",
+        "codesAria": "Wiederherstellungscodes",
+        "copyCodes": "Codes kopieren",
+        "copied": "Wiederherstellungscodes kopiert",
+        "copyFailed": "Kopieren hat nicht geklappt. Markiere die Codes und kopiere sie selbst.",
+        "saved": "Ich habe sie gespeichert",
+        "scan": "Scanne das mit deiner Authenticator-App und gib dann den 6-stelligen Code ein, den sie anzeigt.",
+        "qrAlt": "QR-Code für deine Authenticator-App",
+        "cantScan": "Scannen geht nicht? Gib ein:",
+        "codeLabel": "Code aus der App",
+        "verify": "Bestätigen",
+        "appTitle": "Du brauchst eine Authenticator-App",
+        "appText": "Microsoft Authenticator, Google Authenticator oder deinen Passwortmanager."
+      },
+      "twoFactorOff": {
+        "title": "Zwei-Faktor-Authentifizierung ausschalten",
+        "description": "Zum Anmelden brauchst du dann nur noch dein Passwort oder deinen Anbieter.",
+        "codeLabel": "Code aus deiner App oder ein Wiederherstellungscode"
+      },
+      "linkPick": {
+        "title": "Anbieter verknüpfen",
+        "description": "Wähle einen, mit dem du dich zusätzlich anmelden willst.",
+        "linkAria": "{{name}} verknüpfen"
+      },
+      "link": {
+        "title": "{{name}} verknüpfen",
+        "description": "Danach kannst du dich auch mit {{name}} anmelden.",
+        "codeLabel": "Code aus deiner App",
+        "submit": "Weiter zu {{name}}"
+      },
+      "unlink": {
+        "title": "{{name}} trennen?",
+        "description": "Du kannst dich dann nicht mehr mit {{name}} anmelden und wirst überall abgemeldet, auch hier."
+      },
+      "lastWayIn": {
+        "title": "Du kannst {{name}} noch nicht trennen",
+        "alertTitle": "Es ist deine einzige Anmeldemöglichkeit",
+        "alertText": "Füge zuerst ein Passwort hinzu oder verknüpfe einen anderen Anbieter, sonst sperrst du dich aus.",
+        "addPassword": "Passwort hinzufügen"
+      },
+      "signOutDialog": {
+        "title": "{{name}} abmelden?",
+        "description": "Das Gerät muss sich neu anmelden, um Schuly zu nutzen."
+      },
+      "signInAgain": {
+        "description": "Zu deiner Sicherheit beendet eine Änderung an deiner Anmeldung alle Sitzungen, auch diese.",
+        "button": "Neu anmelden"
+      },
+      "messages": {
+        "loadFailed": "Deine Sicherheitseinstellungen konnten nicht geladen werden.",
+        "passwordAdded": "Dein Passwort ist hinzugefügt. Melde dich neu an.",
+        "passwordChanged": "Dein Passwort ist geändert. Melde dich mit dem neuen an.",
+        "checkCurrentPassword": "Das hat nicht geklappt. Prüfe dein aktuelles Passwort.",
+        "emailSent": "Wir haben eine Bestätigung an {{email}} geschickt. Deine E-Mail ändert sich, sobald du sie bestätigst.",
+        "checkPassword": "Das hat nicht geklappt. Prüfe dein Passwort.",
+        "codeMismatch": "Dieser Code stimmt nicht. Nimm den aktuellen aus deiner App.",
+        "twoFactorOn": "Die Zwei-Faktor-Authentifizierung ist an. Melde dich mit einem Code aus deiner App neu an.",
+        "twoFactorOff": "Die Zwei-Faktor-Authentifizierung ist aus. Melde dich neu an.",
+        "codeOrPassword": "Code oder Passwort stimmt nicht.",
+        "unlinked": "Der Anbieter ist getrennt. Melde dich neu an.",
+        "unlinkFailed": "Das hat nicht geklappt. Prüfe Code oder Passwort und behalte mindestens eine Anmeldemöglichkeit.",
+        "linked": "Der Anbieter ist verknüpft. Du kannst dich jetzt damit anmelden.",
+        "signOutFailed": "Dieses Gerät konnte nicht abgemeldet werden.",
+        "forgetFailed": "Deine Geräte konnten nicht vergessen werden."
+      }
+    },
+    "proof": {
+      "currentPassword": "Aktuelles Passwort",
+      "continueWith": "Weiter mit {{name}}",
+      "signOutAndIn": "Melde dich ab und wieder an und versuch es dann nochmals.",
+      "reason": {
+        "addPassword": "Um ein Passwort hinzuzufügen, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "twoFactor": "Um die Zwei-Faktor-Authentifizierung einzuschalten, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "twoFactorOff": "Um die Zwei-Faktor-Authentifizierung auszuschalten, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "link": "Um {{name}} zu verknüpfen, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "unlink": "Um {{name}} zu trennen, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "email": "Um deine E-Mail zu ändern, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück.",
+        "delete": "Um dein Konto zu löschen, bestätige mit einer neuen Anmeldung, dass du es bist. Du kommst direkt hierher zurück."
+      }
+    },
+    "danger": {
+      "title": "Gefahrenzone",
+      "description": "Änderungen am Konto selbst.",
+      "email": {
+        "label": "E-Mail ändern",
+        "text": "Wohin Schuly Codes und Hinweise schickt.",
+        "change": "Ändern",
+        "description": "Wir schicken einen Link an die neue Adresse; deine E-Mail ändert sich, sobald du ihn öffnest.",
+        "passwordFirst": "Füge zuerst ein Passwort hinzu",
+        "passwordFirstText": "Deine E-Mail hier gehört zum Anbieter, mit dem du dich anmeldest. Füge unter Sicherheit ein Passwort hinzu, dann kannst du deine eigene wählen.",
+        "checkInbox": "Schau in dein Postfach",
+        "sentTo": "Wir haben einen Link an {{email}} geschickt. Öffne ihn, um die Änderung abzuschliessen.",
+        "newEmail": "Neue E-Mail",
+        "submit": "Link senden"
+      },
+      "export": {
+        "label": "Deine Daten exportieren",
+        "text": "Eine Datei mit deinem Profil, deinen verknüpften Konten und den synchronisierten Schuldaten.",
+        "button": "Exportieren"
+      },
+      "delete": {
+        "text": "Entfernt dein Konto und alles, was Schuly gespeichert hat. Das lässt sich nicht rückgängig machen.",
+        "description": "Dein Profil, deine verknüpften Konten und alle synchronisierten Schuldaten werden gelöscht. Deine Schulkonten selbst bleiben unberührt.",
+        "alertTitle": "Das lässt sich nicht rückgängig machen",
+        "alertText": "Exportiere zuerst deine Daten, wenn du sie behalten willst.",
+        "typeConfirm": "Gib {{word}} ein, um zu bestätigen",
+        "word": "LÖSCHEN"
+      }
     }
   },
   "chat": {
