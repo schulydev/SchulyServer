@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 const pendingKey = 'schuly-external-sign-in';
 
 interface Pending {
@@ -5,14 +7,10 @@ interface Pending {
   state: string;
 }
 
-export const externalErrors: Record<string, string> = {
-  access_denied: 'You cancelled the sign-in.',
-  account_not_found: 'No Schuly account uses that sign-in yet. Create an account first, then link it in Settings.',
-  account_exists: 'An account with that email already exists. Sign in with your password, then link this provider in Settings.',
-  linked_to_another_account: 'That sign-in already belongs to another Schuly account.',
-  provider_already_linked: 'That provider is already linked to your account.',
-  external_login_failed: 'Signing in with that provider did not work. Try again.',
-};
+const EXTERNAL_ERRORS = new Set(['access_denied', 'account_not_found', 'account_exists', 'linked_to_another_account', 'provider_already_linked', 'external_login_failed']);
+
+/** The message for an external sign-in error code; unknown codes read as a plain failure. */
+export const externalError = (code?: string | null): string => t(`auth.external.${code && EXTERNAL_ERRORS.has(code) ? code : 'external_login_failed'}`);
 
 export async function beginExternalSignIn(provider: string, returnPath: string): Promise<void> {
   const { challenge, state } = await createPending();

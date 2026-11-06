@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, DestroyRef, ElementRef, effect, inject, model, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircle, lucideRotateCcw, lucideSquare, lucideVideo } from '@ng-icons/lucide';
@@ -16,55 +17,55 @@ const pickType = (): string => {
 /** Records a short camera and microphone clip with MediaRecorder and hands it back as a webm file. */
 @Component({
   selector: 'app-clip-dialog',
-  imports: [NgIcon, HlmButton, HlmDialogImports],
+  imports: [TranslatePipe, NgIcon, HlmButton, HlmDialogImports],
   providers: [provideIcons({ lucideCircle, lucideRotateCcw, lucideSquare, lucideVideo })],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="sm:max-w-lg">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Record video clip</h2>
-          <p hlmDialogDescription>Up to two minutes, sent as a video file.</p>
+          <h2 hlmDialogTitle>{{ 'chat.clip.title' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'chat.clip.description' | translate }}</p>
         </hlm-dialog-header>
 
         @switch (phase()) {
           @case ('denied') {
-            <p class="text-sm" role="alert">Camera or microphone access was blocked. Allow both for this site in your browser settings, then try again.</p>
+            <p class="text-sm" role="alert">{{ 'chat.clip.blocked' | translate }}</p>
           }
           @case ('unsupported') {
-            <p class="text-sm" role="alert">This browser cannot record video here.</p>
+            <p class="text-sm" role="alert">{{ 'chat.clip.unsupported' | translate }}</p>
           }
           @default {
             <div class="bg-muted relative aspect-video overflow-hidden rounded-md">
               @if (phase() === 'review') {
-                <video #playback [src]="clipUrl()" controls playsinline class="size-full object-contain" aria-label="Preview of your clip"></video>
+                <video #playback [src]="clipUrl()" controls playsinline class="size-full object-contain" [attr.aria-label]="'chat.clip.preview' | translate"></video>
               } @else {
-                <video #live muted playsinline autoplay class="size-full -scale-x-100 object-cover" aria-label="Camera preview"></video>
+                <video #live muted playsinline autoplay class="size-full -scale-x-100 object-cover" [attr.aria-label]="'chat.clip.camera' | translate"></video>
               }
             </div>
             <p class="text-sm tabular-nums" role="status" aria-live="off">
               {{ clock(seconds()) }} / {{ clock(max) }}
               @if (phase() === 'recording') {
-                <span class="sr-only">Recording</span>
+                <span class="sr-only">{{ 'chat.clip.recording' | translate }}</span>
               }
             </p>
           }
         }
 
         <hlm-dialog-footer>
-          <button hlmBtn variant="outline" type="button" (click)="open.set(false)">Cancel</button>
+          <button hlmBtn variant="outline" type="button" (click)="open.set(false)">{{ 'common.cancel' | translate }}</button>
           @switch (phase()) {
             @case ('ready') {
-              <button hlmBtn type="button" (click)="start()"><ng-icon name="lucideCircle" class="text-red-600 dark:text-red-400" aria-hidden="true" />Record</button>
+              <button hlmBtn type="button" (click)="start()"><ng-icon name="lucideCircle" class="text-red-600 dark:text-red-400" aria-hidden="true" />{{ 'chat.clip.record' | translate }}</button>
             }
             @case ('recording') {
-              <button hlmBtn type="button" (click)="stop()"><ng-icon name="lucideSquare" aria-hidden="true" />Stop</button>
+              <button hlmBtn type="button" (click)="stop()"><ng-icon name="lucideSquare" aria-hidden="true" />{{ 'chat.clip.stop' | translate }}</button>
             }
             @case ('review') {
-              <button hlmBtn variant="outline" type="button" (click)="retake()"><ng-icon name="lucideRotateCcw" aria-hidden="true" />Retake</button>
-              <button hlmBtn type="button" (click)="use()">Use clip</button>
+              <button hlmBtn variant="outline" type="button" (click)="retake()"><ng-icon name="lucideRotateCcw" aria-hidden="true" />{{ 'chat.clip.retake' | translate }}</button>
+              <button hlmBtn type="button" (click)="use()">{{ 'chat.clip.use' | translate }}</button>
             }
             @case ('denied') {
-              <button hlmBtn type="button" (click)="retake()">Try again</button>
+              <button hlmBtn type="button" (click)="retake()">{{ 'common.retry' | translate }}</button>
             }
           }
         </hlm-dialog-footer>

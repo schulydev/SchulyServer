@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, afterNextRender, computed, inject, output, signal } from '@angular/core';
 import { form, FormRoot, FormField, required } from '@angular/forms/signals';
@@ -13,10 +15,10 @@ const CODE_LENGTH = 6;
 const DEFAULT_COOLDOWN = 60;
 
 export function confirmEmailHint(challenge: EmailChallenge | null): string {
-  if (challenge && challenge.method !== 'code') return 'Check your email to confirm your address.';
+  if (challenge && challenge.method !== 'code') return t('auth.confirm.checkEmail');
   return challenge?.email
-    ? `We sent a 6-digit code to ${challenge.email}. Enter it to finish.`
-    : 'We sent a 6-digit code to your email. Enter it to finish.';
+    ? t('auth.confirm.sentTo', { email: challenge.email })
+    : t('auth.confirm.sent');
 }
 
 /** Shared "Confirm your email" step for sign-in and registration. */
@@ -31,6 +33,7 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
     HlmFieldImports,
     HlmInputOtpImports,
     HlmSpinner,
+    TranslatePipe,
   ],
   template: `
     <section hlmCard>
@@ -38,7 +41,7 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
         <form [formRoot]="codeForm" class="flex flex-col gap-4">
           @if (isCode()) {
             <div hlmField>
-              <label hlmFieldLabel for="email-code">Confirmation code</label>
+              <label hlmFieldLabel for="email-code">{{ 'auth.confirm.code' | translate }}</label>
               <brn-input-otp
                 hlmInputOtp
                 class="justify-center"
@@ -69,7 +72,7 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
               @if (codeForm().submitting()) {
                 <hlm-spinner />
               }
-              Verify
+              {{ 'auth.verify' | translate }}
             </button>
           }
           <button
@@ -82,12 +85,12 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
             @if (resending()) {
               <hlm-spinner />
             }
-            {{ cooldown() > 0 ? 'Resend code in ' + cooldown() + 's' : 'Resend code' }}
+            {{ cooldown() > 0 ? ('auth.confirm.resendIn' | translate: { seconds: cooldown() }) : ('auth.confirm.resend' | translate) }}
           </button>
         </form>
       </div>
     </section>
-    <button hlmBtn variant="link" type="button" (click)="back()">Back to sign in</button>
+    <button hlmBtn variant="link" type="button" (click)="back()">{{ 'auth.backToSignIn' | translate }}</button>
   `,
 })
 export class ConfirmEmail {
@@ -141,17 +144,17 @@ export class ConfirmEmail {
     try {
       await this.auth.resendEmailCode();
       this.model.set({ code: '' });
-      this.notice.set('A new code is on its way.');
+      this.notice.set(t('auth.confirm.newCode'));
       this.startCooldown(DEFAULT_COOLDOWN);
     } catch (error) {
       if (error instanceof HttpErrorResponse && error.status === 429) {
         const seconds = Number.parseInt(error.headers.get('Retry-After') ?? '', 10);
         this.startCooldown(seconds > 0 ? seconds : DEFAULT_COOLDOWN);
-        this.notice.set('Please wait a moment before asking for another code.');
+        this.notice.set(t('auth.confirm.wait'));
       } else if (error instanceof HttpErrorResponse && error.status === 401) {
-        this.error.set('This confirmation is no longer valid. Go back to sign in and start again.');
+        this.error.set(t('auth.confirm.invalid'));
       } else {
-        this.error.set('Something went wrong sending the code. Try again in a moment.');
+        this.error.set(t('auth.confirm.sendFailed'));
       }
     } finally {
       this.resending.set(false);
@@ -167,13 +170,13 @@ export class ConfirmEmail {
   private verifyMessage(error: unknown): string {
     const status = error instanceof HttpErrorResponse ? error.status : 0;
     const code = errorCode(error);
-    if (code === 'invalid_code') return "That code didn't match. Check the email and try again.";
-    if (code === 'code_expired') return 'This code has expired. We can send you a new one.';
+    if (code === 'invalid_code') return t('auth.confirm.mismatch');
+    if (code === 'code_expired') return t('auth.confirm.expired');
     if (status === 401 || code === 'invalid_grant') {
-      return 'This confirmation is no longer valid. Go back to sign in and start again.';
+      return t('auth.confirm.invalid');
     }
-    if (status === 400) return "That code didn't match. Check the email and try again.";
-    return 'Something went wrong. Try again in a moment.';
+    if (status === 400) return t('auth.confirm.mismatch');
+    return t('auth.tryLater');
   }
 
   private startCooldown(seconds: number): void {

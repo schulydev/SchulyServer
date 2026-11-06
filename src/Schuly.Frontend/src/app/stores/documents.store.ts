@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { HttpClient } from '@angular/common/http';
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
@@ -38,7 +39,7 @@ export const DocumentsStore = signalStore(
           done();
         },
         error: () => {
-          patchState(store, { downloadError: `Could not download ${document.title ?? 'the document'}. Try again.` });
+          patchState(store, { downloadError: t('documents.downloadFailed', { name: document.title ?? t('documents.theDocument') }) });
           done();
         },
       });

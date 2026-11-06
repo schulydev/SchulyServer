@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowLeft, lucideExternalLink, lucideFileText, lucideLock, lucidePaperclip, lucidePencil, lucideSave, lucideTrash2, lucideX } from '@ng-icons/lucide';
@@ -15,17 +17,17 @@ import { editorText, normalizeEditorHtml } from './page-html';
 import { AppDatePipe } from '../../core/date-format';
 
 const SAVE_ERRORS: Record<OneNoteProblem, string> = {
-  readonly: 'This notebook is read only, so your changes were not saved.',
-  expired: 'Your sign-in for this account expired. Reconnect it in Settings.',
-  missing: 'This page no longer exists.',
-  unsupported: 'OneNote cannot save changes to this page.',
-  failed: 'Could not save your changes. Try again.',
+  readonly: 'notes.save.readonly',
+  expired: 'notes.save.expired',
+  missing: 'notes.save.missing',
+  unsupported: 'notes.save.unsupported',
+  failed: 'notes.save.failed',
 };
 
 /** The right pane: header, attachments and either the sandboxed page or the editors. */
 @Component({
   selector: 'app-onenote-page-view',
-  imports: [AppDatePipe, HlmAlertDialogImports, HlmButton, HlmInput, HlmSkeletonImports, AccountProblem, NgIcon, OneNoteBody, OneNoteEditor],
+  imports: [TranslatePipe, AppDatePipe, HlmAlertDialogImports, HlmButton, HlmInput, HlmSkeletonImports, AccountProblem, NgIcon, OneNoteBody, OneNoteEditor],
   providers: [provideIcons({ lucideArrowLeft, lucideExternalLink, lucideFileText, lucideLock, lucidePaperclip, lucidePencil, lucideSave, lucideTrash2, lucideX })],
   host: { class: '@container flex min-h-0 min-w-0 flex-1 flex-col', '(keydown)': 'onKey($event)' },
   template: `
@@ -34,11 +36,11 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
         <div class="flex items-start gap-2">
           <button hlmBtn variant="ghost" size="icon-sm" type="button" class="lg:hidden" (click)="back.emit()">
             <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-            <span class="sr-only">Back to pages</span>
+            <span class="sr-only">{{ 'notes.back' | translate }}</span>
           </button>
           <div class="min-w-0 flex-1">
             @if (editing()) {
-              <label for="onenote-title" class="sr-only">Page title</label>
+              <label for="onenote-title" class="sr-only">{{ 'notes.pageTitle' | translate }}</label>
               <input
                 hlmInput
                 id="onenote-title"
@@ -51,7 +53,7 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
               />
             } @else {
               <h3 #title tabindex="-1" class="text-xl leading-tight font-semibold tracking-tight wrap-anywhere outline-none">
-                {{ page.title || 'Untitled page' }}
+                {{ page.title || ('notes.untitledPage' | translate) }}
               </h3>
             }
             <p class="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 text-xs">
@@ -59,12 +61,12 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
                 <span class="min-w-0 truncate">{{ page.notebook?.displayName }}@if (page.notebook && page.section) { / }{{ page.section?.displayName }}</span>
               }
               @if (page.lastModifiedDateTime; as modified) {
-                <time [attr.datetime]="modified">Modified {{ modified | appDate: 'weekdayDateTime' }}</time>
+                <time [attr.datetime]="modified">{{ 'notes.modified' | translate: { date: (modified | appDate: 'weekdayDateTime') } }}</time>
               }
               @if (!page.writable) {
                 <span class="inline-flex items-center gap-1">
                   <ng-icon name="lucideLock" aria-hidden="true" />
-                  Read only
+                  {{ 'notes.readOnly' | translate }}
                 </span>
               }
             </p>
@@ -73,28 +75,28 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
             @if (editing()) {
               <button hlmBtn size="sm" type="button" aria-keyshortcuts="Control+S Meta+S" [disabled]="saving() || !dirty()" (click)="save()">
                 <ng-icon name="lucideSave" aria-hidden="true" />
-                {{ saving() ? 'Saving' : 'Save' }}
+                {{ saving() ? ('notes.saving' | translate) : ('common.save' | translate) }}
               </button>
               <button hlmBtn size="sm" variant="ghost" type="button" aria-keyshortcuts="Escape" [disabled]="saving()" (click)="cancel()">
                 <ng-icon name="lucideX" aria-hidden="true" />
-                Cancel
+                {{ 'common.cancel' | translate }}
               </button>
             } @else {
               @if (page.webUrl; as link) {
                 <a hlmBtn size="sm" variant="ghost" [href]="link" target="_blank" rel="noopener noreferrer">
                   <ng-icon name="lucideExternalLink" aria-hidden="true" />
-                  <span class="@max-3xl:sr-only">Open in OneNote</span>
-                  <span class="sr-only">(opens in a new tab)</span>
+                  <span class="@max-3xl:sr-only">{{ 'notes.openOneNote' | translate }}</span>
+                  <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
                 </a>
               }
               @if (page.writable) {
-                <button #editButton hlmBtn size="sm" variant="ghost" type="button" aria-keyshortcuts="e" title="Edit (E)" (click)="startEdit()">
+                <button #editButton hlmBtn size="sm" variant="ghost" type="button" aria-keyshortcuts="e" [title]="('common.edit' | translate) + ' (E)'" (click)="startEdit()">
                   <ng-icon name="lucidePencil" aria-hidden="true" />
-                  <span class="@max-3xl:sr-only">Edit</span>
+                  <span class="@max-3xl:sr-only">{{ 'common.edit' | translate }}</span>
                 </button>
-                <button hlmBtn size="sm" variant="ghost" type="button" aria-keyshortcuts="Delete" title="Delete (Delete)" (click)="askDelete()">
+                <button hlmBtn size="sm" variant="ghost" type="button" aria-keyshortcuts="Delete" [title]="('common.delete' | translate) + ' (Delete)'" (click)="askDelete()">
                   <ng-icon name="lucideTrash2" aria-hidden="true" />
-                  <span class="@max-3xl:sr-only">Delete</span>
+                  <span class="@max-3xl:sr-only">{{ 'common.delete' | translate }}</span>
                 </button>
               }
             }
@@ -102,13 +104,13 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
         </div>
         <p class="text-destructive text-sm empty:hidden" role="alert">{{ saveError() }}</p>
         @if (files().length && !editing()) {
-          <ul class="flex flex-wrap gap-2" aria-label="Attachments">
+          <ul class="flex flex-wrap gap-2" [attr.aria-label]="'mail.attachments' | translate">
             @for (file of files(); track file.id) {
               <li>
                 <button hlmBtn variant="outline" size="sm" type="button" (click)="download(file)">
                   <ng-icon name="lucidePaperclip" aria-hidden="true" />
-                  {{ file.name || 'Attachment' }}
-                  <span class="sr-only">(download)</span>
+                  {{ file.name || ('chat.attachment' | translate) }}
+                  <span class="sr-only">{{ 'notes.download' | translate }}</span>
                 </button>
               </li>
             }
@@ -122,49 +124,49 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
             @if (outline.editable) {
               <app-onenote-editor [label]="'Text box ' + (i + 1)" [html]="outline.html" (changed)="draft(outline.id, $event)" />
             } @else {
-              <section class="flex flex-col gap-2" [attr.aria-label]="'Box ' + (i + 1) + ', read only'">
+              <section class="flex flex-col gap-2" [attr.aria-label]="'notes.box' | translate: { number: i + 1 }">
                 <p class="text-muted-foreground flex items-center gap-2 text-sm">
                   <ng-icon name="lucideLock" aria-hidden="true" />
-                  This box holds pictures or ink and stays as it is
+                  {{ 'notes.inkBox' | translate }}
                 </p>
                 <div class="flex h-48 min-w-0 flex-col">
-                  <app-onenote-body [html]="outline.html" [resources]="page.resources" [title]="'Preview of box ' + (i + 1)" />
+                  <app-onenote-body [html]="outline.html" [resources]="page.resources" [title]="'notes.boxPreview' | translate: { number: i + 1 }" />
                 </div>
               </section>
             }
           }
           <div class="flex flex-col gap-2">
-            <h3 class="text-sm font-medium">Add text</h3>
-            <app-onenote-editor label="Add text" (changed)="appendDraft.set($event)" />
+            <h3 class="text-sm font-medium">{{ 'notes.addText' | translate }}</h3>
+            <app-onenote-editor [label]="'notes.addText' | translate" (changed)="appendDraft.set($event)" />
           </div>
         </div>
       } @else {
         <div class="flex min-h-0 flex-1 flex-col p-4 lg:p-6">
-          <app-onenote-body [html]="page.html" [width]="page.width" [height]="page.height" [resources]="page.resources" [title]="'Content of ' + (page.title || 'Untitled page')" />
+          <app-onenote-body [html]="page.html" [width]="page.width" [height]="page.height" [resources]="page.resources" [title]="'Content of ' + (page.title || ('notes.untitledPage' | translate))" />
         </div>
       }
     } @else if (store.pageProblem(); as problem) {
       <div class="flex items-center gap-2 border-b px-4 py-3 lg:hidden">
         <button hlmBtn variant="ghost" size="icon-sm" type="button" (click)="back.emit()">
           <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-          <span class="sr-only">Back to pages</span>
+          <span class="sr-only">{{ 'notes.back' | translate }}</span>
         </button>
       </div>
       <div class="p-4">
         @if (problem === 'unsupported') {
-          <p class="text-sm">OneNote cannot show this page.</p>
+          <p class="text-sm">{{ 'notes.cannotShow' | translate }}</p>
         } @else {
           <app-account-problem [problem]="problem === 'expired' || problem === 'missing' ? problem : 'failed'" />
         }
       </div>
     } @else {
-      <div class="flex flex-col gap-3 p-4 lg:p-6" role="status" aria-label="Loading page">
+      <div class="flex flex-col gap-3 p-4 lg:p-6" role="status" [attr.aria-label]="'notes.loadingPage' | translate">
         <div class="flex items-center gap-2">
           <button hlmBtn variant="ghost" size="icon-sm" type="button" class="lg:hidden" (click)="back.emit()">
             <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-            <span class="sr-only">Back to pages</span>
+            <span class="sr-only">{{ 'notes.back' | translate }}</span>
           </button>
-          <h3 class="min-w-0 truncate text-xl font-semibold">{{ store.pageHint()?.title || 'Loading page' }}</h3>
+          <h3 class="min-w-0 truncate text-xl font-semibold">{{ store.pageHint()?.title || ('notes.loadingPage' | translate) }}</h3>
         </div>
         <hlm-skeleton class="h-4 w-full" />
         <hlm-skeleton class="h-4 w-11/12" />
@@ -176,14 +178,14 @@ const SAVE_ERRORS: Record<OneNoteProblem, string> = {
     <hlm-alert-dialog [state]="deleteOpen() ? 'open' : 'closed'" (closed)="deleteOpen.set(false)">
       <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
         <hlm-alert-dialog-header>
-          <h2 hlmAlertDialogTitle>Delete this page?</h2>
+          <h2 hlmAlertDialogTitle>{{ 'notes.deleteTitle' | translate }}</h2>
           <p hlmAlertDialogDescription>
-            {{ store.page()?.title || 'This page' }} will be deleted from OneNote. This cannot be undone.
+            {{ 'notes.deleteHint' | translate: { title: store.page()?.title || ('notes.thisPage' | translate) } }}
           </p>
         </hlm-alert-dialog-header>
         <hlm-alert-dialog-footer>
-          <button hlmAlertDialogCancel>Cancel</button>
-          <button hlmAlertDialogAction variant="destructive" class="bg-destructive! text-white! hover:bg-destructive/90! dark:text-black!" (click)="remove()">Delete</button>
+          <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
+          <button hlmAlertDialogAction variant="destructive" class="bg-destructive! text-white! hover:bg-destructive/90! dark:text-black!" (click)="remove()">{{ 'common.delete' | translate }}</button>
         </hlm-alert-dialog-footer>
       </hlm-alert-dialog-content>
     </hlm-alert-dialog>
@@ -281,25 +283,25 @@ export class OneNotePageView {
     this.saving.set(false);
     if (result.ok) {
       this.editing.set(false);
-      toast.success('Page saved.');
+      toast.success(t('notes.saved'));
       afterNextRender(() => this.editButton()?.nativeElement.focus(), { injector: this.injector });
     } else {
-      this.saveError.set(SAVE_ERRORS[result.reason]);
+      this.saveError.set(t(SAVE_ERRORS[result.reason]));
     }
   }
 
   protected async remove(): Promise<void> {
     this.deleteOpen.set(false);
     const result = await this.store.deletePage();
-    if (result.ok) toast.success('Page deleted.');
-    else toast.error(result.reason === 'readonly' ? SAVE_ERRORS.readonly : 'Could not delete the page. Try again.');
+    if (result.ok) toast.success(t('notes.deleted'));
+    else toast.error(t(result.reason === 'readonly' ? SAVE_ERRORS.readonly : 'notes.deleteFailed'));
   }
 
   protected async download(file: OneNoteResource): Promise<void> {
     const name = file.name || 'attachment';
     const ok = await this.store.downloadFile(file.id, name);
     if (ok) toast.success(`Downloaded ${name}.`);
-    else toast.error(`Could not download ${name}.`);
+    else toast.error(t('mail.downloadFailed', { name }));
   }
 
   protected onKey(event: KeyboardEvent): void {

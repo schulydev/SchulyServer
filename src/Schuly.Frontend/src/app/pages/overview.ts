@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, Injector, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -6,7 +8,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { AgendaEntryDto } from '../api';
 import { buildAbsenceRows, todayInSwitzerland } from '../core/absence-view';
 import { dateOnly } from '../core/calendar';
-import { AppDatePipe } from '../core/date-format';
+import { AppDatePipe, formatWhen } from '../core/date-format';
 import { buildGradeGroups, cleanExamName, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, semesterOfDate, subjectsBelowFour } from '../core/grade-report';
 import { attentionItems, needsReportLookup } from '../core/overview-attention';
 import { buildTimeline, currentLesson, durationText, greeting, minutesLeft, nextLesson, relativeDay, remainingPercent } from '../core/today-timeline';
@@ -28,7 +30,7 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
 
 @Component({
   selector: 'app-overview',
-  imports: [SyncingNotice, HlmSkeletonImports, NgIcon, RouterLink, AppDatePipe],
+  imports: [SyncingNotice, HlmSkeletonImports, NgIcon, RouterLink, AppDatePipe, TranslatePipe],
   providers: [provideIcons({ lucideCoffee, lucideUtensils })],
   host: { class: 'block' },
   template: `
@@ -43,8 +45,8 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
         <div class="flex min-w-0 flex-col gap-8 max-lg:contents">
           <section aria-labelledby="today-title" class="max-lg:order-1">
             <div class="mb-2.5 flex items-baseline justify-between gap-3">
-              <h3 id="today-title" class="text-[15px] font-semibold">Today</h3>
-              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">Timetable</a>
+              <h3 id="today-title" class="text-[15px] font-semibold">{{ 'common.today' | translate }}</h3>
+              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">{{ 'overview.timetable' | translate }}</a>
             </div>
             @if (agenda.loading() && !agenda.items().length) {
               <div class="flex flex-col gap-2">@for (i of [1, 2, 3]; track i) {<div hlmSkeleton class="h-12 w-full"></div>}</div>
@@ -66,36 +68,36 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
                       <div class="mb-1.5 rounded-lg px-3 py-2" [class.bg-muted]="slot.state === 'now'">
                         <p class="flex flex-wrap items-center gap-1.5 font-medium">
                           {{ slot.title }}
-                          @if (slot.test) {<span class="rounded-md bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Test</span>}
+                          @if (slot.test) {<span class="rounded-md bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">{{ 'overview.test' | translate }}</span>}
                         </p>
                         <p class="text-muted-foreground text-[13px]">{{ time(slot.start) }} – {{ time(slot.end) }}@if (slot.room) { · {{ slot.room }}}@if (slot.test) { · {{ slot.test }}}</p>
                         @if (slot.state === 'now') {
                           <p class="text-muted-foreground mt-1 flex items-center gap-1.5 text-[13px]">
-                            <span class="size-3 shrink-0 -scale-x-100 rounded-full" role="progressbar" aria-label="Time left in the lesson" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="pie(slot.start, slot.end)"
+                            <span class="size-3 shrink-0 -scale-x-100 rounded-full" role="progressbar" [attr.aria-label]="'overview.timeLeft' | translate" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="pie(slot.start, slot.end)"
                               [style.background]="'conic-gradient(var(--primary) ' + pie(slot.start, slot.end) + '%, color-mix(in oklab, var(--muted-foreground) 30%, transparent) 0)'"></span>
-                            <span><b class="text-foreground font-semibold tabular-nums">{{ left(slot.end) }}</b> left · ends {{ time(slot.end) }}</span>
+                            <span><b class="text-foreground font-semibold tabular-nums">{{ left(slot.end) }}</b> {{ 'overview.left' | translate: { end: time(slot.end) } }}</span>
                           </p>
                         }
                       </div>
                     } @else {
                       <p class="text-muted-foreground mb-1.5 flex items-center gap-1.5 px-3 py-1 text-[13px]" [class.text-foreground]="slot.state === 'now'">
                         <ng-icon [name]="slot.lunch ? 'lucideUtensils' : 'lucideCoffee'" class="shrink-0 text-sm" aria-hidden="true" />
-                        {{ slot.lunch ? 'Lunch break' : 'Big break' }} · {{ time(slot.start) }} – {{ time(slot.end) }}
+                        {{ (slot.lunch ? 'overview.lunchBreak' : 'overview.bigBreak') | translate }} · {{ time(slot.start) }} – {{ time(slot.end) }}
                       </p>
                     }
                   </li>
                 }
               </ol>
             } @else {
-              <p class="text-muted-foreground py-2 text-sm">{{ agenda.items().some(isLesson) ? 'No lessons today.' : "Your school doesn't share a timetable with Schuly." }}</p>
+              <p class="text-muted-foreground py-2 text-sm">{{ (agenda.items().some(isLesson) ? 'overview.noLessons' : 'overview.noTimetable') | translate }}</p>
             }
           </section>
 
           <section aria-labelledby="grades-title" class="max-lg:order-4">
             <div class="mb-2.5 flex items-baseline justify-between gap-3">
-              <h3 id="grades-title" class="text-[15px] font-semibold">New grades</h3>
+              <h3 id="grades-title" class="text-[15px] font-semibold">{{ 'overview.newGrades' | translate }}</h3>
               <a routerLink="/grades" class="text-muted-foreground hover:text-foreground text-sm">
-                @if (standing(); as s) {<b class="text-foreground font-semibold">{{ s.value }}</b>@if (s.state) { · <span [class]="s.tone === 'bad' ? 'text-destructive font-medium' : 'font-medium text-green-700 dark:text-green-400'">{{ s.state }}</span>} · }All grades
+                @if (standing(); as s) {<b class="text-foreground font-semibold">{{ s.value }}</b>@if (s.state) { · <span [class]="s.tone === 'bad' ? 'text-destructive font-medium' : 'font-medium text-green-700 dark:text-green-400'">{{ s.state }}</span>} · }{{ 'overview.allGrades' | translate }}
               </a>
             </div>
             @if (newGrades().length) {
@@ -111,14 +113,14 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
                 }
               </ul>
             } @else {
-              <p class="text-muted-foreground py-2 text-sm">No grades yet.</p>
+              <p class="text-muted-foreground py-2 text-sm">{{ 'overview.noGrades' | translate }}</p>
             }
           </section>
         </div>
 
         <div class="flex min-w-0 flex-col gap-8 max-lg:contents">
           <section aria-labelledby="todo-title" class="max-lg:order-2">
-            <h3 id="todo-title" class="mb-2.5 text-[15px] font-semibold">Needs your attention</h3>
+            <h3 id="todo-title" class="mb-2.5 text-[15px] font-semibold">{{ 'overview.attention.title' | translate }}</h3>
             @if (attention().length) {
               <div class="flex flex-col divide-y overflow-hidden rounded-xl border">
                 @for (item of attention(); track item.key) {
@@ -134,15 +136,15 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
               </div>
             } @else {
               <p class="text-muted-foreground flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-sm">
-                <span class="size-2 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>Nothing needs your attention.
+                <span class="size-2 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>{{ 'overview.attention.none' | translate }}
               </p>
             }
           </section>
 
           <section aria-labelledby="next-title" class="max-lg:order-3">
             <div class="mb-2.5 flex items-baseline justify-between gap-3">
-              <h3 id="next-title" class="text-[15px] font-semibold">Coming up</h3>
-              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">Calendar</a>
+              <h3 id="next-title" class="text-[15px] font-semibold">{{ 'overview.comingUp' | translate }}</h3>
+              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">{{ 'nav.calendar' | translate }}</a>
             </div>
             @if (comingUp().length) {
               <ul class="flex flex-col divide-y">
@@ -163,7 +165,7 @@ const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')
                 }
               </ul>
             } @else {
-              <p class="text-muted-foreground py-2 text-sm">Nothing coming up.</p>
+              <p class="text-muted-foreground py-2 text-sm">{{ 'overview.nothingComingUp' | translate }}</p>
             }
           </section>
         </div>
@@ -222,14 +224,14 @@ export class Overview {
 
   protected readonly subline = computed(() => {
     const now = this.now();
-    const parts = [new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(now)];
+    const parts = [formatWhen(now, 'weekdayDayMonthLong')];
     const today = semesterOfDate(now.toISOString());
     const semester = this.groups()[0]?.semesters.find((s) => s.yearStart === today.yearStart && s.half === today.half);
-    if (semester) parts.push(`Semester ${semester.number}`);
+    if (semester) parts.push(t('common.semester', { number: semester.number }));
     const slots = this.timeline();
     const next = nextLesson(slots);
-    if (next && !currentLesson(slots)) parts.push(`next: ${next.title}${next.room ? ` in ${next.room}` : ''}`);
-    else if (slots.length && !next && !currentLesson(slots)) parts.push('lessons are over for today');
+    if (next && !currentLesson(slots)) parts.push(t(next.room ? 'overview.nextIn' : 'overview.next', { title: next.title, room: next.room }));
+    else if (slots.length && !next && !currentLesson(slots)) parts.push(t('overview.lessonsOver'));
     return parts.join(' · ');
   });
 
@@ -240,7 +242,7 @@ export class Overview {
     if (!group || !semester) return null;
     const headline = gradeHeadline(group, semester, subjectsBelowFour(semester.subjects));
     if (headline.value == null) return null;
-    const state = headline.tone === 'good' ? 'On track' : headline.tone === 'bad' ? 'At risk' : '';
+    const state = headline.tone === 'good' ? t('overview.onTrack') : headline.tone === 'bad' ? t('overview.atRisk') : '';
     return { value: oneDecimal(headline.value), state, tone: headline.tone };
   });
 
@@ -280,7 +282,7 @@ export class Overview {
         const end = allDay && endDay && endDay.getTime() !== startDay.getTime() ? endDay : null;
         const time = allDay ? '' : endTime && endTime.getTime() !== start.getTime() ? `${hhmm(start)} – ${hhmm(endTime)}` : hhmm(start);
         const isTest = e.entryType === 'Test';
-        return { key: e.id ?? `${e.date}|${e.title}`, title: e.title, place: e.place || '', start, end, time, allDay, isTest, kind: isTest ? 'Test' : e.entryType === 'Holiday' ? 'Holiday' : 'Event' };
+        return { key: e.id ?? `${e.date}|${e.title}`, title: e.title, place: e.place || '', start, end, time, allDay, isTest, kind: t(isTest ? 'overview.test' : e.entryType === 'Holiday' ? 'overview.holiday' : 'overview.event') };
       })
       // A timed entry that has started is today's business, shown in the timeline; all-day and multi-day ones stay until they end.
       .filter((e) => e.allDay || e.start.getTime() >= now.getTime())

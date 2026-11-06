@@ -1,3 +1,5 @@
+import { LanguageSelect } from '../shared/language-select';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -22,6 +24,7 @@ import { UserStore } from '../stores/user.store';
 @Component({
   selector: 'app-settings',
   imports: [
+    LanguageSelect,TranslatePipe, 
     AccountCard,
     SecurityCard,
     AccountsCard,
@@ -42,8 +45,8 @@ import { UserStore } from '../stores/user.store';
 
       <section hlmCard>
         <div hlmCardHeader>
-          <h3 hlmCardTitle>Appearance</h3>
-          <p hlmCardDescription>Choose how Schuly looks on this device.</p>
+          <h3 hlmCardTitle>{{ 'settings.appearance.title' | translate }}</h3>
+          <p hlmCardDescription>{{ 'settings.appearance.description' | translate }}</p>
         </div>
         <div hlmCardContent>
           <hlm-toggle-group
@@ -52,25 +55,28 @@ import { UserStore } from '../stores/user.store';
             [nullable]="false"
             [value]="theme.theme()"
             (valueChange)="setTheme($event)"
-            aria-label="Theme"
+            [attr.aria-label]="'settings.appearance.theme' | translate"
           >
             <button hlmToggleGroupItem value="light" class="gap-2 px-3">
-              <ng-icon name="lucideSun" /> Light
+              <ng-icon name="lucideSun" /> {{ 'settings.appearance.light' | translate }}
             </button>
             <button hlmToggleGroupItem value="dark" class="gap-2 px-3">
-              <ng-icon name="lucideMoon" /> Dark
+              <ng-icon name="lucideMoon" /> {{ 'settings.appearance.dark' | translate }}
             </button>
             <button hlmToggleGroupItem value="system" class="gap-2 px-3">
-              <ng-icon name="lucideMonitor" /> System
+              <ng-icon name="lucideMonitor" /> {{ 'settings.appearance.system' | translate }}
             </button>
           </hlm-toggle-group>
+          <div class="mt-4">
+            <app-language-select [showLabel]="true" />
+          </div>
         </div>
       </section>
 
       <section hlmCard>
         <div hlmCardHeader>
-          <h3 hlmCardTitle>Your data</h3>
-          <p hlmCardDescription>Download your account, school data, Helply chats, connected apps and devices as a JSON file. Document files stay in Documents, and the file lists anything else it leaves out.</p>
+          <h3 hlmCardTitle>{{ 'settings.data.title' | translate }}</h3>
+          <p hlmCardDescription>{{ 'settings.data.description' | translate }}</p>
         </div>
         <div hlmCardFooter>
           <button hlmBtn variant="outline" [disabled]="user.busy()" (click)="user.exportData()">
@@ -79,17 +85,16 @@ import { UserStore } from '../stores/user.store';
             } @else {
               <ng-icon name="lucideDownload" />
             }
-            Export data
+            {{ 'settings.data.export' | translate }}
           </button>
         </div>
       </section>
 
       <section hlmCard class="border-destructive/40">
         <div hlmCardHeader>
-          <h3 hlmCardTitle>Delete account</h3>
+          <h3 hlmCardTitle>{{ 'settings.delete.title' | translate }}</h3>
           <p hlmCardDescription>
-            Permanently delete your Schuly account and all synced school data. This cannot be
-            undone.
+            {{ 'settings.delete.description' | translate }}
           </p>
           @if (user.deleteError(); as error) {
             <p class="text-destructive text-sm" role="alert">{{ error }}</p>
@@ -99,18 +104,17 @@ import { UserStore } from '../stores/user.store';
           <hlm-alert-dialog>
             <button hlmAlertDialogTrigger hlmBtn variant="destructive" [disabled]="user.busy()">
               <ng-icon name="lucideTrash2" />
-              Delete account
+              {{ 'settings.delete.title' | translate }}
             </button>
             <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
               <hlm-alert-dialog-header>
-                <h2 hlmAlertDialogTitle>Delete your account?</h2>
+                <h2 hlmAlertDialogTitle>{{ 'settings.delete.confirmTitle' | translate }}</h2>
                 <p hlmAlertDialogDescription>
-                  This permanently deletes your Schuly account, your linked school accounts and
-                  every grade, exam, absence and document synced to the server.
+                  {{ 'settings.delete.confirmDescription' | translate }}
                 </p>
               </hlm-alert-dialog-header>
               <label class="grid gap-1.5 text-sm font-medium">
-                Your password (leave empty if you only use single sign-on)
+                {{ 'settings.delete.password' | translate }}
                 <input
                   hlmInput
                   type="password"
@@ -120,9 +124,9 @@ import { UserStore } from '../stores/user.store';
                 />
               </label>
               <hlm-alert-dialog-footer>
-                <button hlmAlertDialogCancel>Cancel</button>
+                <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
                 <button hlmAlertDialogAction variant="destructive" (click)="confirmDelete()">
-                  Delete account
+                  {{ 'settings.delete.title' | translate }}
                 </button>
               </hlm-alert-dialog-footer>
             </hlm-alert-dialog-content>

@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowDown } from '@ng-icons/lucide';
@@ -13,20 +14,20 @@ import { HelplyMessageView } from './message';
 
 @Component({
   selector: 'app-message-list',
-  imports: [ApprovalCard, HelplyMessageView, HlmButton, HlmEmptyImports, HlmSpinner, NgIcon, PkChatContainerContent, PkChatContainerRoot, PkPromptSuggestion],
+  imports: [TranslatePipe, ApprovalCard, HelplyMessageView, HlmButton, HlmEmptyImports, HlmSpinner, NgIcon, PkChatContainerContent, PkChatContainerRoot, PkPromptSuggestion],
   providers: [provideIcons({ lucideArrowDown })],
   host: { class: 'relative flex min-h-0 min-w-0 flex-1 flex-col' },
   template: `
     <pk-chat-container-root
       #scroller
       aria-live="off"
-      aria-label="Conversation with Helply"
+      [attr.aria-label]="'helply.list.conversation' | translate"
       tabindex="0"
       class="focus-visible:ring-ring/50 min-h-0 min-w-0 flex-1 px-4 py-4 outline-none focus-visible:ring-3"
     >
       <pk-chat-container-content class="mx-auto min-h-full min-w-0 max-w-3xl gap-6">
         @if (loading()) {
-          <div class="flex justify-center py-16"><hlm-spinner aria-label="Loading conversation" /></div>
+          <div class="flex justify-center py-16"><hlm-spinner [attr.aria-label]="'helply.list.loading' | translate" /></div>
         } @else if (!messages().length) {
           <div class="flex min-h-full min-w-0 flex-1 flex-col items-center justify-center-safe gap-7 py-8">
             <hlm-empty class="max-w-md flex-none p-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
@@ -34,14 +35,14 @@ import { HelplyMessageView } from './message';
                 <hlm-empty-media>
                   <img src="helply-avatar.svg" alt="" width="64" height="64" class="size-16" />
                 </hlm-empty-media>
-                <h2 hlmEmptyTitle class="text-xl">Hi, I'm Helply</h2>
+                <h2 hlmEmptyTitle class="text-xl">{{ 'helply.hello' | translate }}</h2>
                 <p hlmEmptyDescription>
-                  Ask me about your exams, grades, absences, agenda or mail. I only use what you allow in my settings.
+                  {{ 'helply.helloHint' | translate }}
                 </p>
               </hlm-empty-header>
             </hlm-empty>
             @if (suggestions().length) {
-              <ul class="flex w-full max-w-2xl min-w-0 flex-wrap justify-center gap-2" aria-label="Suggested questions">
+              <ul class="flex w-full max-w-2xl min-w-0 flex-wrap justify-center gap-2" [attr.aria-label]="'helply.suggested' | translate">
                 @for (prompt of suggestions(); track prompt) {
                   <li
                     class="max-w-full min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-both motion-safe:duration-300"
@@ -90,7 +91,7 @@ import { HelplyMessageView } from './message';
         variant="outline"
         size="icon"
         class="bg-background rounded-full shadow-md transition-[opacity,translate] duration-200 motion-reduce:transition-none"
-        aria-label="Scroll to latest message"
+        [attr.aria-label]="'helply.scrollLatest' | translate"
         [class.pointer-events-auto]="scroller.canScrollDown()"
         [class.opacity-0]="!scroller.canScrollDown()"
         [class.translate-y-2]="!scroller.canScrollDown()"

@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -76,7 +78,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
 /** The chat composer: rich editor, formatting toolbar, emoji and GIF picker, attachments, mentions, and the "+" actions. */
 @Component({
   selector: 'app-chat-composer',
-  imports: [NgIcon, HlmButton, HlmDropdownMenuImports, HlmPopoverImports, HlmSpinner, EmojiPicker, ScheduleDialog, DeliveryDialog, MeetingDialog, ClipDialog],
+  imports: [TranslatePipe, NgIcon, HlmButton, HlmDropdownMenuImports, HlmPopoverImports, HlmSpinner, EmojiPicker, ScheduleDialog, DeliveryDialog, MeetingDialog, ClipDialog],
   providers: [
     provideIcons({
       lucideBold,
@@ -160,17 +162,17 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
   `,
   template: `
     @if (importance() !== 'normal' || files().length) {
-      <ul class="mb-1.5 flex flex-wrap gap-1.5" aria-label="Message options and attachments">
+      <ul class="mb-1.5 flex flex-wrap gap-1.5" [attr.aria-label]="'chat.composer.options' | translate">
         @if (importance() !== 'normal') {
           <li
             class="flex items-center gap-1 rounded-full border py-0.5 ps-2 pe-0.5 text-xs font-semibold"
             [class]="importance() === 'urgent' ? 'border-red-700 bg-red-100 text-red-900 dark:border-red-300 dark:bg-red-950 dark:text-red-100' : 'border-amber-700 bg-amber-100 text-amber-900 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100'"
           >
             <ng-icon [name]="importance() === 'urgent' ? 'lucideTriangleAlert' : 'lucideCircleAlert'" aria-hidden="true" />
-            {{ importance() === 'urgent' ? 'Urgent' : 'Important' }}
+            {{ importance() === 'urgent' ? ('chat.importance.urgent' | translate) : ('chat.importance.important' | translate) }}
             <button type="button" class="hover:bg-foreground/10 focus-visible:outline-ring rounded-full p-0.5 focus-visible:outline-2" (click)="importance.set('normal')">
               <ng-icon name="lucideX" aria-hidden="true" />
-              <span class="sr-only">Remove delivery option</span>
+              <span class="sr-only">{{ 'chat.composer.removeDelivery' | translate }}</span>
             </button>
           </li>
         }
@@ -181,7 +183,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
             <span class="text-foreground/70 shrink-0">{{ size(f.size) }}</span>
             <button type="button" class="hover:bg-foreground/10 focus-visible:outline-ring rounded-md p-0.5 focus-visible:outline-2" (click)="removeFile(f)">
               <ng-icon name="lucideX" aria-hidden="true" />
-              <span class="sr-only">Remove {{ f.name }}</span>
+              <span class="sr-only">{{ 'common.removeName' | translate: { name: f.name } }}</span>
             </button>
           </li>
         }
@@ -193,7 +195,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
         <ul
           id="composer-suggestions"
           role="listbox"
-          [attr.aria-label]="sg.kind === 'emoji' ? 'Emoji suggestions' : 'Mention suggestions'"
+          [attr.aria-label]="sg.kind === 'emoji' ? ('chat.composer.emojiSuggestions' | translate) : ('chat.composer.mentionSuggestions' | translate)"
           class="bg-popover text-popover-foreground absolute start-0 bottom-full z-20 mb-1 w-72 max-w-full overflow-hidden rounded-lg border p-1 shadow-md"
         >
           @for (item of sg.items; track item.key; let i = $index) {
@@ -221,7 +223,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
       <div class="sr-only" role="status" aria-live="polite">{{ suggestionStatus() }}</div>
 
       @if (formatOpen()) {
-        <div role="toolbar" aria-label="Formatting" class="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
+        <div role="toolbar" [attr.aria-label]="'chat.composer.formatting' | translate" class="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
           @for (f of formats; track f.id) {
             <button
               hlmBtn
@@ -234,13 +236,13 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
               (click)="format(f.id)"
             >
               <ng-icon [name]="f.icon" aria-hidden="true" />
-              <span class="sr-only">{{ f.label }}</span>
+              <span class="sr-only">{{ f.label | translate }}</span>
             </button>
           }
         </div>
         @if (linkOpen()) {
           <form class="flex items-center gap-2 border-b px-2 py-1.5" (submit)="applyLink($event)">
-            <label class="sr-only" for="composer-link">Link address</label>
+            <label class="sr-only" for="composer-link">{{ 'chat.composer.linkAddress' | translate }}</label>
             <input
               #linkInput
               id="composer-link"
@@ -253,15 +255,15 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
               (input)="linkUrl.set($any($event.target).value)"
               (keydown.escape)="closeLink()"
             />
-            <button hlmBtn type="submit" size="sm" variant="secondary">Add link</button>
-            <button hlmBtn type="button" size="sm" variant="ghost" (click)="closeLink()">Cancel</button>
+            <button hlmBtn type="submit" size="sm" variant="secondary">{{ 'chat.composer.addLink' | translate }}</button>
+            <button hlmBtn type="button" size="sm" variant="ghost" (click)="closeLink()">{{ 'common.cancel' | translate }}</button>
           </form>
         }
       }
 
       <div class="relative px-3 py-2">
         @if (composed().empty) {
-          <span class="text-muted-foreground pointer-events-none absolute start-3 top-2 text-sm leading-6" aria-hidden="true">Type a message</span>
+          <span class="text-muted-foreground pointer-events-none absolute start-3 top-2 text-sm leading-6" aria-hidden="true">{{ 'chat.composer.placeholder' | translate }}</span>
         }
         <div
           #editor
@@ -271,7 +273,7 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
           aria-multiline="true"
           aria-autocomplete="list"
           [attr.aria-controls]="suggest() ? 'composer-suggestions' : null"
-          [attr.aria-label]="'Message ' + chat().title"
+          [attr.aria-label]="'chat.composer.messageTo' | translate: { title: chat().title }"
           [attr.aria-activedescendant]="suggest() ? 'composer-option-' + active() : null"
           (input)="onInput()"
           (keydown)="onKeydown($event)"
@@ -283,16 +285,16 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
         ></div>
       </div>
 
-      <div role="toolbar" aria-label="Message actions" class="flex items-center gap-0.5 px-1.5 pb-1.5">
+      <div role="toolbar" [attr.aria-label]="'chat.composer.actions' | translate" class="flex items-center gap-0.5 px-1.5 pb-1.5">
         <button hlmBtn type="button" variant="ghost" size="icon-sm" [attr.aria-pressed]="formatOpen()" [class.bg-accent]="formatOpen()" (mousedown)="$event.preventDefault()" (click)="toggleFormat()">
           <ng-icon name="lucideType" aria-hidden="true" />
-          <span class="sr-only">Format</span>
+          <span class="sr-only">{{ 'chat.composer.format' | translate }}</span>
         </button>
 
         <hlm-popover align="start" sideOffset="8" [state]="emojiState()" (stateChanged)="emojiState.set($event)">
           <button hlmBtn hlmPopoverTrigger [hlmPopoverTriggerFor]="emojiPopover()" type="button" variant="ghost" size="icon-sm" (mousedown)="$event.preventDefault()" (pointerenter)="warmEmoji()" (focus)="warmEmoji()">
             <ng-icon name="lucideSmile" aria-hidden="true" />
-            <span class="sr-only">{{ api.gifsAvailable() === false ? 'Emoji' : 'Emoji and GIFs' }}</span>
+            <span class="sr-only">{{ api.gifsAvailable() === false ? ('chat.emoji.emoji' | translate) : ('chat.emoji.emojiAndGifs' | translate) }}</span>
           </button>
           <hlm-popover-content *hlmPopoverPortal="let ctx" class="w-88 max-w-[calc(100vw-4.5rem)] p-2">
             <app-emoji-picker (emoji)="insertEmoji($event)" (gif)="sendGif($event)" />
@@ -301,13 +303,13 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
 
         <button hlmBtn type="button" variant="ghost" size="icon-sm" (click)="picker.click()">
           <ng-icon name="lucidePaperclip" aria-hidden="true" />
-          <span class="sr-only">Attach files</span>
+          <span class="sr-only">{{ 'chat.composer.attach' | translate }}</span>
         </button>
         <input #picker type="file" multiple class="hidden" tabindex="-1" aria-hidden="true" (change)="onPicked($event)" />
 
         <button hlmBtn type="button" variant="ghost" size="icon-sm" [hlmDropdownMenuTrigger]="plusMenu" align="start">
           <ng-icon name="lucidePlus" aria-hidden="true" />
-          <span class="sr-only">More actions</span>
+          <span class="sr-only">{{ 'chat.composer.moreActions' | translate }}</span>
         </button>
 
         <span class="flex-1"></span>
@@ -316,32 +318,32 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
         }
         <button hlmBtn type="button" variant="ghost" size="icon-sm" [class]="canSend() ? 'text-primary' : 'text-muted-foreground'" [disabled]="!canSend()" (click)="submit()">
           @if (sending()) {
-            <hlm-spinner aria-label="Sending" />
+            <hlm-spinner [attr.aria-label]="'chat.composer.sending' | translate" />
           } @else {
             <ng-icon name="lucideSend" aria-hidden="true" />
           }
-          <span class="sr-only">Send</span>
+          <span class="sr-only">{{ 'common.send' | translate }}</span>
         </button>
       </div>
     </div>
 
     <ng-template #plusMenu>
-      <hlm-dropdown-menu class="w-56" aria-label="More actions">
+      <hlm-dropdown-menu class="w-56" [attr.aria-label]="'chat.composer.moreActions' | translate">
         <button hlmDropdownMenuItem type="button" (click)="scheduleOpen.set(true)">
           <ng-icon name="lucideCalendarClock" aria-hidden="true" />
-          Schedule message
+          {{ 'chat.composer.schedule' | translate }}
         </button>
         <button hlmDropdownMenuItem type="button" (click)="deliveryOpen.set(true)">
           <ng-icon name="lucideBellRing" aria-hidden="true" />
-          Delivery options
+          {{ 'chat.composer.delivery' | translate }}
         </button>
         <button hlmDropdownMenuItem type="button" (click)="meetingOpen.set(true)">
           <ng-icon name="lucideCalendarPlus" aria-hidden="true" />
-          Schedule meeting
+          {{ 'chat.composer.meeting' | translate }}
         </button>
         <button hlmDropdownMenuItem type="button" (click)="clipOpen.set(true)">
           <ng-icon name="lucideVideo" aria-hidden="true" />
-          Record video clip
+          {{ 'chat.clip.title' | translate }}
         </button>
       </hlm-dropdown-menu>
     </ng-template>
@@ -372,16 +374,16 @@ export class ChatComposer {
   protected readonly maxLength = MAX_LENGTH;
   protected readonly size = formatSize;
   protected readonly formats = [
-    { id: 'bold', label: 'Bold', icon: 'lucideBold' },
-    { id: 'italic', label: 'Italic', icon: 'lucideItalic' },
-    { id: 'underline', label: 'Underline', icon: 'lucideUnderline' },
-    { id: 'strike', label: 'Strikethrough', icon: 'lucideStrikethrough' },
-    { id: 'ul', label: 'Bulleted list', icon: 'lucideList' },
-    { id: 'ol', label: 'Numbered list', icon: 'lucideListOrdered' },
-    { id: 'link', label: 'Link', icon: 'lucideLink' },
-    { id: 'code', label: 'Inline code', icon: 'lucideCode' },
-    { id: 'pre', label: 'Code block', icon: 'lucideSquareCode' },
-    { id: 'quote', label: 'Quote', icon: 'lucideQuote' },
+    { id: 'bold', label: 'chat.format.bold', icon: 'lucideBold' },
+    { id: 'italic', label: 'chat.format.italic', icon: 'lucideItalic' },
+    { id: 'underline', label: 'chat.format.underline', icon: 'lucideUnderline' },
+    { id: 'strike', label: 'chat.format.strike', icon: 'lucideStrikethrough' },
+    { id: 'ul', label: 'chat.format.ul', icon: 'lucideList' },
+    { id: 'ol', label: 'chat.format.ol', icon: 'lucideListOrdered' },
+    { id: 'link', label: 'chat.format.link', icon: 'lucideLink' },
+    { id: 'code', label: 'chat.format.code', icon: 'lucideCode' },
+    { id: 'pre', label: 'chat.format.pre', icon: 'lucideSquareCode' },
+    { id: 'quote', label: 'chat.format.quote', icon: 'lucideQuote' },
   ];
 
   private readonly editor = viewChild.required<ElementRef<HTMLElement>>('editor');
@@ -420,9 +422,9 @@ export class ChatComposer {
   });
   protected readonly scheduleBlocked = computed(() => {
     const c = this.composed();
-    if (c.empty) return 'Write a message first, then schedule it.';
-    if (this.files().length || c.imageIds.length) return 'Scheduled messages can only hold text and formatting. Remove attachments and images to schedule this one.';
-    if (c.mentions.length) return 'Scheduled messages cannot contain mentions. Remove them to schedule this one.';
+    if (c.empty) return t('chat.composer.writeFirst');
+    if (this.files().length || c.imageIds.length) return t('chat.composer.scheduleTextOnly');
+    if (c.mentions.length) return t('chat.composer.scheduleNoMentions');
     return null;
   });
   protected readonly scheduleContent = computed(() => (this.composed().plain ? this.composed().text : this.composed().html));
@@ -606,7 +608,7 @@ export class ChatComposer {
     event.preventDefault();
     const url = this.linkUrl().trim();
     if (!/^(https?:\/\/|mailto:)\S+$/i.test(url)) {
-      toast.error('Enter a web address that starts with http:// or https://.');
+      toast.error(t('chat.composer.invalidLink'));
       return;
     }
     this.linkOpen.set(false);
@@ -866,11 +868,11 @@ export class ChatComposer {
   /** Puts an image into the editor at the caret; PNG, JPEG, GIF and WEBP up to 3 MB in all. */
   private insertInline(file: File): boolean {
     if (!INLINE_TYPES.includes(file.type)) {
-      toast.error('Pasted images must be PNG, JPEG, GIF or WEBP.');
+      toast.error(t('chat.composer.pasteType'));
       return false;
     }
     if (this.inlineBytes() + file.size > MAX_INLINE_BYTES) {
-      toast.error('Images in a message can be 3 MB in all. Attach larger ones as files.');
+      toast.error(t('chat.composer.pasteSize'));
       return false;
     }
     const id = `img-${++this.inlineCounter}`;
@@ -878,7 +880,7 @@ export class ChatComposer {
     this.inline.set(id, { file, url });
     const img = document.createElement('img');
     img.src = url;
-    img.alt = file.name || 'Pasted image';
+    img.alt = file.name || t('chat.composer.pastedImage');
     img.setAttribute('data-inline-id', id);
     this.restore();
     const range = this.selectionInEditor();

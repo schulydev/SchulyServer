@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, ElementRef, Injector, OnDestroy, OnInit, afterNextRender, computed, inject, output, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDog, lucideHand, lucideHash, lucideLightbulb, lucidePlane, lucideSearch, lucideSmile, lucideTrophy, lucideUsers, lucideUtensils, lucideX } from '@ng-icons/lucide';
@@ -16,12 +18,12 @@ import { EmojiView } from '../shared/emoji-view';
 const TONE_KEYS = ['0', '1', '2', '3', '4', '5'] as const;
 type ToneKey = (typeof TONE_KEYS)[number];
 const TONE_OPTIONS: { key: ToneKey; label: string; color: string }[] = [
-  { key: '0', label: 'Default skin tone', color: '#FFC83D' },
-  { key: '1', label: 'Light skin tone', color: '#FADCBC' },
-  { key: '2', label: 'Medium-light skin tone', color: '#E0BB95' },
-  { key: '3', label: 'Medium skin tone', color: '#BF8F68' },
-  { key: '4', label: 'Medium-dark skin tone', color: '#9B643D' },
-  { key: '5', label: 'Dark skin tone', color: '#594539' },
+  { key: '0', label: 'chat.tone.0', color: '#FFC83D' },
+  { key: '1', label: 'chat.tone.1', color: '#FADCBC' },
+  { key: '2', label: 'chat.tone.2', color: '#E0BB95' },
+  { key: '3', label: 'chat.tone.3', color: '#BF8F68' },
+  { key: '4', label: 'chat.tone.4', color: '#9B643D' },
+  { key: '5', label: 'chat.tone.5', color: '#594539' },
 ];
 const LONG_PRESS_MS = 500;
 const HOVER_ANIMATE_MS = 120;
@@ -33,15 +35,15 @@ export const FIRST_SCREEN_EMOJI = 72;
 
 /** Teams' categories: the id is the same in every language of the catalogue, the title is not. */
 const CATEGORIES: Record<string, { label: string; icon: string }> = {
-  '002_noname_639803c2-a011-4a08-8224-f0ac195ff373': { label: 'Smileys', icon: 'lucideSmile' },
-  '002_noname_8c8001ce-84f9-4f79-bc04-5816bb919d4f': { label: 'Hand gestures', icon: 'lucideHand' },
-  '002_noname_11e79db9-ef3d-4444-8b2b-c0f0ddf82563': { label: 'People', icon: 'lucideUsers' },
-  '002_noname_b5c1e1fa-bd33-4c54-85b3-1ff3d4eba873': { label: 'Animals and nature', icon: 'lucideDog' },
-  '002_noname_482b6ec5-ef94-49b4-813a-54bd190f6bd3': { label: 'Food', icon: 'lucideUtensils' },
-  '002_noname_4bb9f405-06d7-4e3f-86a5-e9371e29751e': { label: 'Travel and places', icon: 'lucidePlane' },
-  '002_noname_b0b98c3f-db6b-46cf-b141-cdcce4b85d5a': { label: 'Objects', icon: 'lucideLightbulb' },
-  '002_noname_72d64128-f20c-4c1b-b2bf-96184a804660': { label: 'Activities', icon: 'lucideTrophy' },
-  '002_noname_3af9566b-f903-4a8b-b617-133bcda154e3': { label: 'Symbols', icon: 'lucideHash' },
+  '002_noname_639803c2-a011-4a08-8224-f0ac195ff373': { label: 'chat.category.smileys', icon: 'lucideSmile' },
+  '002_noname_8c8001ce-84f9-4f79-bc04-5816bb919d4f': { label: 'chat.category.hands', icon: 'lucideHand' },
+  '002_noname_11e79db9-ef3d-4444-8b2b-c0f0ddf82563': { label: 'chat.category.people', icon: 'lucideUsers' },
+  '002_noname_b5c1e1fa-bd33-4c54-85b3-1ff3d4eba873': { label: 'chat.category.nature', icon: 'lucideDog' },
+  '002_noname_482b6ec5-ef94-49b4-813a-54bd190f6bd3': { label: 'chat.category.food', icon: 'lucideUtensils' },
+  '002_noname_4bb9f405-06d7-4e3f-86a5-e9371e29751e': { label: 'chat.category.travel', icon: 'lucidePlane' },
+  '002_noname_b0b98c3f-db6b-46cf-b141-cdcce4b85d5a': { label: 'chat.category.objects', icon: 'lucideLightbulb' },
+  '002_noname_72d64128-f20c-4c1b-b2bf-96184a804660': { label: 'chat.category.activities', icon: 'lucideTrophy' },
+  '002_noname_3af9566b-f903-4a8b-b617-133bcda154e3': { label: 'chat.category.symbols', icon: 'lucideHash' },
 };
 
 /** Pictures that have loaded in this tab draw without a placeholder when scrolled back to, or on the next open. */
@@ -53,7 +55,7 @@ const loadedPictures = new Set<string>();
  */
 @Component({
   selector: 'app-emoji-picker',
-  imports: [NgIcon, HlmInput, HlmSkeletonImports, HlmSpinner, HlmTabsImports, HlmTooltip, EmojiView],
+  imports: [TranslatePipe, NgIcon, HlmInput, HlmSkeletonImports, HlmSpinner, HlmTabsImports, HlmTooltip, EmojiView],
   providers: [provideIcons({ lucideDog, lucideHand, lucideHash, lucideLightbulb, lucidePlane, lucideSearch, lucideSmile, lucideTrophy, lucideUsers, lucideUtensils, lucideX })],
   styles: `
     .scroll-area {
@@ -68,9 +70,9 @@ const loadedPictures = new Set<string>();
   template: `
     <hlm-tabs [tab]="view()" class="w-full gap-2" (tabActivated)="openView($event)">
       @if (api.gifsAvailable() !== false) {
-        <hlm-tabs-list aria-label="Emoji or GIF" class="w-full">
-          <button hlmTabsTrigger="emoji">Emoji</button>
-          <button hlmTabsTrigger="gifs">GIFs</button>
+        <hlm-tabs-list [attr.aria-label]="'chat.emoji.tabs' | translate" class="w-full">
+          <button hlmTabsTrigger="emoji">{{ 'chat.emoji.emoji' | translate }}</button>
+          <button hlmTabsTrigger="gifs">{{ 'chat.gif.gifs' | translate }}</button>
         </hlm-tabs-list>
       }
 
@@ -78,26 +80,26 @@ const loadedPictures = new Set<string>();
         <div class="flex items-center gap-1.5">
           <div class="relative min-w-0 flex-1">
             <ng-icon name="lucideSearch" class="text-muted-foreground pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-sm" aria-hidden="true" />
-            <label class="sr-only" for="emoji-search">Search emoji</label>
-            <input #search hlmInput id="emoji-search" type="search" autocomplete="off" placeholder="Search emoji" class="h-8 w-full ps-7" [value]="query()" (input)="onQuery($any($event.target).value)" (keydown)="onSearchKey($event)" />
+            <label class="sr-only" for="emoji-search">{{ 'chat.emoji.search' | translate }}</label>
+            <input #search hlmInput id="emoji-search" type="search" autocomplete="off" [placeholder]="'chat.emoji.search' | translate" class="h-8 w-full ps-7" [value]="query()" (input)="onQuery($any($event.target).value)" (keydown)="onSearchKey($event)" />
           </div>
           @if (hasDiverse()) {
-            <div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Skin tone">
+            <div class="flex shrink-0 items-center gap-0.5" role="group" [attr.aria-label]="'chat.tone.label' | translate">
               @if (toneOpen()) {
                 @for (o of toneOptions; track o.key) {
                   <button
                     type="button"
                     class="tone-option focus-visible:outline-ring flex size-6 items-center justify-center rounded-full focus-visible:outline-2"
                     [attr.aria-pressed]="tone.value() === o.key"
-                    [attr.aria-label]="o.label"
-                    [title]="o.label"
+                    [attr.aria-label]="o.label | translate"
+                    [title]="o.label | translate"
                     (click)="chooseTone(o.key)"
                   >
                     <span class="size-4 rounded-full border border-black/30" [style.background-color]="o.color" [class.ring-ring]="tone.value() === o.key" [class.ring-2]="tone.value() === o.key" [class.ring-offset-1]="tone.value() === o.key" aria-hidden="true"></span>
                   </button>
                 }
               } @else {
-                <button #toneButton type="button" class="hover:bg-accent focus-visible:outline-ring flex size-8 items-center justify-center rounded-md focus-visible:outline-2" aria-expanded="false" [attr.aria-label]="'Skin tone: ' + currentTone().label" [hlmTooltip]="'Skin tone'" (click)="openToneControl()">
+                <button #toneButton type="button" class="hover:bg-accent focus-visible:outline-ring flex size-8 items-center justify-center rounded-md focus-visible:outline-2" aria-expanded="false" [attr.aria-label]="'chat.tone.current' | translate: { tone: (currentTone().label | translate) }" [hlmTooltip]="('chat.tone.label' | translate)" (click)="openToneControl()">
                   <span class="size-4 rounded-full border border-black/30" [style.background-color]="currentTone().color" aria-hidden="true"></span>
                 </button>
               }
@@ -107,7 +109,7 @@ const loadedPictures = new Set<string>();
           }
         </div>
 
-        <div class="flex items-center justify-between" role="group" aria-label="Emoji categories">
+        <div class="flex items-center justify-between" role="group" [attr.aria-label]="'chat.emoji.categories' | translate">
           @if (loading()) {
             @for (i of skeletonCategories; track i) {
               <hlm-skeleton class="m-1 size-6 rounded-md" />
@@ -129,9 +131,9 @@ const loadedPictures = new Set<string>();
         </div>
 
         <div class="relative">
-          <div #scroller class="scroll-area h-72 overflow-y-auto" role="region" aria-label="Emoji" [attr.tabindex]="shownSections().length ? null : 0" (scroll)="onScroll()" (keydown)="onGridKey($event)">
+          <div #scroller class="scroll-area h-72 overflow-y-auto" role="region" [attr.aria-label]="'chat.emoji.emoji' | translate" [attr.tabindex]="shownSections().length ? null : 0" (scroll)="onScroll()" (keydown)="onGridKey($event)">
             @if (loading()) {
-              <div role="status" aria-label="Loading emoji">
+              <div role="status" [attr.aria-label]="'chat.emoji.loading' | translate">
                 <hlm-skeleton class="my-2 h-3 w-20" />
                 <div class="grid" [style.grid-template-columns]="gridColumns()">
                   @for (i of skeletonCells(); track i) {
@@ -141,8 +143,8 @@ const loadedPictures = new Set<string>();
               </div>
             } @else if (failed()) {
               <div class="text-muted-foreground flex flex-col items-start gap-2 p-2 text-sm" role="alert">
-                <p>Emoji could not be loaded.</p>
-                <button type="button" class="hover:bg-accent focus-visible:outline-ring rounded-md border px-2 py-1 focus-visible:outline-2" (click)="retry()">Try again</button>
+                <p>{{ 'chat.emoji.loadFailed' | translate }}</p>
+                <button type="button" class="hover:bg-accent focus-visible:outline-ring rounded-md border px-2 py-1 focus-visible:outline-2" (click)="retry()">{{ 'common.retry' | translate }}</button>
               </div>
             } @else if (shownSections().length) {
               @for (s of windowed(); track s.id) {
@@ -161,7 +163,7 @@ const loadedPictures = new Set<string>();
                             [attr.data-emoji]="t.id"
                             [attr.tabindex]="t.id === tabStop() ? 0 : -1"
                             [attr.aria-label]="t.label"
-                            [title]="t.diverse ? t.label + ' (right-click or long-press for skin tones)' : t.label"
+                            [title]="t.diverse ? ('chat.tone.hint' | translate: { name: t.label }) : t.label"
                             (mouseenter)="hoverStart(t)"
                             (mouseleave)="hoverEnd()"
                             (focus)="focused.set(t.id)"
@@ -187,18 +189,18 @@ const loadedPictures = new Set<string>();
                 </section>
               }
             } @else {
-              <p class="text-muted-foreground p-2 text-sm" role="status">No emoji found.</p>
+              <p class="text-muted-foreground p-2 text-sm" role="status">{{ 'chat.emoji.none' | translate }}</p>
             }
           </div>
 
           @if (toneFor(); as target) {
-            <div class="bg-popover absolute inset-x-0 bottom-0 z-20 flex items-center gap-0.5 rounded-md border p-1 shadow-md" role="group" [attr.aria-label]="'Skin tone for ' + target.label" (keydown.escape)="closeEmojiTones($event)">
+            <div class="bg-popover absolute inset-x-0 bottom-0 z-20 flex items-center gap-0.5 rounded-md border p-1 shadow-md" role="group" [attr.aria-label]="'chat.tone.for' | translate: { name: target.label }" (keydown.escape)="closeEmojiTones($event)">
               @for (o of toneOptions; track o.key) {
-                <button type="button" class="emoji-tone hover:bg-accent focus-visible:outline-ring flex size-9 items-center justify-center rounded-md focus-visible:outline-2" [attr.aria-label]="o.label" [title]="o.label" (click)="pickTone(target, o.key)">
+                <button type="button" class="emoji-tone hover:bg-accent focus-visible:outline-ring flex size-9 items-center justify-center rounded-md focus-visible:outline-2" [attr.aria-label]="o.label | translate" [title]="o.label | translate" (click)="pickTone(target, o.key)">
                   <img [src]="toneOf(target, o.key).staticUrl" alt="" width="28" height="28" referrerpolicy="no-referrer" />
                 </button>
               }
-              <button type="button" class="hover:bg-accent focus-visible:outline-ring ms-auto flex size-8 items-center justify-center rounded-md focus-visible:outline-2" aria-label="Close skin tones" (click)="toneFor.set(null)">
+              <button type="button" class="hover:bg-accent focus-visible:outline-ring ms-auto flex size-8 items-center justify-center rounded-md focus-visible:outline-2" [attr.aria-label]="'chat.tone.close' | translate" (click)="toneFor.set(null)">
                 <ng-icon name="lucideX" aria-hidden="true" />
               </button>
             </div>
@@ -208,15 +210,15 @@ const loadedPictures = new Set<string>();
 
       @if (api.gifsAvailable() !== false) {
         <div hlmTabsContent="gifs" class="flex flex-col gap-2">
-          <label class="sr-only" for="gif-search">Search GIFs</label>
-          <input hlmInput id="gif-search" type="search" autocomplete="off" placeholder="Search GIFs" class="h-8" [value]="gifQuery()" (input)="onGifQuery($any($event.target).value)" />
-          <div class="scroll-area h-[23.5rem] overflow-y-auto" tabindex="0" aria-label="GIFs" role="region">
+          <label class="sr-only" for="gif-search">{{ 'chat.gif.search' | translate }}</label>
+          <input hlmInput id="gif-search" type="search" autocomplete="off" [placeholder]="'chat.gif.search' | translate" class="h-8" [value]="gifQuery()" (input)="onGifQuery($any($event.target).value)" />
+          <div class="scroll-area h-[23.5rem] overflow-y-auto" tabindex="0" [attr.aria-label]="'chat.gif.gifs' | translate" role="region">
             @if (gifsLoading()) {
-              <p class="text-muted-foreground flex items-center gap-2 p-2 text-sm" role="status"><hlm-spinner aria-hidden="true" />Loading GIFs</p>
+              <p class="text-muted-foreground flex items-center gap-2 p-2 text-sm" role="status"><hlm-spinner aria-hidden="true" />{{ 'chat.gif.loading' | translate }}</p>
             } @else if (gifError()) {
-              <p class="text-muted-foreground p-2 text-sm" role="alert">GIFs could not be loaded.</p>
+              <p class="text-muted-foreground p-2 text-sm" role="alert">{{ 'chat.gif.loadFailed' | translate }}</p>
             } @else if (!gifs().length) {
-              <p class="text-muted-foreground p-2 text-sm" role="status">No GIFs found.</p>
+              <p class="text-muted-foreground p-2 text-sm" role="status">{{ 'chat.gif.none' | translate }}</p>
             } @else {
               <ul class="grid grid-cols-2 gap-1">
                 @for (g of gifs(); track g.id) {
@@ -247,7 +249,7 @@ export class EmojiPicker implements OnInit, OnDestroy {
   constructor() {
     afterNextRender(() => {
       // The popover overlay is a role=dialog the library leaves without a name.
-      this.element.nativeElement.closest('[role="dialog"]')?.setAttribute('aria-label', 'Emoji and GIF picker');
+      this.element.nativeElement.closest('[role="dialog"]')?.setAttribute('aria-label', t('chat.emoji.picker'));
       // The overlay moves focus to its first tabbable element once it has rendered; search goes after that.
       setTimeout(() => this.searchInput()?.nativeElement.focus());
       const scroller = this.scroller()?.nativeElement;
@@ -307,7 +309,7 @@ export class EmojiPicker implements OnInit, OnDestroy {
   protected readonly gridColumns = computed(() => `repeat(${this.columns()}, ${CELL_PX}px)`);
   protected readonly skeletonCells = computed(() => Array.from({ length: this.columns() * 7 }, (_, i) => i));
   protected readonly categories = computed(() =>
-    (this.catalogue()?.categories ?? []).map((c) => ({ id: c.id, label: CATEGORIES[c.id]?.label ?? c.title, icon: CATEGORIES[c.id]?.icon ?? 'lucideHash' })),
+    (this.catalogue()?.categories ?? []).map((c) => ({ id: c.id, label: CATEGORIES[c.id] ? t(CATEGORIES[c.id].label) : c.title, icon: CATEGORIES[c.id]?.icon ?? 'lucideHash' })),
   );
   private readonly sections = computed(() => {
     const catalogue = this.catalogue();
@@ -315,9 +317,9 @@ export class EmojiPicker implements OnInit, OnDestroy {
     const q = this.query().trim();
     if (q) {
       const items = searchCatalogue(catalogue, q);
-      return items.length ? [{ id: 'results', title: 'Results', items }] : [];
+      return items.length ? [{ id: 'results', title: t('chat.emoji.results'), items }] : [];
     }
-    return catalogue.categories.map((c) => ({ id: c.id, title: CATEGORIES[c.id]?.label ?? c.title, items: c.emojis }));
+    return catalogue.categories.map((c) => ({ id: c.id, title: CATEGORIES[c.id] ? t(CATEGORIES[c.id].label) : c.title, items: c.emojis }));
   });
   protected readonly shownSections = computed(() => layoutGrid(this.sections(), this.columns()));
   protected readonly windowed = computed(() => windowGrid(this.shownSections(), this.columns(), this.scrollRow() * CELL_PX, VIEW_PX));

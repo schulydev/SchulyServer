@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -16,7 +17,7 @@ import { AppDatePipe } from '../core/date-format';
 
 @Component({
   selector: 'app-documents',
-  imports: [SyncingNotice, HlmAlertImports, HlmTableImports, HlmBadge, HlmButton, HlmSkeletonImports, HlmSpinner, NgIcon, AppDatePipe, EmptyState, FileViewer],
+  imports: [TranslatePipe, SyncingNotice, HlmAlertImports, HlmTableImports, HlmBadge, HlmButton, HlmSkeletonImports, HlmSpinner, NgIcon, AppDatePipe, EmptyState, FileViewer],
   providers: [provideIcons({ lucideDownload, lucideEye, lucideFileText })],
   template: `
     <div class="flex flex-col gap-4 p-4 lg:p-6">
@@ -38,11 +39,11 @@ import { AppDatePipe } from '../core/date-format';
             <table hlmTable>
               <thead hlmTHead class="bg-muted">
                 <tr hlmTr>
-                  <th hlmTh>Document</th>
-                  <th hlmTh class="hidden sm:table-cell">Category</th>
-                  <th hlmTh class="hidden md:table-cell">Added</th>
-                  <th hlmTh class="hidden lg:table-cell">Follow-up</th>
-                  <th hlmTh class="w-24"><span class="sr-only">Actions</span></th>
+                  <th hlmTh>{{ 'documents.document' | translate }}</th>
+                  <th hlmTh class="hidden sm:table-cell">{{ 'documents.category' | translate }}</th>
+                  <th hlmTh class="hidden md:table-cell">{{ 'documents.added' | translate }}</th>
+                  <th hlmTh class="hidden lg:table-cell">{{ 'documents.followUp' | translate }}</th>
+                  <th hlmTh class="w-24"><span class="sr-only">{{ 'documents.actions' | translate }}</span></th>
                 </tr>
               </thead>
               <tbody hlmTBody>
@@ -112,8 +113,8 @@ import { AppDatePipe } from '../core/date-format';
       } @else {
         <app-empty-state
           icon="lucideFileText"
-          title="No documents"
-          description="Documents your school shares with you appear here."
+          [title]="'documents.empty.title' | translate"
+          [description]="'documents.empty.description' | translate"
         />
       }
     </div>

@@ -7,6 +7,7 @@ import { PrivacyNotice } from '../pages/auth/privacy-notice';
 import { signal } from '@angular/core';
 import { AuthStore } from '../stores/auth.store';
 import { ThemeStore } from '../stores/theme.store';
+import { t } from './i18n';
 import { PRIVACY_NOTICE, PrivacyNoticeApi, privacyNoticeGuard } from './privacy-notice';
 
 const status = (over: Record<string, unknown> = {}) => ({
@@ -44,7 +45,7 @@ describe('privacy notice', () => {
   };
 
   it('says absence reasons can reveal health information', () => {
-    expect(PRIVACY_NOTICE).toContain('Absence reasons can reveal health information');
+    expect(t(PRIVACY_NOTICE)).toContain('Absence reasons can reveal health information');
   });
 
   it('sends a user with an open notice to it and keeps where they were going', async () => {

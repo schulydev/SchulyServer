@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 /**
  * Where the Drive page is looking and how a place maps to a listing request. Ids of teams, channels, drives and items are opaque
  * strings from the plugin: they are passed back verbatim (encoded into paths) and never parsed.
@@ -69,11 +70,11 @@ export function listingOf(view: DriveView): Listing {
 export function locationLabel(location: DriveLocation): string {
   switch (location.kind) {
     case 'mine':
-      return 'My files';
+      return t('files.mine');
     case 'shared':
-      return 'Shared with me';
+      return t('files.shared');
     case 'recent':
-      return 'Recent';
+      return t('files.recent');
     case 'team':
       return location.channelName ? `${location.teamName} > ${location.channelName}` : location.teamName;
     case 'folder':

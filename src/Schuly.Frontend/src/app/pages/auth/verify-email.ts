@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
@@ -11,29 +12,28 @@ import { AuthLayout } from './auth-layout';
 
 @Component({
   selector: 'app-verify-email',
-  imports: [RouterLink, HlmAlertImports, HlmButton, HlmCardImports, HlmSpinner, AuthLayout],
+  imports: [RouterLink, HlmAlertImports, HlmButton, HlmCardImports, HlmSpinner, AuthLayout, TranslatePipe],
   template: `
-    <app-auth-layout title="Confirming your email.">
+    <app-auth-layout [title]="'auth.verifyEmail.title' | translate">
       <section hlmCard>
         <div hlmCardContent>
           @switch (state()) {
             @case ('working') {
-              <div class="flex justify-center py-4"><hlm-spinner aria-label="Confirming" /></div>
+              <div class="flex justify-center py-4"><hlm-spinner [attr.aria-label]="'auth.verifyEmail.working' | translate" /></div>
             }
             @case ('done') {
               <div hlmAlert>
-                <h4 hlmAlertTitle>Email confirmed</h4>
+                <h4 hlmAlertTitle>{{ 'auth.verifyEmail.done' | translate }}</h4>
                 <p hlmAlertDescription>
-                  Your address is verified. You can now reset your password with it if you ever need
-                  to.
+                  {{ 'auth.verifyEmail.doneHint' | translate }}
                 </p>
               </div>
             }
             @case ('failed') {
               <div hlmAlert variant="destructive">
-                <h4 hlmAlertTitle>This link didn't work</h4>
+                <h4 hlmAlertTitle>{{ 'auth.verifyEmail.failed' | translate }}</h4>
                 <p hlmAlertDescription>
-                  It may have expired or been used already. Request a new one in your settings.
+                  {{ 'auth.verifyEmail.failedHint' | translate }}
                 </p>
               </div>
             }
@@ -41,7 +41,7 @@ import { AuthLayout } from './auth-layout';
         </div>
       </section>
       <a hlmBtn variant="link" [routerLink]="signedIn() ? '/settings' : '/login'">{{
-        signedIn() ? 'Go to settings' : 'Sign in'
+        (signedIn() ? 'auth.verifyEmail.settings' : 'nav.signIn') | translate
       }}</a>
     </app-auth-layout>
   `,

@@ -13,14 +13,14 @@ export type AccountProblem = 'expired' | 'missing' | 'failed';
 
 export const accountProblemText: Record<AccountProblem, { title: string; description: string }> = {
   expired: {
-    title: 'Sign-in expired',
-    description: 'Your sign-in for this account expired. Re-authenticate it in Settings > Schools & accounts.',
+    title: 'account.expired.title',
+    description: 'account.expired.description',
   },
   missing: {
-    title: 'Account not available',
-    description: 'This account was removed or is not available any more.',
+    title: 'account.missing.title',
+    description: 'account.missing.description',
   },
-  failed: { title: 'Could not load data', description: 'The service did not respond. Try again later.' },
+  failed: { title: 'account.failed.title', description: 'account.failed.description' },
 };
 
 type ResourceParams = Record<string, string | number | boolean>;

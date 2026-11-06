@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import {
@@ -100,7 +101,7 @@ export const UserStore = signalStore(
           patchState(store, { busy: true, deleteError: null });
           api.apiAuthMeDelete({ password: password || null }).subscribe({
             next: () => void auth.signOut(),
-            error: (error: unknown) => patchState(store, { busy: false, deleteError: apiMessage(error, 'Could not delete the account. Try again.') }),
+            error: (error: unknown) => patchState(store, { busy: false, deleteError: apiMessage(error, t('account.deleteFailed')) }),
           });
         },
       };

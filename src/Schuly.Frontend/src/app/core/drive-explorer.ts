@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { FileKind, fileKindOf, fileTypeLabel } from './file-kind';
 
 /** What the explorer needs of a drive entry; `DriveStore.entries()` items satisfy it. */
@@ -27,7 +28,7 @@ export function explorerKind(entry: Pick<ExplorerEntry, 'name' | 'isFolder' | 'm
 }
 
 export function explorerTypeLabel(entry: Pick<ExplorerEntry, 'name' | 'isFolder' | 'mime'>): string {
-  return entry.isFolder ? 'Folder' : fileTypeLabel(entry.name, entry.mime);
+  return entry.isFolder ? t('files.folder') : fileTypeLabel(entry.name, entry.mime);
 }
 
 const thumbnailKinds = new Set<FileKind>(['image', 'video', 'pdf', 'word', 'excel', 'powerpoint']);

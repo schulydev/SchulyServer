@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, ElementRef, Injector, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePaperclip, lucideSend, lucideX } from '@ng-icons/lucide';
@@ -26,7 +28,7 @@ const toBase64 = async (file: File): Promise<string> => {
 /** New message, reply, reply all or forward. Replies only need a comment; the server quotes the original. */
 @Component({
   selector: 'app-mail-compose',
-  imports: [HlmButton, NgIcon, RecipientInput],
+  imports: [TranslatePipe, HlmButton, NgIcon, RecipientInput],
   providers: [provideIcons({ lucidePaperclip, lucideSend, lucideX })],
   template: `
     <form class="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-4 lg:p-6" (submit)="submit($event)" aria-labelledby="compose-title">
@@ -34,19 +36,19 @@ const toBase64 = async (file: File): Promise<string> => {
         <h3 id="compose-title" #title tabindex="-1" class="min-w-0 truncate text-lg font-semibold outline-none">{{ heading() }}</h3>
         <button hlmBtn type="button" variant="ghost" size="sm" (click)="cancel.emit()">
           <ng-icon name="lucideX" aria-hidden="true" />
-          Discard
+          {{ 'chat.discard' | translate }}
         </button>
       </div>
 
       @if (isReply()) {
         <p class="text-muted-foreground min-w-0 truncate text-sm">
-          To: {{ replyTo() }}
+          {{ 'mail.toList' | translate: { list: replyTo() } }}
         </p>
       } @else {
         <div class="flex flex-col gap-1">
           <div class="flex items-start gap-2">
-            <label for="compose-to" class="w-12 shrink-0 pt-2 text-sm font-medium">To</label>
-            <app-recipient-input #toField class="min-w-0 flex-1" inputId="compose-to" label="To" [(value)]="to" />
+            <label for="compose-to" class="w-12 shrink-0 pt-2 text-sm font-medium">{{ 'mail.to' | translate }}</label>
+            <app-recipient-input #toField class="min-w-0 flex-1" inputId="compose-to" [label]="'mail.to' | translate" [(value)]="to" />
             @if (mode() === 'new') {
               <button hlmBtn type="button" variant="ghost" size="sm" [attr.aria-expanded]="showCc()" (click)="showCc.set(!showCc())">Cc / Bcc</button>
             }
@@ -66,7 +68,7 @@ const toBase64 = async (file: File): Promise<string> => {
 
       @if (mode() === 'new') {
         <div class="flex items-center gap-2">
-          <label for="compose-subject" class="w-12 shrink-0 text-sm font-medium">Subject</label>
+          <label for="compose-subject" class="w-12 shrink-0 text-sm font-medium">{{ 'mail.subject' | translate }}</label>
           <input
             id="compose-subject"
             type="text"
@@ -78,11 +80,11 @@ const toBase64 = async (file: File): Promise<string> => {
         </div>
       }
 
-      <label for="compose-body" class="sr-only">{{ isReply() ? 'Your reply' : 'Message' }}</label>
+      <label for="compose-body" class="sr-only">{{ isReply() ? ('mail.yourReply' | translate) : ('mail.message' | translate) }}</label>
       <textarea
         id="compose-body"
         class="bg-background focus-visible:border-ring focus-visible:ring-ring/30 min-h-48 w-full min-w-0 flex-1 resize-y rounded-md border p-3 text-sm leading-6 outline-none focus-visible:ring-3"
-        [attr.placeholder]="isReply() ? 'Write your reply' : 'Write your message'"
+        [attr.placeholder]="isReply() ? ('mail.writeReply' | translate) : ('mail.writeMessage' | translate)"
         [value]="body()"
         (input)="body.set($any($event.target).value)"
       ></textarea>
@@ -90,22 +92,22 @@ const toBase64 = async (file: File): Promise<string> => {
       @if (mode() === 'new') {
         <div class="flex flex-col gap-2">
           <div class="flex flex-wrap items-center gap-3">
-            <input #files id="compose-files" type="file" multiple aria-label="Attach files" class="sr-only" tabindex="-1" (change)="pick($event)" />
+            <input #files id="compose-files" type="file" multiple [attr.aria-label]="'chat.composer.attach' | translate" class="sr-only" tabindex="-1" (change)="pick($event)" />
             <button hlmBtn type="button" variant="outline" size="sm" (click)="files.click()">
               <ng-icon name="lucidePaperclip" aria-hidden="true" />
-              Attach files
+              {{ 'chat.composer.attach' | translate }}
             </button>
-            <span class="text-muted-foreground text-xs">{{ sizeLabel() }} of 3 MB</span>
+            <span class="text-muted-foreground text-xs">{{ 'mail.sizeOf' | translate: { size: sizeLabel() } }}</span>
           </div>
           @if (attachments().length) {
-            <ul class="flex flex-wrap gap-2" aria-label="Attachments">
+            <ul class="flex flex-wrap gap-2" [attr.aria-label]="'mail.attachments' | translate">
               @for (file of attachments(); track file.name + file.size) {
                 <li class="bg-muted flex max-w-full items-center gap-1 rounded-md py-1 ps-2.5 pe-1 text-sm">
                   <span class="min-w-0 truncate">{{ file.name }}</span>
                   <span class="text-muted-foreground shrink-0 text-xs">{{ size(file.size) }}</span>
                   <button type="button" class="hover:bg-foreground/10 focus-visible:outline-ring flex size-6 shrink-0 items-center justify-center rounded focus-visible:outline-2" (click)="removeFile(file)">
                     <ng-icon name="lucideX" class="text-xs" aria-hidden="true" />
-                    <span class="sr-only">Remove {{ file.name }}</span>
+                    <span class="sr-only">{{ 'common.removeName' | translate: { name: file.name } }}</span>
                   </button>
                 </li>
               }
@@ -121,10 +123,10 @@ const toBase64 = async (file: File): Promise<string> => {
       <div class="flex flex-wrap items-center gap-2">
         <button hlmBtn type="submit" [disabled]="busy()">
           <ng-icon name="lucideSend" aria-hidden="true" />
-          {{ busy() ? 'Sending' : 'Send' }}
+          {{ busy() ? ('chat.composer.sending' | translate) : ('common.send' | translate) }}
         </button>
         @if (mode() === 'new') {
-          <button hlmBtn type="button" variant="outline" [disabled]="busy()" (click)="draft()">Save draft</button>
+          <button hlmBtn type="button" variant="outline" [disabled]="busy()" (click)="draft()">{{ 'mail.saveDraft' | translate }}</button>
         }
       </div>
     </form>
@@ -163,19 +165,19 @@ export class MailCompose {
     const s = this.source();
     if (!s) return '';
     const all = this.mode() === 'replyAll' ? [...s.to, ...s.cc].map((p) => p.name) : [];
-    return [s.from?.name ?? 'sender', ...all].join(', ');
+    return [s.from?.name ?? t('mail.sender'), ...all].join(', ');
   });
   protected readonly heading = computed(() => {
     const subject = this.source()?.subject ?? '';
     switch (this.mode()) {
       case 'reply':
-        return `Reply: ${subject}`;
+        return t('mail.heading.reply', { subject });
       case 'replyAll':
-        return `Reply all: ${subject}`;
+        return t('mail.heading.replyAll', { subject });
       case 'forward':
-        return `Forward: ${subject}`;
+        return t('mail.heading.forward', { subject });
       default:
-        return 'New message';
+        return t('mail.newMessage');
     }
   });
 
@@ -226,7 +228,7 @@ export class MailCompose {
   private report(result: ActionResult, success: string): void {
     this.busy.set(false);
     if (result === 'ok') this.done.emit(success);
-    else this.error.set(result === 'unavailable' ? 'This is not available on the server yet.' : 'Could not complete that. Try again.');
+    else this.error.set(result === 'unavailable' ? t('mail.serverUnavailable') : t('mail.couldNotComplete'));
   }
 
   protected async submit(event: Event): Promise<void> {
@@ -236,28 +238,28 @@ export class MailCompose {
     const source = this.source();
     const mode = this.mode();
     if (this.isReply()) {
-      if (!source || !this.body().trim()) return this.error.set('Write a reply first.');
+      if (!source || !this.body().trim()) return this.error.set(t('mail.writeReplyFirst'));
       this.busy.set(true);
-      this.report(await this.client.reply(source.id, this.body(), mode === 'replyAll'), 'Reply sent');
+      this.report(await this.client.reply(source.id, this.body(), mode === 'replyAll'), t('mail.replySent'));
       return;
     }
-    if (!this.to().length) return this.error.set('Add at least one recipient.');
+    if (!this.to().length) return this.error.set(t('mail.needRecipient'));
     if (mode === 'forward') {
       if (!source) return;
       this.busy.set(true);
-      this.report(await this.client.forward(source.id, this.to(), this.body()), 'Message forwarded');
+      this.report(await this.client.forward(source.id, this.to(), this.body()), t('mail.forwarded'));
       return;
     }
-    if (!this.subject().trim() && !this.body().trim()) return this.error.set('Add a subject or a message.');
+    if (!this.subject().trim() && !this.body().trim()) return this.error.set(t('mail.needContent'));
     this.busy.set(true);
-    this.report(await this.client.send(this.outgoing()), 'Message sent');
+    this.report(await this.client.send(this.outgoing()), t('mail.sent'));
   }
 
   protected async draft(): Promise<void> {
     this.commitFields();
-    if (!this.to().length && !this.cc().length && !this.bcc().length) return this.error.set('Add at least one recipient to save a draft.');
+    if (!this.to().length && !this.cc().length && !this.bcc().length) return this.error.set(t('mail.needRecipientDraft'));
     this.busy.set(true);
-    this.report(await this.client.saveDraft(this.outgoing()), 'Draft saved');
+    this.report(await this.client.saveDraft(this.outgoing()), t('mail.draftSaved'));
   }
 }
 

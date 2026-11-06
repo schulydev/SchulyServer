@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, OnInit, computed, inject, model, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -25,25 +26,25 @@ let nextId = 0;
 /** Two-way bound editor for what an app or API key may do. */
 @Component({
   selector: 'app-mcp-permission-editor',
-  imports: [HlmButton, HlmCheckbox, HlmFieldImports, HlmSwitch],
+  imports: [TranslatePipe, HlmButton, HlmCheckbox, HlmFieldImports, HlmSwitch],
   template: `
     <div class="@container flex min-w-0 flex-col gap-5">
-      <div class="flex flex-wrap items-center gap-2" role="group" [attr.aria-label]="'Presets'">
-        <span class="text-muted-foreground text-sm">Presets</span>
-        <button hlmBtn type="button" variant="outline" size="sm" (click)="applySchoolData()">School data</button>
-        <button hlmBtn type="button" variant="outline" size="sm" (click)="applyReadOnly()">Read-only</button>
-        <button hlmBtn type="button" variant="outline" size="sm" (click)="applyFull()">Full access</button>
+      <div class="flex flex-wrap items-center gap-2" role="group" [attr.aria-label]="'mcp.presets' | translate">
+        <span class="text-muted-foreground text-sm">{{ 'mcp.presets' | translate }}</span>
+        <button hlmBtn type="button" variant="outline" size="sm" (click)="applySchoolData()">{{ 'mcp.preset.school' | translate }}</button>
+        <button hlmBtn type="button" variant="outline" size="sm" (click)="applyReadOnly()">{{ 'mcp.preset.readOnly' | translate }}</button>
+        <button hlmBtn type="button" variant="outline" size="sm" (click)="applyFull()">{{ 'mcp.preset.full' | translate }}</button>
       </div>
 
       @for (group of groups; track group.label) {
         <fieldset hlmFieldSet>
-          <legend hlmFieldLegend>{{ group.label }}</legend>
+          <legend hlmFieldLegend>{{ group.label | translate }}</legend>
           <div class="flex flex-col divide-y rounded-lg border">
             @for (info of group.areas; track info.area) {
               <div class="flex flex-col gap-2 px-3 py-3 @[640px]:flex-row @[640px]:items-center @[640px]:justify-between @[640px]:gap-6">
                 <div class="min-w-0 @[640px]:flex-1">
-                  <p class="text-sm font-medium break-words" [id]="prefix + info.area">{{ info.label }}</p>
-                  <p class="text-muted-foreground text-xs break-words" [id]="prefix + info.area + '-d'">{{ info.description }}</p>
+                  <p class="text-sm font-medium break-words" [id]="prefix + info.area">{{ info.label | translate }}</p>
+                  <p class="text-muted-foreground text-xs break-words" [id]="prefix + info.area + '-d'">{{ info.description | translate }}</p>
                 </div>
                 <!-- A segmented control made of native radios: arrow keys move the choice and every option stays visible. -->
                 <div
@@ -64,7 +65,7 @@ let nextId = 0;
                       />
                       <span
                         class="text-foreground peer-checked:bg-background peer-focus-visible:ring-ring/50 hover:bg-background/50 block rounded-md px-2 py-1.5 text-center text-sm peer-checked:font-medium peer-checked:shadow-xs peer-focus-visible:ring-3"
-                        >{{ option.label }}</span
+                        >{{ option.label | translate }}</span
                       >
                     </label>
                   }
@@ -78,23 +79,23 @@ let nextId = 0;
       <div class="flex items-start gap-3 rounded-lg border px-3 py-2.5">
         <hlm-switch
           [inputId]="prefix + 'destructive'"
-          aria-label="Allow deleting"
+          [attr.aria-label]="'mcp.allowDelete' | translate"
           [aria-describedby]="prefix + 'destructive-d'"
           [checked]="value().allowDestructive"
           [disabled]="!writable()"
           (checkedChange)="setDestructive($event)"
         />
         <div>
-          <label class="text-sm font-medium" [for]="prefix + 'destructive'">Allow deleting</label>
+          <label class="text-sm font-medium" [for]="prefix + 'destructive'">{{ 'mcp.allowDelete' | translate }}</label>
           <p class="text-muted-foreground text-xs" [id]="prefix + 'destructive-d'">
-            Lets the app delete mail and withdraw reported absences. Needs write access to Mail or Absences.
+            {{ 'mcp.allowDeleteHint' | translate }}
           </p>
         </div>
       </div>
 
       @if (accounts().length > 0) {
         <fieldset hlmFieldSet>
-          <legend hlmFieldLegend>Linked accounts</legend>
+          <legend hlmFieldLegend>{{ 'mcp.group.linked' | translate }}</legend>
           <div class="flex flex-col gap-2 rounded-lg border px-3 py-2.5">
             <label class="flex items-center gap-2 text-sm" [for]="prefix + 'all-accounts'">
               <hlm-checkbox
@@ -102,7 +103,7 @@ let nextId = 0;
                 [checked]="value().microsoftAccountIds === null"
                 (checkedChange)="setAllAccounts($event)"
               />
-              All accounts, including ones you add later
+              {{ 'mcp.allAccounts' | translate }}
             </label>
             @for (account of accounts(); track account.id) {
               <label class="flex items-center gap-2 text-sm" [for]="prefix + 'acc-' + account.id">
@@ -139,10 +140,10 @@ export class McpPermissionEditor implements OnInit {
 
   protected options(info: McpAreaInfo): { value: McpAccessLevel; label: string }[] {
     const options: { value: McpAccessLevel; label: string }[] = [
-      { value: 'Off', label: 'Off' },
-      { value: 'Read', label: 'Read' },
+      { value: 'Off', label: 'mcp.level.off' },
+      { value: 'Read', label: 'mcp.level.read' },
     ];
-    if (info.canWrite) options.push({ value: 'ReadWrite', label: 'Read & write' });
+    if (info.canWrite) options.push({ value: 'ReadWrite', label: 'mcp.level.readWrite' });
     return options;
   }
 

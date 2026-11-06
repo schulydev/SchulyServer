@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideImage, lucideImageOff } from '@ng-icons/lucide';
@@ -10,31 +12,31 @@ import { ViewerFile } from './file-viewer';
 /** An image of a bubble: a public GIF shown inline, or a hosted image fetched as an authenticated blob. */
 @Component({
   selector: 'app-chat-image',
-  imports: [NgIcon],
+  imports: [TranslatePipe, NgIcon],
   providers: [provideIcons({ lucideImageOff })],
   template: `
     @if (item(); as m) {
       @if (isGif()) {
         <img
           [src]="m.src"
-          [alt]="m.alt || 'Animated GIF'"
+          [alt]="m.alt || ('shared.animatedGif' | translate)"
           referrerpolicy="no-referrer"
           loading="lazy"
           class="max-h-64 max-w-full rounded-md object-contain"
         />
       } @else if (failed()) {
-        <span class="text-muted-foreground flex items-center gap-1.5 text-xs"><ng-icon name="lucideImageOff" aria-hidden="true" />Image unavailable</span>
+        <span class="text-muted-foreground flex items-center gap-1.5 text-xs"><ng-icon name="lucideImageOff" aria-hidden="true" />{{ 'notes.imageUnavailable' | translate }}</span>
       } @else if (url(); as src) {
         @if (clickable()) {
           <button type="button" class="focus-visible:outline-ring block max-w-full rounded-md focus-visible:outline-2 focus-visible:outline-offset-2" (click)="open.emit()">
-            <img [src]="src" [alt]="m.alt || 'Image'" class="max-h-64 max-w-full rounded-md object-contain" />
-            <span class="sr-only">View image</span>
+            <img [src]="src" [alt]="m.alt || ('chat.image' | translate)" class="max-h-64 max-w-full rounded-md object-contain" />
+            <span class="sr-only">{{ 'shared.viewImage' | translate }}</span>
           </button>
         } @else {
-          <img [src]="src" [alt]="m.alt || 'Image'" class="max-h-64 max-w-full rounded-md object-contain" />
+          <img [src]="src" [alt]="m.alt || ('chat.image' | translate)" class="max-h-64 max-w-full rounded-md object-contain" />
         }
       } @else {
-        <span class="bg-background/60 block h-24 w-40 max-w-full animate-pulse rounded-md" role="img" aria-label="Loading image"></span>
+        <span class="bg-background/60 block h-24 w-40 max-w-full animate-pulse rounded-md" role="img" [attr.aria-label]="'shared.loadingImage' | translate"></span>
       }
     }
   `,
@@ -90,7 +92,7 @@ export class ChatImage {
 /** Everything a message carries besides its text: images, GIFs, stickers, file chips, cards and Teams emojis. */
 @Component({
   selector: 'app-chat-media',
-  imports: [ChatImage, FileCard, HlmButton, NgIcon],
+  imports: [TranslatePipe, ChatImage, FileCard, HlmButton, NgIcon],
   providers: [provideIcons({ lucideImage })],
   template: `
     @for (m of media(); track m.key) {
@@ -100,7 +102,7 @@ export class ChatImage {
       <app-chat-image [item]="s" />
     }
     @for (c of cards(); track c.key) {
-      <section class="bg-background/70 flex max-w-full flex-col gap-1.5 rounded-md border p-3 text-sm" [attr.aria-label]="c.title ?? 'Card'">
+      <section class="bg-background/70 flex max-w-full flex-col gap-1.5 rounded-md border p-3 text-sm" [attr.aria-label]="c.title ?? ('shared.card' | translate)">
         @if (c.title) {
           <p class="font-semibold">{{ c.title }}</p>
         }
@@ -115,8 +117,8 @@ export class ChatImage {
               } @else {
                 <button hlmBtn variant="outline" size="sm" type="button" class="self-start" (click)="reveal(c.key + ':' + $index)">
                   <ng-icon name="lucideImage" aria-hidden="true" />
-                  Show image
-                  <span class="sr-only">from {{ b.host }}{{ b.alt ? ': ' + b.alt : '' }}</span>
+                  {{ 'shared.showImage' | translate }}
+                  <span class="sr-only">{{ 'shared.imageFrom' | translate: { host: b.host } }}{{ b.alt ? ': ' + b.alt : '' }}</span>
                 </button>
               }
             }
@@ -133,7 +135,7 @@ export class ChatImage {
       </section>
     }
     @if (files().length) {
-      <ul class="flex flex-wrap gap-2" aria-label="Files">
+      <ul class="flex flex-wrap gap-2" [attr.aria-label]="'helply.files' | translate">
         @for (f of files(); track f.key) {
           <li class="max-w-full"><app-file-card [file]="f" (view)="viewFile(f)" /></li>
         }
@@ -160,7 +162,7 @@ export class ChatMedia {
   protected viewImage(m: BubbleMedia): void {
     const path = m.path;
     if (!path) return;
-    this.view.emit({ name: m.alt || 'Image', load: () => this.api.blob(path) });
+    this.view.emit({ name: m.alt || t('chat.image'), load: () => this.api.blob(path) });
   }
 
   protected viewFile(f: BubbleFile): void {

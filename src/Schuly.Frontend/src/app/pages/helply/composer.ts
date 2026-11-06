@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, input, output, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideX } from '@ng-icons/lucide';
@@ -17,7 +18,7 @@ const COUNTER_FROM = 3500;
  */
 @Component({
   selector: 'app-composer',
-  imports: [HlmSpinner, NgIcon, PkAttachmentPreview, PkComposer],
+  imports: [TranslatePipe, HlmSpinner, NgIcon, PkAttachmentPreview, PkComposer],
   providers: [provideIcons({ lucideCircleAlert, lucideX })],
   host: {
     class: 'block px-4 pt-2 pb-4',
@@ -39,8 +40,8 @@ const COUNTER_FROM = 3500;
         [class.ring-3]="dragging()"
         [class.ring-ring]="dragging()"
         [(value)]="value"
-        label="Message Helply"
-        placeholder="Ask Helply something..."
+        [label]="'helply.composer.label' | translate"
+        [placeholder]="'helply.composer.placeholder' | translate"
         accept="{{ accept }}"
         [attachable]="true"
         [busy]="streaming()"
@@ -53,7 +54,7 @@ const COUNTER_FROM = 3500;
       >
         <div pkComposerTop class="flex flex-col gap-2 empty:hidden">
           @if (dragging()) {
-            <p class="text-primary text-sm font-medium">Drop files to attach them</p>
+            <p class="text-primary text-sm font-medium">{{ 'helply.composer.drop' | translate }}</p>
           }
           @if (ready().length) {
             <pk-attachment-preview
@@ -63,7 +64,7 @@ const COUNTER_FROM = 3500;
             />
           }
           @if (pending().length) {
-            <ul class="flex flex-wrap gap-2" aria-label="Files being uploaded">
+            <ul class="flex flex-wrap gap-2" [attr.aria-label]="'helply.composer.uploading' | translate">
               @for (draft of pending(); track draft.key) {
                 <li
                   class="bg-muted flex max-w-full items-center gap-2 rounded-lg border py-1 pr-1 pl-2.5 text-xs"
@@ -97,12 +98,12 @@ const COUNTER_FROM = 3500;
         </div>
       </pk-composer>
       <div class="flex min-h-4 justify-between gap-2 px-2 text-xs">
-        <span id="helply-composer-hint" class="text-muted-foreground">Enter to send, Shift+Enter for a new line.</span>
+        <span id="helply-composer-hint" class="text-muted-foreground">{{ 'helply.composer.hint' | translate }}</span>
         @if (showCounter()) {
           <span [class]="tooLong() ? 'text-destructive font-medium' : 'text-muted-foreground'">
             {{ value().length }} / {{ max }}
             @if (tooLong()) {
-              <span class="sr-only"> Message is too long</span>
+              <span class="sr-only"> {{ 'helply.composer.tooLong' | translate }}</span>
             }
           </span>
         }

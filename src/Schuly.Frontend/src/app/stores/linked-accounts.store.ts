@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { firstValueFrom } from 'rxjs';
@@ -23,10 +24,10 @@ export interface CapabilityAccount {
 
 /** A page of its own in the app shell, reached from the provider's group in the sidebar. */
 export const PAGE_KINDS: Record<string, { url: string; title: string; icon: string }> = {
-  mail: { url: '/mail', title: 'Mail', icon: 'lucideMail' },
-  chat: { url: '/chat', title: 'Chat', icon: 'lucideMessagesSquare' },
-  drive: { url: '/drive', title: 'Drive', icon: 'lucideHardDrive' },
-  notes: { url: '/notes', title: 'Notes', icon: 'lucideNotebook' },
+  mail: { url: '/mail', title: 'nav.mail', icon: 'lucideMail' },
+  chat: { url: '/chat', title: 'nav.chat', icon: 'lucideMessagesSquare' },
+  drive: { url: '/drive', title: 'nav.drive', icon: 'lucideHardDrive' },
+  notes: { url: '/notes', title: 'nav.notes', icon: 'lucideNotebook' },
 };
 
 export interface NavGroup {
@@ -168,7 +169,7 @@ export const LinkedAccountsStore = signalStore(
         }
         return true;
       } catch (error) {
-        if (mine === sequence) patchState(store, { loaded: true, loadError: linkErrorMessage(error, 'Could not load your accounts.') });
+        if (mine === sequence) patchState(store, { loaded: true, loadError: linkErrorMessage(error, t('account.loadFailed')) });
         return false;
       }
     };
@@ -178,7 +179,7 @@ export const LinkedAccountsStore = signalStore(
         const rows = await firstValueFrom(api.providers('web'));
         patchState(store, { providers: Array.isArray(rows) ? [...rows].sort((a, b) => a.sortOrder - b.sortOrder) : [], providersError: null });
       } catch (error) {
-        patchState(store, { providersError: linkErrorMessage(error, 'Could not load the available schools and services.') });
+        patchState(store, { providersError: linkErrorMessage(error, t('account.providersFailed')) });
       }
     };
 
@@ -221,7 +222,7 @@ export const LinkedAccountsStore = signalStore(
           void loadAccounts();
           return true;
         } catch (error) {
-          patchState(store, { actionError: linkErrorMessage(error, 'Could not unlink that account. Try again.') });
+          patchState(store, { actionError: linkErrorMessage(error, t('account.unlinkFailed')) });
           return false;
         } finally {
           patchState(store, { busy: false });

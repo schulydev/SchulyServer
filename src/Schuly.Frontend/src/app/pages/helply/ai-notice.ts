@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, output } from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -12,23 +13,22 @@ export const aiNoticeSeen = () => persistedChoice(SEEN_KEY, ['no', 'yes'] as con
 /** Shown before the first use of Helply, so nobody takes it for a person or misses where their data goes. */
 @Component({
   selector: 'app-helply-ai-notice',
-  imports: [HlmButton, HlmCardImports],
+  imports: [TranslatePipe, HlmButton, HlmCardImports],
   host: { class: 'flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4' },
   template: `
     <section hlmCard class="w-full max-w-lg" aria-labelledby="helply-ai-notice-title">
       <div hlmCardHeader>
-        <h2 hlmCardTitle id="helply-ai-notice-title">Helply is an AI, not a person</h2>
+        <h2 hlmCardTitle id="helply-ai-notice-title">{{ 'helply.notice.title' | translate }}</h2>
       </div>
       <div hlmCardContent class="flex flex-col gap-3 text-sm">
-        <p>Helply is an AI assistant. Its answers can be wrong, so check anything important.</p>
+        <p>{{ 'helply.notice.description' | translate }}</p>
         <p>
-          Your messages, the files you attach, and the school data you allow in Helply's settings are sent to an AI
-          model. Schuly stores your chats encrypted and deletes them 30 days after your last activity.
+          {{ 'helply.notice.data' | translate }}
         </p>
-        <a class="underline underline-offset-4" [href]="policyUrl" target="_blank" rel="noopener">Read the Privacy Policy</a>
+        <a class="underline underline-offset-4" [href]="policyUrl" target="_blank" rel="noopener">{{ 'auth.privacy.read' | translate }}</a>
       </div>
       <div hlmCardFooter>
-        <button hlmBtn type="button" (click)="understood.emit()">Got it</button>
+        <button hlmBtn type="button" (click)="understood.emit()">{{ 'helply.notice.ok' | translate }}</button>
       </div>
     </section>
   `,

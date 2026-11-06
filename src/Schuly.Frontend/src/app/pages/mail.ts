@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked, viewChildren, DestroyRef } from '@angular/core';
 import { keepFresh } from '../core/response-cache';
@@ -60,6 +62,7 @@ interface Composing {
 @Component({
   selector: 'app-mail',
   imports: [
+    TranslatePipe,
     SenderAvatar,
     HlmButton,
     HlmSkeletonImports,
@@ -112,11 +115,11 @@ interface Composing {
         <nav
           class="flex shrink-0 items-center gap-1 overflow-x-auto border-b p-2 lg:w-(--folders-w) lg:flex-col lg:items-stretch lg:overflow-x-hidden lg:overflow-y-auto lg:border-b-0 lg:p-3"
           [class.max-lg:hidden]="selected() || composing()"
-          aria-label="Mail folders"
+          [attr.aria-label]="'mail.folders' | translate"
         >
           <button hlmBtn type="button" class="shrink-0 lg:mb-2 lg:w-full" (click)="startCompose('new')">
             <ng-icon name="lucidePenSquare" aria-hidden="true" />
-            New message
+            {{ 'mail.newMessage' | translate }}
           </button>
           @for (f of client.mainFolders(); track f.key) {
             <ng-container *ngTemplateOutlet="folderButton; context: { $implicit: f }" />
@@ -130,7 +133,7 @@ interface Composing {
               (click)="moreOpen.set(!moreOpen())"
             >
               <ng-icon [name]="moreOpen() ? 'lucideChevronDown' : 'lucideChevronRight'" class="shrink-0 text-base" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-left">More</span>
+              <span class="min-w-0 flex-1 truncate text-left">{{ 'common.more' | translate }}</span>
             </button>
             <div id="mail-more-folders" class="contents" [hidden]="!moreOpen()">
               @if (moreOpen()) {
@@ -157,14 +160,14 @@ interface Composing {
               <span class="min-w-0 flex-1 truncate text-left">{{ f.name }}</span>
               @if (f.unread) {
                 <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
-                  {{ f.unread }}<span class="sr-only"> unread</span>
+                  {{ f.unread }}<span class="sr-only"> {{ 'mail.unreadCount' | translate }}</span>
                 </span>
               }
             </button>
           </ng-template>
         </nav>
         <app-split-handle
-          label="Resize folder list"
+          [label]="'mail.resizeFolders' | translate"
           [width]="foldersWidth.value()"
           [min]="160"
           [max]="360"
@@ -188,13 +191,13 @@ interface Composing {
                   [attr.aria-pressed]="mail.unreadOnly()"
                   (click)="mail.setUnreadOnly(!mail.unreadOnly())"
                 >
-                  Unread
+                  {{ 'chat.unread' | translate }}
                 </button>
             </div>
             <div class="flex flex-col gap-2 px-4 py-2">
-              <app-search-field class="[&_hlm-input-group]:w-full" [(value)]="query" label="Search mail" placeholder="Search mail" />
+              <app-search-field class="[&_hlm-input-group]:w-full" [(value)]="query" [label]="'mail.search' | translate" [placeholder]="'mail.search' | translate" />
               @if (query().trim() && mail.hasMore()) {
-                <p class="text-muted-foreground text-xs">Searching loaded items only. Scroll to load more.</p>
+                <p class="text-muted-foreground text-xs">{{ 'chat.searchLoaded' | translate }}</p>
               }
             </div>
           }
@@ -243,16 +246,16 @@ interface Composing {
                           <span class="min-w-0 flex-1 truncate text-sm" [class]="message.unread ? 'text-foreground font-semibold' : ''">
                             {{ message.subject }}
                             @if (message.unread) {
-                              <span class="sr-only">(unread)</span>
+                              <span class="sr-only">{{ 'mail.unreadMarker' | translate }}</span>
                             }
                           </span>
                           @if (message.flagged) {
                             <ng-icon name="lucideFlag" class="text-destructive shrink-0 text-xs" aria-hidden="true" />
-                            <span class="sr-only">Flagged</span>
+                            <span class="sr-only">{{ 'mail.flagged' | translate }}</span>
                           }
                           @if (message.hasAttachments) {
                             <ng-icon name="lucidePaperclip" class="text-muted-foreground shrink-0 text-xs" aria-hidden="true" />
-                            <span class="sr-only">Has attachments</span>
+                            <span class="sr-only">{{ 'mail.hasAttachments' | translate }}</span>
                           }
                         </span>
                         @if (message.preview) {
@@ -264,16 +267,16 @@ interface Composing {
                 }
               </ul>
             } @else if (mail.messages().length) {
-              <app-empty-state icon="lucideMail" title="No matching messages" description="Try a different search." />
+              <app-empty-state icon="lucideMail" [title]="'mail.noMatch' | translate" [description]="'chat.tryDifferent' | translate" />
             } @else {
               <app-empty-state
                 icon="lucideMail"
-                [title]="mail.unreadOnly() ? 'No unread messages' : 'No messages'"
-                [description]="mail.unreadOnly() ? 'You are all caught up.' : 'Messages in this folder appear here.'"
+                [title]="mail.unreadOnly() ? ('mail.noUnread' | translate) : ('mail.noMessages' | translate)"
+                [description]="mail.unreadOnly() ? ('mail.caughtUp' | translate) : ('mail.folderEmpty' | translate)"
               />
             }
             <app-load-more
-              label="Load more messages"
+              [label]="'mail.loadMore' | translate"
               [hasMore]="mail.hasMore()"
               [loading]="mail.loadingMore()"
               [failed]="mail.moreFailed()"
@@ -283,7 +286,7 @@ interface Composing {
           </div>
         </section>
         <app-split-handle
-          label="Resize message list"
+          [label]="'mail.resizeMessages' | translate"
           [width]="listWidth.value()"
           [min]="280"
           [max]="720"
@@ -294,7 +297,7 @@ interface Composing {
         <section
           class="min-w-0 flex-1 flex-col overflow-hidden"
           [class]="selected() || composing() ? 'flex' : 'hidden lg:flex'"
-          aria-label="Message"
+          [attr.aria-label]="'mail.message' | translate"
         >
           @if (composing(); as c) {
             <app-mail-compose [mode]="c.mode" [source]="client.detail()" (cancel)="endCompose()" (done)="composed($event)" />
@@ -303,7 +306,7 @@ interface Composing {
           } @else {
             <div class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 text-sm">
               <ng-icon name="lucideMail" class="text-2xl" aria-hidden="true" />
-              Select a message to read it
+              {{ 'mail.select' | translate }}
             </div>
           }
         </section>
@@ -328,7 +331,7 @@ export class Mail {
   private sentTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly rows = viewChildren<ElementRef<HTMLElement>>('row');
 
-  protected readonly folderLabel = computed(() => this.client.folders().find((f) => f.key === this.mail.folder())?.name ?? 'Mail');
+  protected readonly folderLabel = computed(() => this.client.folders().find((f) => f.key === this.mail.folder())?.name ?? t('nav.mail'));
 
   /** Sent items and drafts list who the message went to, like Outlook; other folders list the sender. */
   protected readonly items = computed(() => {

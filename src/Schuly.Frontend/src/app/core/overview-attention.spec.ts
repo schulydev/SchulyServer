@@ -4,7 +4,7 @@ import { AbsenceRow, AbsenceState, buildAbsenceRows } from './absence-view';
 import { attentionItems, daysUntil, needsReportLookup } from './overview-attention';
 
 const now = new Date('2026-11-06T09:40:00');
-const row = (state: AbsenceState, from = '2026-10-27', status = ''): AbsenceRow => ({ key: `${state}${from}`, isDelay: false, from, until: from, time: null, reason: 'Andere Absenz', note: null, state, status, steps: [], trainerComment: null, lessons: null, report: null, printUrl: null, bbb: true });
+const row = (state: AbsenceState, from = '2026-10-27', status = ''): AbsenceRow => ({ key: `${state}${from}`, isDelay: false, from, until: from, time: null, reason: 'Andere Absenz', note: null, state, status, due: status.startsWith('Needs an excuse ') ? status.slice('Needs an excuse '.length) : null, steps: [], trainerComment: null, lessons: null, report: null, printUrl: null, bbb: true });
 const test = (title: string, iso: string): AgendaEntryDto => ({ id: title, entryType: AgendaEntryType.Test, title, date: iso, endDate: iso, place: 'A 2.07' });
 
 describe('attentionItems', () => {

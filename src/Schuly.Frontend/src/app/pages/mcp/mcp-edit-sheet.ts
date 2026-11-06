@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, input, linkedSignal, model, output } from '@angular/core';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmBadge } from '@spartan-ng/helm/badge';
@@ -12,21 +13,21 @@ import { formatDateTime } from './format';
 /** Side sheet to change what a connected app or API key may do, with its recent activity. */
 @Component({
   selector: 'app-mcp-edit-sheet',
-  imports: [HlmAlertImports, HlmBadge, HlmButton, HlmSheetImports, HlmSpinner, McpPermissionEditor],
+  imports: [TranslatePipe, HlmAlertImports, HlmBadge, HlmButton, HlmSheetImports, HlmSpinner, McpPermissionEditor],
   template: `
     <hlm-sheet side="right" [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full gap-0 sm:max-w-xl">
         <hlm-sheet-header class="border-b">
           <h2 hlmSheetTitle>{{ name() }}</h2>
-          <p hlmSheetDescription>Choose what this {{ kind() }} may do. Changes apply right away.</p>
+          <p hlmSheetDescription>{{ (kind() === 'app' ? 'mcp.edit.descriptionApp' : 'mcp.edit.descriptionKey') | translate }}</p>
         </hlm-sheet-header>
         <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
           <app-mcp-permission-editor [(value)]="draft" />
 
           <section class="flex flex-col gap-2" aria-labelledby="mcp-activity-title">
-            <h3 id="mcp-activity-title" class="text-sm font-medium">Recent activity</h3>
+            <h3 id="mcp-activity-title" class="text-sm font-medium">{{ 'mcp.edit.activity' | translate }}</h3>
             @if (activityLoading()) {
-              <hlm-spinner aria-label="Loading activity" />
+              <hlm-spinner [attr.aria-label]="'mcp.edit.loading' | translate" />
             } @else if (activity().length) {
               <ul class="divide-y rounded-lg border text-sm">
                 @for (entry of activity(); track $index) {
@@ -35,15 +36,15 @@ import { formatDateTime } from './format';
                     <span class="flex shrink-0 items-center gap-2">
                       <time class="text-muted-foreground text-xs" [attr.datetime]="entry.at">{{ time(entry.at) }}</time>
                       <span hlmBadge [variant]="entry.allowed ? 'secondary' : 'destructive'">{{
-                        entry.allowed ? 'Allowed' : 'Denied'
+                        entry.allowed ? ('mcp.edit.allowed' | translate) : ('mcp.edit.denied' | translate)
                       }}</span>
                     </span>
                   </li>
                 }
               </ul>
-              <p class="text-muted-foreground text-xs">Latest 100 calls from the last 30 days.</p>
+              <p class="text-muted-foreground text-xs">{{ 'mcp.edit.latest' | translate }}</p>
             } @else {
-              <p class="text-muted-foreground text-sm">No activity in the last 30 days.</p>
+              <p class="text-muted-foreground text-sm">{{ 'mcp.edit.none' | translate }}</p>
             }
           </section>
         </div>
@@ -56,12 +57,12 @@ import { formatDateTime } from './format';
             }
           </div>
           <div class="flex justify-end gap-2">
-            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">Close</button>
+            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">{{ 'common.close' | translate }}</button>
             <button hlmBtn type="button" [disabled]="!changed() || saving()" (click)="save.emit(draft())">
               @if (saving()) {
                 <hlm-spinner aria-hidden="true" />
               }
-              Save changes
+              {{ 'helply.settingsSheet.save' | translate }}
             </button>
           </div>
         </hlm-sheet-footer>

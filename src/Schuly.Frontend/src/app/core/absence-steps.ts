@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 /**
  * What Schulnetz's approval fields mean. The mobile API sends English codes, seen on BBB accounts: `statusEAB` (the
  * Lehrmeister) is `open`, `confirmed` or `declined`, and `statusEAE` (the parents) is `ofAge` for adults, which means there
@@ -65,23 +66,24 @@ export function absenceSteps(input: StepInput): AbsenceStep[] {
   return steps;
 }
 
+// Step labels are ids; the page shows them as absences.step.<label>.
 const WAITING: Record<string, string> = {
-  Parents: 'Waiting for parents',
-  Lehrmeister: 'Waiting for Lehrmeister',
-  School: 'Waiting for school',
+  Parents: 'absences.status.waitingParents',
+  Lehrmeister: 'absences.status.waitingLehrmeister',
+  School: 'absences.status.waitingSchool',
 };
 
 const REJECTED: Record<string, string> = {
-  Parents: 'Rejected by parents',
-  Lehrmeister: 'Rejected by Lehrmeister',
+  Parents: 'absences.status.rejectedParents',
+  Lehrmeister: 'absences.status.rejectedLehrmeister',
 };
 
 export function waitingLabel(steps: AbsenceStep[]): string | null {
   const step = steps.find((s) => s.state === 'next');
-  return step ? WAITING[step.label] ?? null : null;
+  return step && WAITING[step.label] ? t(WAITING[step.label]) : null;
 }
 
 export function rejectedLabel(steps: AbsenceStep[]): string | null {
   const step = steps.find((s) => s.state === 'rejected');
-  return step ? REJECTED[step.label] ?? null : null;
+  return step && REJECTED[step.label] ? t(REJECTED[step.label]) : null;
 }

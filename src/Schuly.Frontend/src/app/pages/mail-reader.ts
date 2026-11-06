@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -46,7 +48,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
 /** The reading pane: toolbar, header, attachments and the sandboxed body. Falls back to the list preview when the server cannot return full messages. */
 @Component({
   selector: 'app-mail-reader',
-  imports: [AppDatePipe, HlmButton, HlmDropdownMenuImports, HlmSkeletonImports, NgIcon, MailBody, FileViewer, SenderAvatar],
+  imports: [TranslatePipe, AppDatePipe, HlmButton, HlmDropdownMenuImports, HlmSkeletonImports, NgIcon, MailBody, FileViewer, SenderAvatar],
   providers: [
     provideIcons({
       lucideArrowLeft,
@@ -67,45 +69,45 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
     }),
   ],
   template: `
-    <div role="toolbar" aria-label="Message actions" class="flex h-10 shrink-0 items-center gap-0.5 overflow-x-auto border-b px-2 lg:px-3">
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" class="lg:hidden" title="Back to list" (click)="back.emit()">
+    <div role="toolbar" [attr.aria-label]="'chat.composer.actions' | translate" class="flex h-10 shrink-0 items-center gap-0.5 overflow-x-auto border-b px-2 lg:px-3">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" class="lg:hidden" [title]="'mail.backToList' | translate" (click)="back.emit()">
         <ng-icon name="lucideArrowLeft" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Back to list</span>
+        <span class="sr-only">{{ 'mail.backToList' | translate }}</span>
       </button>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" title="Reply" [disabled]="!detail()" (click)="compose.emit('reply')">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="'common.reply' | translate" [disabled]="!detail()" (click)="compose.emit('reply')">
         <ng-icon name="lucideReply" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Reply</span>
+        <span class="sr-only">{{ 'common.reply' | translate }}</span>
       </button>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" title="Reply all" [disabled]="!detail()" (click)="compose.emit('replyAll')">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="'mail.replyAll' | translate" [disabled]="!detail()" (click)="compose.emit('replyAll')">
         <ng-icon name="lucideReplyAll" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Reply all</span>
+        <span class="sr-only">{{ 'mail.replyAll' | translate }}</span>
       </button>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" title="Forward" [disabled]="!detail()" (click)="compose.emit('forward')">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="'mail.forward' | translate" [disabled]="!detail()" (click)="compose.emit('forward')">
         <ng-icon name="lucideForward" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Forward</span>
+        <span class="sr-only">{{ 'mail.forward' | translate }}</span>
       </button>
       <span class="bg-border mx-1 h-5 w-px shrink-0" aria-hidden="true"></span>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" title="Delete" (click)="remove()">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="'common.delete' | translate" (click)="remove()">
         <ng-icon name="lucideTrash2" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Delete</span>
+        <span class="sr-only">{{ 'common.delete' | translate }}</span>
       </button>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" title="Move to" [hlmDropdownMenuTrigger]="moveMenu" align="end">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="'mail.moveTo' | translate" [hlmDropdownMenuTrigger]="moveMenu" align="end">
         <ng-icon name="lucideFolderInput" class="text-base" aria-hidden="true" />
-        <span class="sr-only">Move to</span>
+        <span class="sr-only">{{ 'mail.moveTo' | translate }}</span>
       </button>
       <span class="bg-border mx-1 h-5 w-px shrink-0" aria-hidden="true"></span>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="flagged() ? 'Unflag' : 'Flag'" [attr.aria-pressed]="flagged()" (click)="toggleFlag()">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="flagged() ? ('mail.unflag' | translate) : ('mail.flag' | translate)" [attr.aria-pressed]="flagged()" (click)="toggleFlag()">
         <ng-icon name="lucideFlag" class="text-base" [class.text-destructive]="flagged()" aria-hidden="true" />
-        <span class="sr-only">{{ flagged() ? 'Unflag' : 'Flag' }}</span>
+        <span class="sr-only">{{ flagged() ? ('mail.unflag' | translate) : ('mail.flag' | translate) }}</span>
       </button>
-      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="read() ? 'Mark as unread' : 'Mark as read'" (click)="toggleRead()">
+      <button hlmBtn variant="ghost" size="icon-sm" type="button" [title]="read() ? ('mail.markUnread' | translate) : ('mail.markRead' | translate)" (click)="toggleRead()">
         <ng-icon [name]="read() ? 'lucideMail' : 'lucideMailOpen'" class="text-base" aria-hidden="true" />
-        <span class="sr-only">{{ read() ? 'Mark as unread' : 'Mark as read' }}</span>
+        <span class="sr-only">{{ read() ? ('mail.markUnread' | translate) : ('mail.markRead' | translate) }}</span>
       </button>
     </div>
     <ng-template #moveMenu>
-      <hlm-dropdown-menu class="max-h-80 w-64" aria-label="Move to folder">
-        <hlm-dropdown-menu-label>Move to folder</hlm-dropdown-menu-label>
+      <hlm-dropdown-menu class="max-h-80 w-64" [attr.aria-label]="'mail.moveToFolder' | translate">
+        <hlm-dropdown-menu-label>{{ 'mail.moveToFolder' | translate }}</hlm-dropdown-menu-label>
         <hlm-dropdown-menu-separator />
         @for (folder of targets(); track folder.key) {
           <button hlmDropdownMenuItem type="button" [style.padding-inline-start.rem]="0.5 + folder.depth * 1.25" (click)="move(folder.key)">
@@ -134,7 +136,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
             }
           }
           @if (recipients(); as to) {
-            <p class="text-muted-foreground truncate">To: {{ to }}</p>
+            <p class="text-muted-foreground truncate">{{ 'mail.toList' | translate: { list: to } }}</p>
           }
           @if (cc(); as cc) {
             <p class="text-muted-foreground truncate">Cc: {{ cc }}</p>
@@ -146,7 +148,7 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
       </div>
 
       @if (files().length) {
-        <ul class="flex flex-col gap-2 border-y py-3" aria-label="Attachments">
+        <ul class="flex flex-col gap-2 border-y py-3" [attr.aria-label]="'mail.attachments' | translate">
           @for (file of files(); track file.id) {
             <li class="flex min-w-0 flex-col gap-2">
               <div class="flex min-w-0 flex-wrap items-center gap-x-2 text-sm">
@@ -155,12 +157,12 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
                 <span class="text-muted-foreground shrink-0 text-xs">{{ size(file.size) }}</span>
                 <button hlmBtn type="button" variant="ghost" size="sm" class="ms-auto shrink-0" (click)="download(file)">
                   <ng-icon name="lucideDownload" aria-hidden="true" />
-                  Download<span class="sr-only"> {{ file.name }}</span>
+                  {{ 'common.download' | translate }}<span class="sr-only"> {{ file.name }}</span>
                 </button>
                 @if (client.isPreviewable(file)) {
                   <button hlmBtn type="button" variant="ghost" size="sm" class="shrink-0" (click)="preview(file)">
                     <ng-icon name="lucideEye" aria-hidden="true" />
-                    View<span class="sr-only"> {{ file.name }}</span>
+                    {{ 'files.view' | translate }}<span class="sr-only"> {{ file.name }}</span>
                   </button>
                 }
               </div>
@@ -179,17 +181,17 @@ const formatSize = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 /
         </div>
       } @else {
         <div class="flex flex-col gap-3">
-          <p class="text-sm leading-relaxed wrap-anywhere whitespace-pre-line">{{ summary().preview || 'No preview available.' }}</p>
+          <p class="text-sm leading-relaxed wrap-anywhere whitespace-pre-line">{{ summary().preview || ('mail.noPreview' | translate) }}</p>
           <div class="flex flex-wrap items-center gap-3 border-t pt-3">
             @if (summary().link; as link) {
               <a hlmBtn size="sm" [href]="link" target="_blank" rel="noopener">
-                Open in Outlook
+                {{ 'mail.openOutlook' | translate }}
                 <ng-icon name="lucideExternalLink" aria-hidden="true" />
-                <span class="sr-only">(opens in a new tab)</span>
+                <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
               </a>
             }
             <p class="text-muted-foreground text-xs">
-              {{ client.detailProblem() === 'unavailable' ? 'This server cannot show full messages yet. Showing a preview.' : 'The full message could not be loaded. Showing a preview.' }}
+              {{ client.detailProblem() === 'unavailable' ? ('mail.previewOnlyServer' | translate) : ('mail.previewOnlyFailed' | translate) }}
             </p>
           </div>
         </div>
@@ -257,7 +259,7 @@ export class MailReader {
   }
 
   private say(result: ActionResult, success: string): boolean {
-    this.notice.set(result === 'ok' ? success : result === 'unavailable' ? 'Not available on this server yet.' : 'That did not work. Try again.');
+    this.notice.set(result === 'ok' ? success : result === 'unavailable' ? t('mail.unavailable') : t('mail.failed'));
     return result === 'ok';
   }
 
@@ -268,29 +270,29 @@ export class MailReader {
   protected async toggleRead(): Promise<void> {
     const id = this.summary().id;
     const next = !this.read();
-    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, isRead: next } : m)), async () => this.say(await this.client.setRead(id, next), next ? 'Marked as read' : 'Marked as unread'));
+    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, isRead: next } : m)), async () => this.say(await this.client.setRead(id, next), next ? t('mail.markedRead') : t('mail.markedUnread')));
   }
 
   protected async toggleFlag(): Promise<void> {
     const id = this.summary().id;
     const next = !this.flagged();
-    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, flag: { flagStatus: next ? 'flagged' : 'notFlagged' } } : m)), async () => this.say(await this.client.setFlag(id, next), next ? 'Flagged' : 'Flag removed'));
+    await this.mail.optimistic((items) => items.map((m) => (m.id === id ? { ...m, flag: { flagStatus: next ? 'flagged' : 'notFlagged' } } : m)), async () => this.say(await this.client.setFlag(id, next), next ? t('mail.flagged') : t('mail.flagRemoved')));
   }
 
   protected async remove(): Promise<void> {
     const id = this.summary().id;
-    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.remove(id), 'Message deleted'))) this.removed.emit();
+    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.remove(id), t('mail.deleted')))) this.removed.emit();
   }
 
   protected async move(folder: string | null | undefined): Promise<void> {
     if (!folder) return;
     const id = this.summary().id;
-    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.move(id, folder), 'Message moved'))) this.removed.emit();
+    if (await this.mail.optimistic((items) => items.filter((m) => m.id !== id), async () => this.say(await this.client.move(id, folder), t('mail.moved')))) this.removed.emit();
   }
 
   protected async download(file: MailAttachment): Promise<void> {
     const ok = await this.client.download(this.summary().id, file);
-    this.notice.set(ok ? `Downloaded ${file.name}` : `Could not download ${file.name}.`);
+    this.notice.set(t(ok ? 'mail.downloaded' : 'mail.downloadFailed', { name: file.name }));
   }
 
   protected preview(file: MailAttachment): void {

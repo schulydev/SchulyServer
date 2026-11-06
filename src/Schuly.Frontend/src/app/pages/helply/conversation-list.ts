@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideEllipsis, lucidePencil, lucidePlus, lucideTrash2 } from '@ng-icons/lucide';
@@ -14,17 +15,17 @@ const MAX_TITLE = 120;
 
 @Component({
   selector: 'app-conversation-list',
-  imports: [HlmAlertDialogImports, HlmButton, HlmDialogImports, HlmDropdownMenuImports, HlmInput, HlmLabel, NgIcon],
+  imports: [TranslatePipe, HlmAlertDialogImports, HlmButton, HlmDialogImports, HlmDropdownMenuImports, HlmInput, HlmLabel, NgIcon],
   providers: [provideIcons({ lucideEllipsis, lucidePencil, lucidePlus, lucideTrash2 })],
   host: { class: 'flex min-h-0 flex-1 flex-col' },
   template: `
     <div class="p-3">
       <button hlmBtn type="button" class="w-full" (click)="create.emit()">
         <ng-icon name="lucidePlus" aria-hidden="true" />
-        New chat
+        {{ 'helply.newChat' | translate }}
       </button>
     </div>
-    <nav aria-label="Conversations" class="min-h-0 flex-1 overflow-y-auto px-2">
+    <nav [attr.aria-label]="'helply.conversationsShort' | translate" class="min-h-0 flex-1 overflow-y-auto px-2">
       @if (conversations().length) {
         <ul class="flex flex-col gap-0.5">
           @for (conversation of conversations(); track conversation.id) {
@@ -57,11 +58,11 @@ const MAX_TITLE = 120;
                 <hlm-dropdown-menu class="min-w-40">
                   <button hlmDropdownMenuItem type="button" (click)="startRename(conversation)">
                     <ng-icon name="lucidePencil" aria-hidden="true" />
-                    Rename
+                    {{ 'helply.list.rename' | translate }}
                   </button>
                   <button hlmDropdownMenuItem type="button" variant="destructive" (click)="deleting.set(conversation)">
                     <ng-icon name="lucideTrash2" aria-hidden="true" />
-                    Delete
+                    {{ 'common.delete' | translate }}
                   </button>
                 </hlm-dropdown-menu>
               </ng-template>
@@ -69,28 +70,28 @@ const MAX_TITLE = 120;
           }
         </ul>
       } @else {
-        <p class="text-muted-foreground px-2.5 py-4 text-sm">No conversations yet.</p>
+        <p class="text-muted-foreground px-2.5 py-4 text-sm">{{ 'helply.list.none' | translate }}</p>
       }
     </nav>
     <div class="flex flex-col gap-2 border-t p-3">
       @if (conversations().length) {
         <button hlmBtn type="button" variant="outline" size="sm" (click)="deletingAll.set(true)">
           <ng-icon name="lucideTrash2" aria-hidden="true" />
-          Delete all conversations
+          {{ 'helply.list.deleteAll' | translate }}
         </button>
       }
-      <p class="text-muted-foreground text-xs">Conversations are deleted automatically after 30 days.</p>
+      <p class="text-muted-foreground text-xs">{{ 'helply.list.retention' | translate }}</p>
     </div>
 
     <hlm-dialog [state]="renaming() ? 'open' : 'closed'" (closed)="renaming.set(null)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="sm:max-w-md">
         <form (submit)="$event.preventDefault(); confirmRename()" class="flex flex-col gap-4">
           <hlm-dialog-header>
-            <h2 hlmDialogTitle>Rename conversation</h2>
-            <p hlmDialogDescription>Give this conversation a name you will recognise.</p>
+            <h2 hlmDialogTitle>{{ 'helply.list.renameTitle' | translate }}</h2>
+            <p hlmDialogDescription>{{ 'helply.list.renameHint' | translate }}</p>
           </hlm-dialog-header>
           <div class="flex flex-col gap-2">
-            <label hlmLabel for="helply-rename">Title</label>
+            <label hlmLabel for="helply-rename">{{ 'helply.list.title' | translate }}</label>
             <input
               #titleInput
               hlmInput
@@ -103,8 +104,8 @@ const MAX_TITLE = 120;
             />
           </div>
           <hlm-dialog-footer>
-            <button hlmBtn type="button" variant="outline" (click)="renaming.set(null)">Cancel</button>
-            <button hlmBtn type="submit" [disabled]="!title().trim()">Save</button>
+            <button hlmBtn type="button" variant="outline" (click)="renaming.set(null)">{{ 'common.cancel' | translate }}</button>
+            <button hlmBtn type="submit" [disabled]="!title().trim()">{{ 'common.save' | translate }}</button>
           </hlm-dialog-footer>
         </form>
       </hlm-dialog-content>
@@ -113,14 +114,14 @@ const MAX_TITLE = 120;
     <hlm-alert-dialog [state]="deleting() ? 'open' : 'closed'" (closed)="deleting.set(null)">
       <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
         <hlm-alert-dialog-header>
-          <h2 hlmAlertDialogTitle>Delete this conversation?</h2>
+          <h2 hlmAlertDialogTitle>{{ 'helply.list.deleteOne' | translate }}</h2>
           <p hlmAlertDialogDescription>
-            "{{ deleting()?.title }}" and all of its messages will be deleted. This cannot be undone.
+            {{ 'helply.list.deleteOneHint' | translate: { title: deleting()?.title } }}
           </p>
         </hlm-alert-dialog-header>
         <hlm-alert-dialog-footer>
-          <button hlmAlertDialogCancel>Cancel</button>
-          <button hlmAlertDialogAction variant="destructive" (click)="confirmDelete()">Delete</button>
+          <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
+          <button hlmAlertDialogAction variant="destructive" (click)="confirmDelete()">{{ 'common.delete' | translate }}</button>
         </hlm-alert-dialog-footer>
       </hlm-alert-dialog-content>
     </hlm-alert-dialog>
@@ -128,16 +129,15 @@ const MAX_TITLE = 120;
     <hlm-alert-dialog [state]="deletingAll() ? 'open' : 'closed'" (closed)="deletingAll.set(false)">
       <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
         <hlm-alert-dialog-header>
-          <h2 hlmAlertDialogTitle>Delete all conversations?</h2>
+          <h2 hlmAlertDialogTitle>{{ 'helply.list.deleteAllTitle' | translate }}</h2>
           <p hlmAlertDialogDescription>
-            Every conversation with Helply will be deleted. This cannot be undone. Conversations are also deleted
-            automatically after 30 days.
+            {{ 'helply.list.deleteAllDescription' | translate }}
           </p>
         </hlm-alert-dialog-header>
         <hlm-alert-dialog-footer>
-          <button hlmAlertDialogCancel>Cancel</button>
+          <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
           <button hlmAlertDialogAction variant="destructive" (click)="removeAll.emit(); deletingAll.set(false)">
-            Delete all
+            {{ 'helply.list.deleteAllShort' | translate }}
           </button>
         </hlm-alert-dialog-footer>
       </hlm-alert-dialog-content>

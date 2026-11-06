@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronDown, lucideExternalLink, lucideUndo2 } from '@ng-icons/lucide';
@@ -27,7 +29,7 @@ const STEP_TONES: Record<StepState, { text: string; dot: string }> = {
 /** One absence: date, reason with its note, one status. Steps and actions wait behind the chevron. */
 @Component({
   selector: 'app-absence-row',
-  imports: [NgIcon, HlmAlertDialogImports, HlmButton, HlmSpinner],
+  imports: [NgIcon, HlmAlertDialogImports, HlmButton, HlmSpinner, TranslatePipe],
   providers: [provideIcons({ lucideChevronDown, lucideExternalLink, lucideUndo2 })],
   template: `
     <div
@@ -46,7 +48,7 @@ const STEP_TONES: Record<StepState, { text: string; dot: string }> = {
         <div>
           {{ row().reason }}
           @if (row().isDelay) {
-            <span class="text-muted-foreground text-[13px]">· Delay</span>
+            <span class="text-muted-foreground text-[13px]">· {{ 'absences.delay' | translate }}</span>
           }
         </div>
         @if (row().note; as note) {
@@ -61,7 +63,7 @@ const STEP_TONES: Record<StepState, { text: string; dot: string }> = {
           </span>
         }
         @if (canOpen()) {
-          <button type="button" class="text-muted-foreground focus-visible:outline-ring block rounded focus-visible:outline-2" [attr.aria-expanded]="open()" [attr.aria-label]="'Details for ' + range()" (click)="toggle(); $event.stopPropagation()">
+          <button type="button" class="text-muted-foreground focus-visible:outline-ring block rounded focus-visible:outline-2" [attr.aria-expanded]="open()" [attr.aria-label]="'absences.detailsFor' | translate: { range: range() }" (click)="toggle(); $event.stopPropagation()">
             <ng-icon name="lucideChevronDown" class="block text-base transition-transform motion-reduce:transition-none" [class.rotate-180]="open()" aria-hidden="true" />
           </button>
         } @else {
@@ -72,25 +74,25 @@ const STEP_TONES: Record<StepState, { text: string; dot: string }> = {
     @if (open()) {
       <div class="flex flex-col gap-2.5 px-1.5 pb-3.5 sm:pr-9 sm:pl-[10.625rem]">
         @if (row().steps.length) {
-          <ol class="flex flex-wrap gap-x-3.5 gap-y-1 text-xs" aria-label="Progress">
+          <ol class="flex flex-wrap gap-x-3.5 gap-y-1 text-xs" [attr.aria-label]="'absences.progress' | translate">
             @for (step of row().steps; track step.label) {
               <li class="inline-flex items-center gap-1.5" [class]="stepTones[step.state].text">
                 <span class="box-border size-[7px] rounded-full border-[1.5px]" [class]="stepTones[step.state].dot" aria-hidden="true"></span>
-                {{ step.label }}
+                {{ 'absences.step.' + step.label | translate }}
               </li>
             }
           </ol>
         }
         @if (row().trainerComment; as comment) {
-          <p class="text-muted-foreground text-[13px] [overflow-wrap:anywhere]">Lehrmeister: {{ comment }}</p>
+          <p class="text-muted-foreground text-[13px] [overflow-wrap:anywhere]">{{ 'absences.trainerComment' | translate: { comment: comment } }}</p>
         }
         @if (row().printUrl || row().report) {
           <div class="flex flex-wrap gap-2">
             @if (row().printUrl; as url) {
               <a hlmBtn variant="outline" size="sm" [href]="url" target="_blank" rel="noopener noreferrer">
                 <ng-icon name="lucideExternalLink" aria-hidden="true" />
-                Print the form in Schulnetz
-                <span class="sr-only">(opens in a new tab)</span>
+                {{ 'absences.print' | translate }}
+                <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
               </a>
             }
             @if (row().report; as report) {
@@ -101,20 +103,19 @@ const STEP_TONES: Record<StepState, { text: string; dot: string }> = {
                   } @else {
                     <ng-icon name="lucideUndo2" aria-hidden="true" />
                   }
-                  Withdraw
-                  <span class="sr-only">report for {{ range() }}</span>
+                  {{ 'absences.withdraw.action' | translate }}
+                  <span class="sr-only">{{ 'absences.withdraw.reportFor' | translate: { range: range() } }}</span>
                 </button>
                 <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
                   <hlm-alert-dialog-header>
-                    <h2 hlmAlertDialogTitle>Withdraw this report?</h2>
+                    <h2 hlmAlertDialogTitle>{{ 'absences.withdraw.title' | translate }}</h2>
                     <p hlmAlertDialogDescription>
-                      Your school will no longer see this absence report. You can report it again
-                      if you still need to.
+                      {{ 'absences.withdraw.description' | translate }}
                     </p>
                   </hlm-alert-dialog-header>
                   <hlm-alert-dialog-footer>
-                    <button hlmAlertDialogCancel>Keep report</button>
-                    <button hlmAlertDialogAction variant="destructive" (click)="withdraw.emit(report)">Withdraw</button>
+                    <button hlmAlertDialogCancel>{{ 'absences.withdraw.keep' | translate }}</button>
+                    <button hlmAlertDialogAction variant="destructive" (click)="withdraw.emit(report)">{{ 'absences.withdraw.action' | translate }}</button>
                   </hlm-alert-dialog-footer>
                 </hlm-alert-dialog-content>
               </hlm-alert-dialog>
@@ -146,7 +147,7 @@ export class AbsenceRowItem {
     const row = this.row();
     if (row.time) return row.time;
     const days = Math.round((Date.parse(row.until) - Date.parse(row.from)) / 86_400_000) + 1;
-    return days > 1 ? `${days} days` : null;
+    return days > 1 ? t('absences.days', { count: days }) : null;
   });
   protected readonly tone = computed(() => STATUS_TONES[this.row().state] ?? { text: '', dot: '' });
 

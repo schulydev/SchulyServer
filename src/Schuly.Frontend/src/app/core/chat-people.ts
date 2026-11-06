@@ -1,3 +1,4 @@
+import { t } from './i18n';
 export interface PersonLike {
   displayName?: string | null;
   userId?: string | null;
@@ -17,7 +18,8 @@ export interface ChatPeople {
   notes: boolean;
 }
 
-export const NOTES_TITLE = 'Notes (you)';
+/** A translation key: the title of the chat with yourself. */
+export const NOTES_TITLE = 'chat.notesTitle';
 
 /** "elias.spycher@school.ch" becomes "Elias Spycher", for members the server sent without a display name. */
 export function nameFromEmail(email: string | null | undefined): string {
@@ -43,7 +45,7 @@ export function chatPeople(
   const members = chat.members ?? [];
   const email = ownEmail?.toLowerCase() ?? null;
   const isMe = (m: PersonLike) => (!!mineId && m.userId === mineId) || (!!email && m.email?.toLowerCase() === email);
-  if (chat.isSelfChat === true) return { people: [{ id: mineId, name: NOTES_TITLE }], memberCount: Math.max(1, members.length), notes: true };
+  if (chat.isSelfChat === true) return { people: [{ id: mineId, name: t(NOTES_TITLE) }], memberCount: Math.max(1, members.length), notes: true };
 
   const people: ChatPerson[] = [];
   for (const m of members) {

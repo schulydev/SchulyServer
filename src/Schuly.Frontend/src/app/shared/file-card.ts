@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -33,7 +35,7 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
 /** A file in a chat bubble, chat-style: name and actions on top, a page preview below. */
 @Component({
   selector: 'app-file-card',
-  imports: [NgIcon, HlmButton, HlmDropdownMenuImports],
+  imports: [TranslatePipe, NgIcon, HlmButton, HlmDropdownMenuImports],
   providers: [
     provideIcons({
       lucideCopy,
@@ -66,7 +68,7 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
             [title]="file().name"
             (click)="view.emit()"
           >
-            {{ file().name }}<span class="sr-only">, {{ style().label }}@if (sizeText()) {, {{ sizeText() }}}. Open preview</span>
+            {{ file().name }}<span class="sr-only">, {{ style().label | translate }}@if (sizeText()) {, {{ sizeText() }}}. {{ 'files.openPreview' | translate }}</span>
           </button>
         } @else {
           <span class="ms-1 min-w-0 flex-1 truncate text-sm font-medium" [title]="file().name">{{ file().name }}</span>
@@ -74,13 +76,13 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
         @if (file().webUrl; as url) {
           <a hlmBtn variant="ghost" size="icon-sm" [href]="url" target="_blank" rel="noopener">
             <ng-icon name="lucideExternalLink" aria-hidden="true" />
-            <span class="sr-only">Open {{ file().name }} online (opens in a new tab)</span>
+            <span class="sr-only">{{ 'files.openOnlineName' | translate: { name: file().name } }}</span>
           </a>
         }
         @if (file().path) {
           <button hlmBtn variant="ghost" size="icon-sm" type="button" [hlmDropdownMenuTrigger]="menu" align="end">
             <ng-icon name="lucideEllipsis" aria-hidden="true" />
-            <span class="sr-only">More actions for {{ file().name }}</span>
+            <span class="sr-only">{{ 'files.moreFor' | translate: { name: file().name } }}</span>
           </button>
         }
       </div>
@@ -107,16 +109,16 @@ const MAX_IMAGE_PREVIEW_BYTES = 10 * 1024 * 1024;
       <hlm-dropdown-menu class="w-48" [attr.aria-label]="'Actions for ' + file().name">
         <button hlmDropdownMenuItem type="button" (click)="view.emit()">
           <ng-icon name="lucideEye" aria-hidden="true" />
-          Open in viewer
+          {{ 'files.openViewer' | translate }}
         </button>
         <button hlmDropdownMenuItem type="button" (click)="download()">
           <ng-icon name="lucideDownload" aria-hidden="true" />
-          Download
+          {{ 'common.download' | translate }}
         </button>
         @if (file().webUrl) {
           <button hlmDropdownMenuItem type="button" (click)="copyLink()">
             <ng-icon name="lucideCopy" aria-hidden="true" />
-            Copy link
+            {{ 'files.copyLink' | translate }}
           </button>
         }
       </hlm-dropdown-menu>
@@ -183,7 +185,7 @@ export class FileCard {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
-      toast.error(throttleWait(error) === null ? 'Could not download the file.' : 'Microsoft is limiting requests. Try the download again in a minute.');
+      toast.error(throttleWait(error) === null ? t('files.downloadFailed') : t('files.throttled'));
     }
   }
 
@@ -192,9 +194,9 @@ export class FileCard {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      toast.success('Link copied.');
+      toast.success(t('files.linkCopiedDot'));
     } catch {
-      toast.error('Could not copy the link.');
+      toast.error(t('files.copyFailedDot'));
     }
   }
 }

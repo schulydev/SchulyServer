@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
@@ -17,7 +19,7 @@ import { HlmSeparator } from '@spartan-ng/helm/separator';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { firstValueFrom } from 'rxjs';
 import { AuthApi, SignInProvider } from '../../core/auth-api';
-import { beginExternalSignIn, externalErrors, takePending } from '../../core/external-sign-in';
+import { beginExternalSignIn, externalError, takePending } from '../../core/external-sign-in';
 import { rememberReturnUrl, takeReturnUrl } from '../../core/return-url';
 import { AuthStore, authErrorMessage } from '../../stores/auth.store';
 import { AuthLayout } from './auth-layout';
@@ -45,6 +47,7 @@ const CODE_LENGTH = 6;
     HlmSpinner,
     AuthLayout,
     ConfirmEmail,
+    TranslatePipe,
   ],
   providers: [provideIcons({ lucideEye, lucideEyeOff })],
   template: `
@@ -55,7 +58,7 @@ const CODE_LENGTH = 6;
       @if (changed() && step() === 'credentials') {
         <div hlmAlert>
           <p hlmAlertDescription>
-            Your sign-in details changed, so you were signed out everywhere. Sign in again.
+            {{ 'auth.login.changed' | translate }}
           </p>
         </div>
       }
@@ -67,7 +70,7 @@ const CODE_LENGTH = 6;
           @if (step() === 'credentials') {
             <form [formRoot]="credentials" class="flex flex-col gap-4">
               <div hlmField>
-                <label hlmFieldLabel for="identifier">Username or email</label>
+                <label hlmFieldLabel for="identifier">{{ 'auth.login.identifier' | translate }}</label>
                 <input
                   hlmInput
                   id="identifier"
@@ -80,11 +83,11 @@ const CODE_LENGTH = 6;
               </div>
               <div hlmField [forceInvalid]="!!error()">
                 <div class="flex items-center">
-                  <label hlmFieldLabel for="password">Password</label>
+                  <label hlmFieldLabel for="password">{{ 'auth.password' | translate }}</label>
                   <a
                     routerLink="/forgot-password"
                     class="text-muted-foreground hover:text-foreground ml-auto text-sm underline-offset-4 hover:underline"
-                    >Forgot password?</a
+                    >{{ 'auth.login.forgot' | translate }}</a
                   >
                 </div>
                 <div hlmInputGroup>
@@ -99,7 +102,7 @@ const CODE_LENGTH = 6;
                     <button
                       hlmInputGroupButton
                       size="icon-xs"
-                      [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+                      [attr.aria-label]="passwordVisible() ? ('auth.login.hidePassword' | translate) : ('auth.login.showPassword' | translate)"
                       [attr.aria-pressed]="passwordVisible()"
                       (click)="passwordVisible.set(!passwordVisible())"
                     >
@@ -115,13 +118,13 @@ const CODE_LENGTH = 6;
                 @if (credentials().submitting()) {
                   <hlm-spinner />
                 }
-                Continue
+                {{ 'auth.continue' | translate }}
               </button>
             </form>
             @if (providers().length) {
               <div class="my-4 flex items-center gap-3">
                 <hlm-separator class="flex-1" />
-                <span class="text-muted-foreground text-xs">or</span>
+                <span class="text-muted-foreground text-xs">{{ 'auth.login.or' | translate }}</span>
                 <hlm-separator class="flex-1" />
               </div>
               <div class="flex flex-col gap-2">
@@ -137,7 +140,7 @@ const CODE_LENGTH = 6;
                     @if (provider.icon_url) {
                       <img [src]="provider.icon_url" alt="" class="size-4" />
                     }
-                    Continue with {{ provider.display_name }}
+                    {{ 'auth.login.continueWith' | translate: { name: provider.display_name } }}
                   </button>
                 }
               </div>
@@ -146,7 +149,7 @@ const CODE_LENGTH = 6;
             <form [formRoot]="codeForm" class="flex flex-col gap-4">
               @if (usingRecoveryCode()) {
                 <div hlmField>
-                  <label hlmFieldLabel for="recovery-code">Recovery code</label>
+                  <label hlmFieldLabel for="recovery-code">{{ 'auth.login.recoveryCode' | translate }}</label>
                   <input
                     hlmInput
                     id="recovery-code"
@@ -158,7 +161,7 @@ const CODE_LENGTH = 6;
                 </div>
               } @else {
                 <div hlmField>
-                  <label hlmFieldLabel for="totp-code">Authentication code</label>
+                  <label hlmFieldLabel for="totp-code">{{ 'auth.login.authCode' | translate }}</label>
                   <brn-input-otp
                     hlmInputOtp
                     class="justify-center"
@@ -183,7 +186,7 @@ const CODE_LENGTH = 6;
                   [checked]="rememberDevice()"
                   (checkedChange)="rememberDevice.set($event)"
                 />
-                Remember this device for 30 days
+                {{ 'auth.login.remember' | translate }}
               </label>
               @if (error()) {
                 <hlm-field-error>{{ error() }}</hlm-field-error>
@@ -192,10 +195,10 @@ const CODE_LENGTH = 6;
                 @if (codeForm().submitting()) {
                   <hlm-spinner />
                 }
-                Verify
+                {{ 'auth.verify' | translate }}
               </button>
               <button hlmBtn variant="link" type="button" (click)="toggleRecoveryCode()">
-                {{ usingRecoveryCode() ? 'Use your authenticator app' : 'Use a recovery code' }}
+                {{ usingRecoveryCode() ? ('auth.login.useApp' | translate) : ('auth.login.useRecovery' | translate) }}
               </button>
             </form>
           }
@@ -204,14 +207,14 @@ const CODE_LENGTH = 6;
       }
 
       @if (step() === 'code') {
-        <button hlmBtn variant="link" type="button" (click)="startOver()">Back to sign in</button>
+        <button hlmBtn variant="link" type="button" (click)="startOver()">{{ 'auth.backToSignIn' | translate }}</button>
       } @else if (step() === 'credentials') {
         <p class="text-muted-foreground text-center text-sm">
-          New to Schuly?
+          {{ 'auth.login.newTo' | translate }}
           <a
             routerLink="/register"
             class="text-foreground font-medium underline-offset-4 hover:underline"
-            >Create an account</a
+            >{{ 'auth.login.create' | translate }}</a
           >
         </p>
       }
@@ -260,8 +263,8 @@ export class Login implements OnInit {
     if (code || failure) {
       const pending = takePending(this.state() ?? null);
       void this.router.navigate([], { queryParams: {}, replaceUrl: true });
-      if (failure) this.error.set(externalErrors[failure] ?? externalErrors['external_login_failed']);
-      else if (!pending) this.error.set(externalErrors['external_login_failed']);
+      if (failure) this.error.set(externalError(failure));
+      else if (!pending) this.error.set(externalError());
       else await this.finishExternal(code!, pending.verifier);
     }
     this.providers.set(await firstValueFrom(this.api.providers()).catch(() => []));
@@ -279,20 +282,20 @@ export class Login implements OnInit {
       else if (result === 'email') this.step.set('email');
       else await this.router.navigateByUrl(takeReturnUrl(this.returnUrl()));
     } catch (error) {
-      this.error.set(authErrorMessage(error, externalErrors['external_login_failed']));
+      this.error.set(authErrorMessage(error, externalError()));
     }
   }
 
   protected title(): string {
-    if (this.step() === 'email') return 'Confirm your email';
-    return this.step() === 'code' ? 'One more step.' : 'School, at a glance.';
+    if (this.step() === 'email') return t('auth.confirmEmail');
+    return this.step() === 'code' ? t('auth.login.oneMore') : t('auth.login.title');
   }
 
   protected subtitle(): string {
     if (this.step() === 'email') return confirmEmailHint(this.auth.emailChallenge());
     return this.step() === 'code'
       ? this.codeHint()
-      : 'Grades, agenda and absences in one calm place.';
+      : t('auth.login.subtitle');
   }
 
   protected async finishEmail(): Promise<void> {
@@ -301,8 +304,8 @@ export class Login implements OnInit {
 
   protected codeHint(): string {
     return this.usingRecoveryCode()
-      ? 'Enter one of the recovery codes you saved when you set up two-factor.'
-      : 'Enter the 6-digit code from your authenticator app.';
+      ? t('auth.login.recoveryHint')
+      : t('auth.login.codeHint');
   }
 
   protected toggleRecoveryCode(): void {
@@ -330,7 +333,7 @@ export class Login implements OnInit {
       else await this.router.navigateByUrl(takeReturnUrl(this.returnUrl()));
     } catch (error) {
       this.error.set(
-        authErrorMessage(error, "That didn't match. Check your username and password."),
+        authErrorMessage(error, t('auth.login.mismatch')),
       );
     }
     return undefined;
@@ -347,8 +350,8 @@ export class Login implements OnInit {
       const rateLimited = error instanceof HttpErrorResponse && error.status === 429;
       this.error.set(
         this.usingRecoveryCode() || rateLimited
-          ? authErrorMessage(error, "That recovery code didn't work.")
-          : "That code didn't work. Wait for the next code in your app and enter that one.",
+          ? authErrorMessage(error, t('auth.login.recoveryFailed'))
+          : t('auth.login.codeFailed'),
       );
     }
     return undefined;

@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, computed, effect, inject, linkedSignal, model, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideInfo } from '@ng-icons/lucide';
@@ -15,30 +17,29 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
 /** Side sheet to choose what Helply may use. Reuses the MCP permission editor. */
 @Component({
   selector: 'app-helply-settings-sheet',
-  imports: [HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, HlmSwitch, McpPermissionEditor, NgIcon],
+  imports: [TranslatePipe, HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, HlmSwitch, McpPermissionEditor, NgIcon],
   providers: [provideIcons({ lucideInfo })],
   template: `
     <hlm-sheet side="right" [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full gap-0 sm:max-w-xl">
         <hlm-sheet-header class="border-b">
-          <h2 hlmSheetTitle>Helply settings</h2>
-          <p hlmSheetDescription>Choose what Helply may use. Changes apply to your next message.</p>
+          <h2 hlmSheetTitle>{{ 'helply.settings' | translate }}</h2>
+          <p hlmSheetDescription>{{ 'helply.settingsSheet.description' | translate }}</p>
         </hlm-sheet-header>
         <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
           <div hlmAlert>
             <ng-icon name="lucideInfo" aria-hidden="true" />
             <p hlmAlertDescription>
-              Helply can only use what is allowed here. Actions that change something, like sending a mail, always ask
-              for your approval in the chat first.
+              {{ 'helply.settingsSheet.info' | translate }}
             </p>
           </div>
           @if (loading()) {
-            <hlm-spinner aria-label="Loading settings" />
+            <hlm-spinner [attr.aria-label]="'helply.settingsSheet.loading' | translate" />
           } @else if (loaded()) {
             <section class="flex flex-col gap-2 rounded-lg border p-4" aria-labelledby="helply-workspace-title">
               <div class="flex items-center justify-between gap-3">
                 <h3 id="helply-workspace-title" class="text-sm font-medium">
-                  <label for="helply-workspace">Workspace (run code)</label>
+                  <label for="helply-workspace">{{ 'helply.settingsSheet.workspace' | translate }}</label>
                 </h3>
                 <hlm-switch
                   inputId="helply-workspace"
@@ -49,12 +50,10 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
                 />
               </div>
               <p id="helply-workspace-help" class="text-muted-foreground text-sm">
-                Lets Helply run code in a sandbox without internet access, for calculations, charts and reading large files.
-                Files you attach are copied in and wiped when the reply ends. Sending anything (mail, Teams) still asks for
-                your approval.
+                {{ 'helply.settingsSheet.workspaceHelp' | translate }}
               </p>
               @if (!workspaceAvailable()) {
-                <p class="text-muted-foreground text-sm font-medium">Not available on this server.</p>
+                <p class="text-muted-foreground text-sm font-medium">{{ 'helply.settingsSheet.unavailable' | translate }}</p>
               }
             </section>
             <app-mcp-permission-editor [(value)]="draft" />
@@ -65,16 +64,16 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
             @if (error()) {
               <div hlmAlert variant="destructive"><p hlmAlertDescription>{{ error() }}</p></div>
             } @else if (saved()) {
-              <p class="text-muted-foreground text-sm">Settings saved.</p>
+              <p class="text-muted-foreground text-sm">{{ 'helply.settingsSheet.saved' | translate }}</p>
             }
           </div>
           <div class="flex justify-end gap-2">
-            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">Close</button>
+            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">{{ 'common.close' | translate }}</button>
             <button hlmBtn type="button" [disabled]="!changed() || saving()" (click)="save()">
               @if (saving()) {
                 <hlm-spinner aria-hidden="true" />
               }
-              Save changes
+              {{ 'helply.settingsSheet.save' | translate }}
             </button>
           </div>
         </hlm-sheet-footer>
@@ -120,7 +119,7 @@ export class HelplySettingsSheet {
       this.workspaceAvailable.set(settings.workspaceAvailable === true);
       this.initial.set(settings.permissions);
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, "Couldn't load Helply's settings."));
+      this.error.set(mcpErrorMessage(error, t('helply.settingsSheet.loadFailed')));
     } finally {
       this.loading.set(false);
     }
@@ -141,7 +140,7 @@ export class HelplySettingsSheet {
       this.saved.set(true);
       this.saved$.emit({ permissions: this.initial() ?? this.draft(), workspace: this.initialWorkspace(), workspaceAvailable: this.workspaceAvailable() });
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, "Couldn't save Helply's settings."));
+      this.error.set(mcpErrorMessage(error, t('helply.settingsSheet.saveFailed')));
     } finally {
       this.saving.set(false);
     }

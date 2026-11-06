@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, ElementRef, computed, effect, input, output, viewChild } from '@angular/core';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
@@ -19,12 +20,12 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
  */
 @Component({
   selector: 'app-load-more',
-  imports: [HlmButton, HlmSpinner],
+  imports: [TranslatePipe, HlmButton, HlmSpinner],
   host: { class: 'block' },
   template: `
     <div class="sr-only" role="status" aria-live="polite">
       @for (note of announcements(); track note) {
-        <span>Loaded {{ note.count }} more</span>
+        <span>{{ 'shared.loadedMore' | translate: { count: note.count } }}</span>
       }
     </div>
     @if (hasMore() || loading() || failed()) {
@@ -32,8 +33,8 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
       <div class="flex min-h-10 items-center justify-center gap-2 py-2">
         @if (failed()) {
           <p class="text-destructive flex items-center gap-2 text-sm">
-            Could not load more.
-            <button type="button" class="underline underline-offset-2" (click)="more.emit()">Retry</button>
+            {{ 'shared.loadMoreFailed' | translate }}
+            <button type="button" class="underline underline-offset-2" (click)="more.emit()">{{ 'chat.retry' | translate }}</button>
           </p>
         } @else {
           <button
@@ -46,7 +47,7 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
             (click)="request()"
           >
             @if (loading()) {
-              <hlm-spinner aria-label="Loading" />
+              <hlm-spinner [attr.aria-label]="'common.loading' | translate" />
             }
             {{ label() }}
           </button>

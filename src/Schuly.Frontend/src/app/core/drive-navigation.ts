@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DriveEntry, DriveStore } from '../stores/capability-data.store';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
@@ -29,13 +30,13 @@ export class DriveNavigation {
   readonly emptyText = computed(() => {
     switch (this.location().kind) {
       case 'shared':
-        return 'Files others shared with you appear here.';
+        return t('files.empty.shared');
       case 'recent':
-        return 'Files you used lately appear here.';
+        return t('files.empty.recent');
       case 'team':
-        return 'Files of this team appear here.';
+        return t('files.empty.team');
       default:
-        return 'Files and folders from OneDrive appear here.';
+        return t('files.empty.drive');
     }
   });
 

@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChildren } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMessagesSquare } from '@ng-icons/lucide';
@@ -24,7 +25,7 @@ const CHATS_POLL_LIVE_MS = 120_000;
 
 @Component({
   selector: 'app-chat',
-  imports: [HlmSkeletonImports, NgIcon, ChatAvatar, EmptyState, ListTime, LoadMore, AccountPicker, AccountProblem, SearchField, SplitHandle, ChatConversation],
+  imports: [TranslatePipe, HlmSkeletonImports, NgIcon, ChatAvatar, EmptyState, ListTime, LoadMore, AccountPicker, AccountProblem, SearchField, SplitHandle, ChatConversation],
   providers: [provideIcons({ lucideMessagesSquare }), ChatStore, ChatApi, ChatLive],
   host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' },
   template: `
@@ -35,16 +36,16 @@ const CHATS_POLL_LIVE_MS = 120_000;
         <section
           class="flex min-h-0 min-w-0 w-full flex-col overflow-hidden lg:w-(--list-w) lg:shrink-0"
           [class.max-lg:hidden]="store.openId()"
-          aria-label="Chats"
+          [attr.aria-label]="'chat.chats' | translate"
         >
           @if (!store.problem()) {
             <div class="flex h-10 shrink-0 items-center border-b px-4">
-              <h2 class="text-base font-semibold">Chats</h2>
+              <h2 class="text-base font-semibold">{{ 'chat.chats' | translate }}</h2>
             </div>
             <div class="flex flex-col gap-2 px-4 py-2">
-              <app-search-field class="[&_hlm-input-group]:w-full" [(value)]="query" label="Search chats" placeholder="Search chats" />
+              <app-search-field class="[&_hlm-input-group]:w-full" [(value)]="query" [label]="'chat.search' | translate" [placeholder]="'chat.search' | translate" />
               @if (query().trim() && store.chatsMore()) {
-                <p class="text-muted-foreground text-xs">Searching loaded items only. Scroll to load more.</p>
+                <p class="text-muted-foreground text-xs">{{ 'chat.searchLoaded' | translate }}</p>
               }
             </div>
           }
@@ -93,11 +94,11 @@ const CHATS_POLL_LIVE_MS = 120_000;
                             class="block min-w-0 flex-1 truncate text-xs"
                             [class]="chat.unread ? 'text-foreground font-semibold' : 'text-foreground/70'"
                           >
-                            {{ chat.preview || 'No messages yet' }}
+                            {{ chat.preview || ('chat.noMessages' | translate) }}
                           </span>
                           @if (chat.unread) {
                             <span class="bg-primary size-2 shrink-0 rounded-full" aria-hidden="true"></span>
-                            <span class="sr-only">Unread</span>
+                            <span class="sr-only">{{ 'chat.unread' | translate }}</span>
                           }
                         </span>
                       </span>
@@ -106,12 +107,12 @@ const CHATS_POLL_LIVE_MS = 120_000;
                 }
               </ul>
             } @else if (store.chatItems().length) {
-              <app-empty-state icon="lucideMessagesSquare" title="No matching chats" description="Try a different search." />
+              <app-empty-state icon="lucideMessagesSquare" [title]="'chat.noMatch' | translate" [description]="'chat.tryDifferent' | translate" />
             } @else {
-              <app-empty-state icon="lucideMessagesSquare" title="No chats yet" description="Your recent chats appear here." />
+              <app-empty-state icon="lucideMessagesSquare" [title]="'chat.noChats' | translate" [description]="'chat.recentHere' | translate" />
             }
             <app-load-more
-              label="Load more chats"
+              [label]="'chat.loadMore' | translate"
               [hasMore]="store.chatsMore()"
               [loading]="store.chatsLoadingMore()"
               [failed]="store.chatsMoreFailed()"
@@ -122,7 +123,7 @@ const CHATS_POLL_LIVE_MS = 120_000;
         </section>
 
         <app-split-handle
-          label="Resize chat list"
+          [label]="'chat.resize' | translate"
           [width]="listWidth.value()"
           [min]="240"
           [max]="560"
@@ -130,13 +131,13 @@ const CHATS_POLL_LIVE_MS = 120_000;
           (widthChange)="listWidth.set($event)"
         />
 
-        <section class="min-w-0 flex-1 flex-col overflow-hidden max-lg:w-full" [class]="store.openId() ? 'flex' : 'hidden lg:flex'" aria-label="Conversation">
+        <section class="min-w-0 flex-1 flex-col overflow-hidden max-lg:w-full" [class]="store.openId() ? 'flex' : 'hidden lg:flex'" [attr.aria-label]="'chat.conversation' | translate">
           @if (store.openId()) {
             <app-chat-conversation (back)="close()" />
           } @else {
             <div class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 text-sm">
               <ng-icon name="lucideMessagesSquare" class="text-2xl" aria-hidden="true" />
-              Select a chat to start reading
+              {{ 'chat.selectChat' | translate }}
             </div>
           }
         </section>

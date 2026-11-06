@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBot, lucidePencil, lucideTrash2 } from '@ng-icons/lucide';
@@ -17,13 +19,13 @@ import { McpEditSheet } from './mcp-edit-sheet';
 
 @Component({
   selector: 'app-mcp-connections-card',
-  imports: [HlmAlertImports, HlmAlertDialogImports, HlmBadge, HlmButton, HlmCardImports, HlmSpinner, NgIcon, EmptyState, McpEditSheet],
+  imports: [TranslatePipe, HlmAlertImports, HlmAlertDialogImports, HlmBadge, HlmButton, HlmCardImports, HlmSpinner, NgIcon, EmptyState, McpEditSheet],
   providers: [provideIcons({ lucideBot, lucidePencil, lucideTrash2 })],
   template: `
     <section hlmCard>
       <div hlmCardHeader>
-        <h2 hlmCardTitle>Connected apps</h2>
-        <p hlmCardDescription>Apps you approved through the browser sign-in.</p>
+        <h2 hlmCardTitle>{{ 'mcp.connections.title' | translate }}</h2>
+        <p hlmCardDescription>{{ 'mcp.connections.description' | translate }}</p>
       </div>
       <div hlmCardContent class="flex flex-col gap-4">
         <div aria-live="polite" role="status">
@@ -35,7 +37,7 @@ import { McpEditSheet } from './mcp-edit-sheet';
         </div>
 
         @if (loading()) {
-          <hlm-spinner aria-label="Loading connected apps" />
+          <hlm-spinner [attr.aria-label]="'mcp.connections.loading' | translate" />
         } @else if (connections().length) {
           <ul class="divide-y rounded-lg border">
             @for (connection of connections(); track connection.id) {
@@ -45,7 +47,7 @@ import { McpEditSheet } from './mcp-edit-sheet';
                     <p class="truncate font-medium">{{ connection.clientName }}</p>
                     <p class="text-muted-foreground truncate text-xs">{{ connection.redirectHosts.join(', ') }}</p>
                     <p class="text-muted-foreground text-xs">
-                      Connected {{ date(connection.createdAt) }}. Last used {{ lastUsed(connection.lastUsedAt) }}.
+                      {{ 'mcp.connections.meta' | translate: { date: date(connection.createdAt), used: lastUsed(connection.lastUsedAt) } }}
                     </p>
                   </div>
                   <div class="flex gap-2">
@@ -58,7 +60,7 @@ import { McpEditSheet } from './mcp-edit-sheet';
                       (click)="edit(connection)"
                     >
                       <ng-icon name="lucidePencil" aria-hidden="true" />
-                      Edit permissions
+                      {{ 'mcp.editPermissions' | translate }}
                     </button>
                     <hlm-alert-dialog>
                       <button
@@ -66,29 +68,29 @@ import { McpEditSheet } from './mcp-edit-sheet';
                         hlmBtn
                         variant="outline"
                         size="sm"
-                        [attr.aria-label]="'Revoke ' + connection.clientName"
+                        [attr.aria-label]="'mcp.revokeName' | translate: { name: connection.clientName }"
                       >
                         <ng-icon name="lucideTrash2" aria-hidden="true" />
-                        Revoke
+                        {{ 'mcp.revoke' | translate }}
                       </button>
                       <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
                         <hlm-alert-dialog-header>
-                          <h2 hlmAlertDialogTitle>Revoke {{ connection.clientName }}?</h2>
+                          <h2 hlmAlertDialogTitle>{{ 'mcp.revokeQuestion' | translate: { name: connection.clientName } }}</h2>
                           <p hlmAlertDialogDescription>
-                            The app loses access to your Schuly data right away. You can connect it again later.
+                            {{ 'mcp.connections.revokeHint' | translate }}
                           </p>
                         </hlm-alert-dialog-header>
                         <hlm-alert-dialog-footer>
-                          <button hlmAlertDialogCancel>Cancel</button>
+                          <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
                           <button hlmAlertDialogAction variant="destructive" (click)="revoke(connection)">
-                            Revoke
+                            {{ 'mcp.revoke' | translate }}
                           </button>
                         </hlm-alert-dialog-footer>
                       </hlm-alert-dialog-content>
                     </hlm-alert-dialog>
                   </div>
                 </div>
-                <ul class="flex flex-wrap gap-1.5" aria-label="Access">
+                <ul class="flex flex-wrap gap-1.5" [attr.aria-label]="'mcp.access' | translate">
                   @for (chip of summary(connection.permissions); track chip) {
                     <li><span hlmBadge variant="secondary">{{ chip }}</span></li>
                   }
@@ -99,8 +101,8 @@ import { McpEditSheet } from './mcp-edit-sheet';
         } @else {
           <app-empty-state
             icon="lucideBot"
-            title="No connected apps"
-            description="Add Schuly to an AI app with the steps above. It shows up here after you approve it."
+            [title]="'mcp.connections.none' | translate"
+            [description]="'mcp.connections.noneHint' | translate"
           />
         }
       </div>
@@ -136,7 +138,7 @@ export class McpConnectionsCard implements OnInit {
     try {
       this.connections.set(await firstValueFrom(this.api.connections()));
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'We could not load your connected apps.'));
+      this.error.set(mcpErrorMessage(error, t('mcp.connections.loadFailed')));
     } finally {
       this.loading.set(false);
     }
@@ -172,9 +174,9 @@ export class McpConnectionsCard implements OnInit {
       const updated = await firstValueFrom(this.api.updateConnection(current.id, permissions));
       this.connections.update((list) => list.map((item) => (item.id === updated.id ? updated : item)));
       this.editing.set(updated);
-      toast.success('Permissions saved.');
+      toast.success(t('mcp.saved'));
     } catch (error) {
-      this.sheetError.set(mcpErrorMessage(error, 'We could not save the permissions. Try again.'));
+      this.sheetError.set(mcpErrorMessage(error, t('mcp.saveFailed')));
     } finally {
       this.saving.set(false);
     }
@@ -187,7 +189,7 @@ export class McpConnectionsCard implements OnInit {
       this.connections.update((list) => list.filter((item) => item.id !== connection.id));
       toast.success(`${connection.clientName} was revoked.`);
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'We could not revoke this app. Try again.'));
+      this.error.set(mcpErrorMessage(error, t('mcp.connections.revokeFailed')));
     }
   }
 }

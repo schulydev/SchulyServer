@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDownload, lucideFile, lucideFileSpreadsheet, lucideFileText, lucideImage, lucidePresentation } from '@ng-icons/lucide';
@@ -8,12 +9,12 @@ import { HelplyAttachment } from '../../core/helply-types';
 /** Files on a message, sent by the user or shared by Helply. Click opens the viewer; the arrow downloads. */
 @Component({
   selector: 'app-attachment-cards',
-  imports: [NgIcon],
+  imports: [TranslatePipe, NgIcon],
   providers: [provideIcons({ lucideDownload, lucideFile, lucideFileSpreadsheet, lucideFileText, lucideImage, lucidePresentation })],
   host: { class: 'block' },
   template: `
     @if (attachments().length) {
-      <ul class="flex flex-wrap gap-2" aria-label="Files">
+      <ul class="flex flex-wrap gap-2" [attr.aria-label]="'helply.files' | translate">
         @for (file of attachments(); track file.id) {
           <li class="bg-background text-foreground flex max-w-full items-center rounded-lg border">
             <button
@@ -24,7 +25,7 @@ import { HelplyAttachment } from '../../core/helply-types';
             >
               <ng-icon [name]="icon(file.fileName)" aria-hidden="true" class="shrink-0 text-base" />
               <span class="flex min-w-0 flex-col">
-                <span class="max-w-48 truncate font-medium"><span class="sr-only">Open </span>{{ file.fileName }}</span>
+                <span class="max-w-48 truncate font-medium"><span class="sr-only">{{ 'common.open' | translate }} </span>{{ file.fileName }}</span>
                 <span class="text-muted-foreground">{{ size(file.sizeBytes) }}</span>
               </span>
             </button>

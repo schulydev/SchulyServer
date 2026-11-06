@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, effect, inject, input, model, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBellRing, lucideCircleAlert, lucideTriangleAlert, lucideX } from '@ng-icons/lucide';
@@ -31,31 +33,31 @@ export function combine(date: string, time: string): Date | null {
 /** Schedule the current draft for later, and manage what is still waiting in this chat. */
 @Component({
   selector: 'app-schedule-dialog',
-  imports: [AppDatePipe, NgIcon, HlmButton, HlmDialogImports, HlmSpinner, DateTimeField],
+  imports: [TranslatePipe, AppDatePipe, NgIcon, HlmButton, HlmDialogImports, HlmSpinner, DateTimeField],
   providers: [provideIcons({ lucideX })],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Schedule message</h2>
-          <p hlmDialogDescription>Sent for you between one minute and seven days from now. Text and formatting only.</p>
+          <h2 hlmDialogTitle>{{ 'chat.composer.schedule' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'chat.schedule.description' | translate }}</p>
         </hlm-dialog-header>
         <form class="flex flex-col gap-4" (submit)="submit($event)">
           @if (blocked(); as reason) {
             <p class="text-muted-foreground text-sm" role="status">{{ reason }}</p>
           } @else {
-            <p class="bg-muted wrap-anywhere rounded-md px-3 py-2 text-sm"><span class="sr-only">Message: </span>{{ preview() }}</p>
+            <p class="bg-muted wrap-anywhere rounded-md px-3 py-2 text-sm"><span class="sr-only">{{ 'chat.schedule.message' | translate }} </span>{{ preview() }}</p>
           }
-          <app-date-time-field id="schedule" label="Send" [(date)]="date" [(time)]="time" [min]="today()" />
+          <app-date-time-field id="schedule" [label]="'common.send' | translate" [(date)]="date" [(time)]="time" [min]="today()" />
           @if (error(); as e) {
             <p class="text-destructive text-sm" role="alert">{{ e }}</p>
           }
           <section aria-labelledby="scheduled-heading" class="flex flex-col gap-2">
-            <h3 id="scheduled-heading" class="text-sm font-semibold">Waiting in this chat</h3>
+            <h3 id="scheduled-heading" class="text-sm font-semibold">{{ 'chat.schedule.waiting' | translate }}</h3>
             @if (loading()) {
-              <p class="text-muted-foreground flex items-center gap-2 text-sm" role="status"><hlm-spinner aria-hidden="true" />Loading</p>
+              <p class="text-muted-foreground flex items-center gap-2 text-sm" role="status"><hlm-spinner aria-hidden="true" />{{ 'common.loading' | translate }}</p>
             } @else if (!pending().length) {
-              <p class="text-muted-foreground text-sm">Nothing scheduled.</p>
+              <p class="text-muted-foreground text-sm">{{ 'chat.schedule.none' | translate }}</p>
             } @else {
               <ul class="flex flex-col gap-2">
                 @for (m of pending(); track m.id) {
@@ -66,7 +68,7 @@ export function combine(date: string, time: string): Date | null {
                     </span>
                     <button hlmBtn type="button" variant="ghost" size="sm" [disabled]="cancelling() === m.id" (click)="cancel(m)">
                       <ng-icon name="lucideX" aria-hidden="true" />
-                      Cancel<span class="sr-only"> scheduled message</span>
+                      {{ 'common.cancel' | translate }}<span class="sr-only"> {{ 'chat.schedule.scheduledMessage' | translate }}</span>
                     </button>
                   </li>
                 }
@@ -74,12 +76,12 @@ export function combine(date: string, time: string): Date | null {
             }
           </section>
           <hlm-dialog-footer>
-            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">Close</button>
+            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">{{ 'common.close' | translate }}</button>
             <button hlmBtn type="submit" [disabled]="!!blocked() || busy()">
               @if (busy()) {
                 <hlm-spinner aria-hidden="true" />
               }
-              Schedule
+              {{ 'chat.schedule.action' | translate }}
             </button>
           </hlm-dialog-footer>
         </form>
@@ -147,7 +149,7 @@ export class ScheduleDialog {
     const at = combine(this.date(), this.time());
     const now = Date.now();
     if (!at || at.getTime() < now + MINUTE || at.getTime() > now + 7 * DAY) {
-      this.error.set('Pick a time between one minute and seven days from now.');
+      this.error.set(t('chat.schedule.pickTime'));
       return;
     }
     this.error.set('');
@@ -160,11 +162,11 @@ export class ScheduleDialog {
         ...(importance !== 'normal' ? { importance } : {}),
         sendAt: at.toISOString(),
       });
-      toast.success('Message scheduled.');
+      toast.success(t('chat.schedule.done'));
       this.scheduled.emit();
       await this.refresh();
     } catch (e) {
-      this.error.set(apiMessage(e, 'Could not schedule the message.'));
+      this.error.set(apiMessage(e, t('chat.schedule.failed')));
     } finally {
       this.busy.set(false);
     }
@@ -175,9 +177,9 @@ export class ScheduleDialog {
     try {
       await this.api.cancelScheduled(m.id);
       this.pending.update((list) => list.filter((x) => x.id !== m.id));
-      toast.success('Scheduled message cancelled.');
+      toast.success(t('chat.schedule.cancelled'));
     } catch (e) {
-      this.error.set(apiMessage(e, 'Could not cancel the scheduled message.'));
+      this.error.set(apiMessage(e, t('chat.schedule.cancelFailed')));
     } finally {
       this.cancelling.set(null);
     }
@@ -187,29 +189,29 @@ export class ScheduleDialog {
 /** Normal, Important or Urgent for the next message. */
 @Component({
   selector: 'app-delivery-dialog',
-  imports: [NgIcon, HlmButton, HlmDialogImports],
+  imports: [TranslatePipe, NgIcon, HlmButton, HlmDialogImports],
   providers: [provideIcons({ lucideBellRing, lucideCircleAlert, lucideTriangleAlert })],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="sm:max-w-sm">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Delivery options</h2>
-          <p hlmDialogDescription>Important and urgent messages stand out for the people in this chat.</p>
+          <h2 hlmDialogTitle>{{ 'chat.composer.delivery' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'chat.delivery.description' | translate }}</p>
         </hlm-dialog-header>
         <fieldset class="flex flex-col gap-2">
-          <legend class="sr-only">Delivery</legend>
+          <legend class="sr-only">{{ 'chat.delivery.legend' | translate }}</legend>
           @for (o of options; track o.value) {
             <label class="has-checked:border-primary has-focus-visible:outline-ring flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2 has-focus-visible:outline-2">
               <input type="radio" name="delivery" class="mt-1" [value]="o.value" [checked]="importance() === o.value" (change)="importance.set(o.value)" />
               <span>
-                <span class="flex items-center gap-1.5 text-sm font-medium"><ng-icon [name]="o.icon" aria-hidden="true" />{{ o.label }}</span>
-                <span class="text-foreground/70 block text-xs">{{ o.hint }}</span>
+                <span class="flex items-center gap-1.5 text-sm font-medium"><ng-icon [name]="o.icon" aria-hidden="true" />{{ o.label | translate }}</span>
+                <span class="text-foreground/70 block text-xs">{{ o.hint | translate }}</span>
               </span>
             </label>
           }
         </fieldset>
         <hlm-dialog-footer>
-          <button hlmBtn type="button" (click)="open.set(false)">Done</button>
+          <button hlmBtn type="button" (click)="open.set(false)">{{ 'common.done' | translate }}</button>
         </hlm-dialog-footer>
       </hlm-dialog-content>
     </hlm-dialog>
@@ -219,47 +221,47 @@ export class DeliveryDialog {
   readonly open = model(false);
   readonly importance = model<Importance>('normal');
   protected readonly options: { value: Importance; label: string; hint: string; icon: string }[] = [
-    { value: 'normal', label: 'Normal', hint: 'Delivered as usual.', icon: 'lucideBellRing' },
-    { value: 'high', label: 'Important', hint: 'Marked with an Important label.', icon: 'lucideCircleAlert' },
-    { value: 'urgent', label: 'Urgent', hint: 'Marked with an Urgent label.', icon: 'lucideTriangleAlert' },
+    { value: 'normal', label: 'chat.delivery.normal', hint: 'chat.delivery.normalHint', icon: 'lucideBellRing' },
+    { value: 'high', label: 'chat.importance.important', hint: 'chat.delivery.importantHint', icon: 'lucideCircleAlert' },
+    { value: 'urgent', label: 'chat.importance.urgent', hint: 'chat.delivery.urgentHint', icon: 'lucideTriangleAlert' },
   ];
 }
 
 /** Create an online meeting with this chat's members. */
 @Component({
   selector: 'app-meeting-dialog',
-  imports: [HlmButton, HlmDialogImports, HlmFieldImports, HlmInput, HlmSpinner, HlmTextarea, DateTimeField],
+  imports: [TranslatePipe, HlmButton, HlmDialogImports, HlmFieldImports, HlmInput, HlmSpinner, HlmTextarea, DateTimeField],
   template: `
     <hlm-dialog [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Schedule meeting</h2>
-          <p hlmDialogDescription>Invites everyone in this chat to an online meeting.</p>
+          <h2 hlmDialogTitle>{{ 'chat.composer.meeting' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'chat.meeting.description' | translate }}</p>
         </hlm-dialog-header>
         <form class="flex flex-col gap-4" (submit)="submit($event)">
           <div hlmField>
-            <label hlmFieldLabel for="meeting-subject">Subject</label>
+            <label hlmFieldLabel for="meeting-subject">{{ 'chat.meeting.subject' | translate }}</label>
             <input hlmInput id="meeting-subject" maxlength="255" autocomplete="off" [value]="subject()" (input)="subject.set($any($event.target).value)" />
           </div>
-          <app-date-time-field id="meeting-start" label="Start" [(date)]="date" [(time)]="start" [min]="today()" />
+          <app-date-time-field id="meeting-start" [label]="'chat.meeting.start' | translate" [(date)]="date" [(time)]="start" [min]="today()" />
           <div hlmField>
-            <label hlmFieldLabel for="meeting-end">End time</label>
+            <label hlmFieldLabel for="meeting-end">{{ 'chat.meeting.end' | translate }}</label>
             <input hlmInput id="meeting-end" type="time" [value]="end()" (input)="end.set($any($event.target).value)" />
           </div>
           <div hlmField>
-            <label hlmFieldLabel for="meeting-description">Description (optional)</label>
+            <label hlmFieldLabel for="meeting-description">{{ 'chat.meeting.descriptionField' | translate }}</label>
             <textarea hlmTextarea id="meeting-description" rows="3" maxlength="4000" [value]="description()" (input)="description.set($any($event.target).value)"></textarea>
           </div>
           @if (error(); as e) {
             <p class="text-destructive text-sm" role="alert">{{ e }}</p>
           }
           <hlm-dialog-footer>
-            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">Cancel</button>
+            <button hlmBtn variant="outline" type="button" (click)="open.set(false)">{{ 'common.cancel' | translate }}</button>
             <button hlmBtn type="submit" [disabled]="busy()">
               @if (busy()) {
                 <hlm-spinner aria-hidden="true" />
               }
-              Create meeting
+              {{ 'chat.meeting.create' | translate }}
             </button>
           </hlm-dialog-footer>
         </form>
@@ -306,9 +308,9 @@ export class MeetingDialog {
     const subject = this.subject().trim();
     const start = combine(this.date(), this.start());
     const end = combine(this.date(), this.end());
-    if (!subject) return this.error.set('Give the meeting a subject.');
-    if (!start || !end) return this.error.set('Choose a date, a start time and an end time.');
-    if (end <= start) return this.error.set('The meeting must end after it starts.');
+    if (!subject) return this.error.set(t('chat.meeting.needSubject'));
+    if (!start || !end) return this.error.set(t('chat.meeting.needTimes'));
+    if (end <= start) return this.error.set(t('chat.meeting.endAfterStart'));
     this.error.set('');
     this.busy.set(true);
     try {
@@ -321,12 +323,12 @@ export class MeetingDialog {
       });
       this.open.set(false);
       const join = result.joinUrl ?? result.webLink;
-      toast.success('Meeting scheduled.', {
+      toast.success(t('chat.meeting.done'), {
         description: subject,
-        ...(join ? { action: { label: 'Join', onClick: () => window.open(join, '_blank', 'noopener,noreferrer') } } : {}),
+        ...(join ? { action: { label: t('chat.meeting.join'), onClick: () => window.open(join, '_blank', 'noopener,noreferrer') } } : {}),
       });
     } catch (e) {
-      this.error.set(apiMessage(e, 'Could not create the meeting.'));
+      this.error.set(apiMessage(e, t('chat.meeting.failed')));
     } finally {
       this.busy.set(false);
     }

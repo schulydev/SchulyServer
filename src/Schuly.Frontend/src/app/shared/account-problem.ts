@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTriangleAlert } from '@ng-icons/lucide';
@@ -6,13 +8,13 @@ import { AccountProblem as Problem, accountProblemText } from '../stores/account
 
 @Component({
   selector: 'app-account-problem',
-  imports: [HlmAlertImports, NgIcon],
+  imports: [TranslatePipe, HlmAlertImports, NgIcon],
   providers: [provideIcons({ lucideTriangleAlert })],
   template: `
     <div hlmAlert variant="destructive">
       <ng-icon name="lucideTriangleAlert" hlmAlertIcon />
-      <h3 hlmAlertTitle>{{ text().title }}</h3>
-      <p hlmAlertDescription>{{ text().description }}</p>
+      <h3 hlmAlertTitle>{{ text().title | translate }}</h3>
+      <p hlmAlertDescription>{{ text().description | translate }}</p>
     </div>
   `,
 })

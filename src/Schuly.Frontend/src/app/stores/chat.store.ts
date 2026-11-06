@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, effect, inject, untracked } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
@@ -168,7 +169,7 @@ export function bodyText(body?: ChatBody | null): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
-const chatKinds: Record<string, string> = { oneOnOne: 'Chat', group: 'Group', meeting: 'Meeting' };
+const chatKinds: Record<string, string> = { oneOnOne: 'chat.kind.chat', group: 'chat.kind.group', meeting: 'chat.kind.meeting' };
 const MAX_PHOTO_REQUESTS = 4;
 const CHATS_PAGE = 25;
 const CHATS_MAX = 200;
@@ -229,7 +230,7 @@ export const ChatStore = signalStore(
         const last = c.lastMessagePreview;
         const { people, memberCount, notes } = chatPeople(c, mine, ownEmail, last?.from?.user);
         const sender = last?.from?.user;
-        const text = last?.isDeleted ? 'This message has been deleted' : bodyText(last?.body);
+        const text = last?.isDeleted ? t('chat.deleted') : bodyText(last?.body);
         const fromMe = !!mine && !!sender?.id && sender.id === mine;
         const read = c.viewpoint?.lastMessageReadDateTime;
         const lastAt = last?.createdDateTime ?? null;
@@ -237,15 +238,15 @@ export const ChatStore = signalStore(
           !!lastAt && !!sender?.id && sender.id !== mine && (!read || new Date(lastAt).getTime() > new Date(read).getTime());
         return {
           id: c.id,
-          title: notes ? NOTES_TITLE : c.topic || people.map((m) => m.name).join(', ') || 'Chat',
+          title: notes ? t(NOTES_TITLE) : c.topic || people.map((m) => m.name).join(', ') || t('chat.kind.chat'),
           image: c.imageUrl || null,
           hasImage: !!c.hasImage,
-          kind: (c.chatType && chatKinds[c.chatType]) || null,
+          kind: (c.chatType && chatKinds[c.chatType] && t(chatKinds[c.chatType])) || null,
           oneOnOne: c.chatType === 'oneOnOne',
           people,
           memberCount,
           mentionable: notes ? [] : people.filter((m) => !!m.id).map((m) => ({ id: m.id as string, name: m.name })),
-          preview: cleanPreview(!text ? '' : fromMe ? `You: ${text}` : sender?.displayName && c.chatType !== 'oneOnOne' ? `${sender.displayName}: ${text}` : text),
+          preview: cleanPreview(!text ? '' : fromMe ? t('chat.youSaid', { text }) : sender?.displayName && c.chatType !== 'oneOnOne' ? `${sender.displayName}: ${text}` : text),
           updated: lastAt ?? c.lastUpdatedDateTime ?? null,
           unread,
           link: c.webUrl ?? null,

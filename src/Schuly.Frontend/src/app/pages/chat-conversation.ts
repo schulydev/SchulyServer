@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -85,14 +87,14 @@ function quoteView(q: MessageQuote): QuoteView {
 
 @Component({
   selector: 'app-chat-conversation',
-  imports: [AppDatePipe, NgTemplateOutlet, HlmButton, HlmSkeletonImports, NgIcon, ChatAvatar, ChatMedia, EmojiSlots, EmptyState, FileViewer, LoadMore, AccountProblem, PersonAvatar, ChatComposer],
+  imports: [TranslatePipe, AppDatePipe, NgTemplateOutlet, HlmButton, HlmSkeletonImports, NgIcon, ChatAvatar, ChatMedia, EmojiSlots, EmptyState, FileViewer, LoadMore, AccountProblem, PersonAvatar, ChatComposer],
   providers: [provideIcons({ lucideArrowLeft, lucideArrowDown, lucideCornerUpRight, lucideExternalLink, lucideMessagesSquare, lucidePaperclip, lucideReply, lucideTriangleAlert, lucideCircleAlert })],
   template: `
     @if (store.openChat(); as chat) {
       <header class="flex h-10 shrink-0 items-center gap-2 border-b px-2 sm:px-3">
-        <button hlmBtn variant="ghost" size="icon-sm" class="shrink-0 lg:hidden" title="Back to chats" (click)="back.emit()">
+        <button hlmBtn variant="ghost" size="icon-sm" class="shrink-0 lg:hidden" [title]="'chat.backToChats' | translate" (click)="back.emit()">
           <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-          <span class="sr-only">Back to chats</span>
+          <span class="sr-only">{{ 'chat.backToChats' | translate }}</span>
         </button>
         <span class="relative inline-flex shrink-0">
           <app-chat-avatar [people]="chat.people" [oneOnOne]="chat.oneOnOne" [title]="chat.title" [image]="chat.image" [imageAvailable]="chat.hasImage" [chatId]="chat.id" size="compact" />
@@ -103,16 +105,16 @@ function quoteView(q: MessageQuote): QuoteView {
         <div class="min-w-0 flex-1">
           <h2 class="truncate text-sm leading-4 font-semibold">{{ chat.title }}</h2>
           @if (!chat.oneOnOne && chat.memberCount > 1) {
-            <p class="text-muted-foreground truncate text-[11px] leading-3">{{ chat.memberCount }} people</p>
+            <p class="text-muted-foreground truncate text-[11px] leading-3">{{ 'chat.people' | translate: { count: chat.memberCount } }}</p>
           } @else if (presence(); as status) {
             <p class="text-muted-foreground truncate text-[11px] leading-3">{{ status.label }}</p>
           }
         </div>
         @if (chat.link) {
           <a hlmBtn variant="ghost" size="sm" class="shrink-0" [href]="chat.link" target="_blank" rel="noopener">
-            <span class="max-sm:sr-only">Open online</span>
+            <span class="max-sm:sr-only">{{ 'chat.openOnline' | translate }}</span>
             <ng-icon name="lucideExternalLink" class="text-base" aria-hidden="true" />
-            <span class="sr-only">(opens in a new tab)</span>
+            <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
           </a>
         }
       </header>
@@ -122,14 +124,14 @@ function quoteView(q: MessageQuote): QuoteView {
           #log
           role="log"
           [attr.aria-live]="store.messagesLoadingMore() ? 'off' : 'polite'"
-          aria-label="Messages"
+          [attr.aria-label]="'chat.messages' | translate"
           [attr.aria-busy]="store.messagesLoadingMore()"
           tabindex="0" class="absolute inset-0 overflow-x-hidden overflow-y-auto [overflow-anchor:none] focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
           (scroll)="onScroll()"
         >
           <div #content class="flex min-h-full w-full flex-col justify-end px-4 py-4 sm:px-6">
             <app-load-more
-              label="Load older messages"
+              [label]="'chat.loadOlder' | translate"
               [hasMore]="store.messagesMore()"
               [loading]="store.messagesLoadingMore()"
               [failed]="store.messagesMoreFailed()"
@@ -151,7 +153,7 @@ function quoteView(q: MessageQuote): QuoteView {
             } @else if (store.messagesProblem(); as problem) {
               <app-account-problem [problem]="problem" />
             } @else if (!items().length) {
-              <app-empty-state icon="lucideMessagesSquare" title="No messages yet" description="Say hello to start the conversation." />
+              <app-empty-state icon="lucideMessagesSquare" [title]="'chat.noMessages' | translate" [description]="'chat.sayHello' | translate" />
             } @else {
               @for (item of items(); track item.key) {
                 @switch (item.kind) {
@@ -177,9 +179,9 @@ function quoteView(q: MessageQuote): QuoteView {
                           <ng-container *ngTemplateOutlet="bubble; context: { $implicit: item }" />
                           @if (item.status === 'failed') {
                             <div class="text-destructive mt-1 flex items-center gap-2 text-xs" role="alert">
-                              Not sent.
-                              <button type="button" class="underline underline-offset-2" (click)="store.retry(item.localId!)">Retry</button>
-                              <button type="button" class="underline underline-offset-2" (click)="store.discard(item.localId!)">Discard</button>
+                              {{ 'chat.notSent' | translate }}
+                              <button type="button" class="underline underline-offset-2" (click)="store.retry(item.localId!)">{{ 'chat.retry' | translate }}</button>
+                              <button type="button" class="underline underline-offset-2" (click)="store.discard(item.localId!)">{{ 'chat.discard' | translate }}</button>
                             </div>
                           }
                         </div>
@@ -218,7 +220,7 @@ function quoteView(q: MessageQuote): QuoteView {
             (click)="jumpToLatest()"
           >
             <ng-icon name="lucideArrowDown" aria-hidden="true" />
-            New messages
+            {{ 'chat.newMessages' | translate }}
           </button>
         }
       </div>
@@ -230,7 +232,7 @@ function quoteView(q: MessageQuote): QuoteView {
 
     <ng-template #bubble let-m>
       @if (m.deleted) {
-        <p class="text-muted-foreground px-1 text-sm italic">This message has been deleted</p>
+        <p class="text-muted-foreground px-1 text-sm italic">{{ 'chat.deleted' | translate }}</p>
       } @else {
         <div
           class="min-w-0 max-w-full rounded-lg px-3 py-2 text-sm wrap-anywhere"
@@ -243,14 +245,14 @@ function quoteView(q: MessageQuote): QuoteView {
               [class]="m.importance === 'urgent' ? 'border-red-700 bg-red-100 text-red-900 dark:border-red-300 dark:bg-red-950 dark:text-red-100' : 'border-amber-700 bg-amber-100 text-amber-900 dark:border-amber-300 dark:bg-amber-950 dark:text-amber-100'"
             >
               <ng-icon [name]="m.importance === 'urgent' ? 'lucideTriangleAlert' : 'lucideCircleAlert'" aria-hidden="true" />
-              {{ m.importance === 'urgent' ? 'Urgent' : 'Important' }}
+              {{ m.importance === 'urgent' ? ('chat.importance.urgent' | translate) : ('chat.importance.important' | translate) }}
             </p>
           }
           @for (q of m.quotes; track $index) {
-            <blockquote class="border-border bg-background/50 mb-1.5 max-w-full rounded-md border-s-2 px-2.5 py-1.5 text-sm" [attr.aria-label]="(q.kind === 'forward' ? 'Forwarded message' : 'Reply') + (q.sender ? ' from ' + q.sender : '')">
+            <blockquote class="border-border bg-background/50 mb-1.5 max-w-full rounded-md border-s-2 px-2.5 py-1.5 text-sm" [attr.aria-label]="(q.kind === 'forward' ? (q.sender ? 'chat.forwardedFrom' : 'chat.forwardedShort') : (q.sender ? 'chat.replyFrom' : 'chat.replyShort')) | translate: { sender: q.sender }">
               <p class="text-foreground/70 flex flex-wrap items-center gap-x-1.5 text-xs">
                 <ng-icon [name]="q.kind === 'forward' ? 'lucideCornerUpRight' : 'lucideReply'" aria-hidden="true" />
-                <span class="font-medium">{{ q.sender ?? (q.kind === 'forward' ? 'Forwarded message' : 'Reply') }}</span>
+                <span class="font-medium">{{ q.sender ?? ((q.kind === 'forward' ? 'chat.forwardedShort' : 'chat.replyShort') | translate) }}</span>
                 @if (q.sentAt) {
                   <time [attr.datetime]="q.sentAt">{{ q.sentAt | appDate: 'dateTime' }}</time>
                 }
@@ -292,7 +294,7 @@ function quoteView(q: MessageQuote): QuoteView {
                   @if (store.openChat()?.link; as link) {
                     <span class="text-muted-foreground" aria-hidden="true">&middot;</span>
                     <a class="shrink-0 font-medium underline underline-offset-2" [href]="link" target="_blank" rel="noopener">
-                      Open online<span class="sr-only"> (opens in a new tab)</span>
+                      {{ 'chat.openOnline' | translate }}<span class="sr-only"> {{ 'common.opensNewTab' | translate }}</span>
                     </a>
                   }
                 </li>
@@ -302,7 +304,7 @@ function quoteView(q: MessageQuote): QuoteView {
         </div>
       }
       @if (m.reactions.length) {
-        <ul class="relative z-10 -mt-2 flex flex-wrap gap-1 px-2" [class]="m.mine ? 'justify-end' : ''" aria-label="Reactions">
+        <ul class="relative z-10 -mt-2 flex flex-wrap gap-1 px-2" [class]="m.mine ? 'justify-end' : ''" [attr.aria-label]="'chat.reactions' | translate">
           @for (r of m.reactions; track r.label) {
             <li class="bg-background text-foreground rounded-full border px-2 py-px text-xs shadow-xs">{{ r.label }} {{ r.count }}</li>
           }
@@ -354,7 +356,7 @@ export class ChatConversation {
     const mine = this.store.meId();
     const currentYear = new Date().getFullYear();
     const people = new Map((this.store.openChat()?.people ?? []).filter((p) => p.id).map((p) => [p.id as string, p.name]));
-    if (mine) people.set(mine, 'You');
+    if (mine) people.set(mine, t('chat.you'));
 
     const entries = [
       ...this.store.messages().map((m) => ({ message: m, pending: null })),
@@ -417,7 +419,7 @@ export class ChatConversation {
       const files: BubbleFile[] = [
         ...(m?.files ?? []).map((f) => {
           const path = m ? this.api.filePath(chatId ?? '', m.id, f.id) : null;
-          const name = f.name || 'File';
+          const name = f.name || t('chat.file');
           return {
             key: `${id}-f${f.id}`,
             name,
@@ -439,7 +441,7 @@ export class ChatConversation {
         if (url) {
           // Only allow-listed public hosts: a sticker URL from the server never reaches the authenticated fetch.
           const src = allowedMediaUrl(url);
-          if (src) stickers.push({ key: `${id}-s${i}`, src, path: null, alt: c.sticker?.alt ?? c.name ?? 'Sticker' });
+          if (src) stickers.push({ key: `${id}-s${i}`, src, path: null, alt: c.sticker?.alt ?? c.name ?? t('chat.sticker') });
           return;
         }
         const view = cardView(c, i);
@@ -452,15 +454,15 @@ export class ChatConversation {
       const attachments: Attachment[] = [
         ...(m?.attachments ?? [])
           .filter((a) => a.contentType !== 'messageReference' && a.contentType !== 'forwardedMessageReference' && !a.contentType?.startsWith('application/vnd.microsoft.card') && !(a.id && fileIds.has(a.id)))
-          .map((a) => ({ name: a.name || 'Attachment' })),
-        ...Array.from({ length: m?.media ? 0 : uncovered }, () => ({ name: 'Image' })),
+          .map((a) => ({ name: a.name || t('chat.attachment') })),
+        ...Array.from({ length: m?.media ? 0 : uncovered }, () => ({ name: t('chat.image') })),
       ];
       const counts = new Map<string, number>();
       for (const r of m?.reactions ?? []) {
         const label = r.reactionType || 'reaction';
         counts.set(label, (counts.get(label) ?? 0) + 1);
       }
-      const senderName = m?.from?.user?.displayName || (isMine ? 'You' : 'Unknown');
+      const senderName = m?.from?.user?.displayName || (isMine ? t('chat.you') : t('common.unknown'));
       const head = !prev || prev.mine !== isMine || prev.senderId !== senderId || date.getTime() - prevTime > GROUP_WINDOW_MS;
       const item: Extract<LogItem, { kind: 'msg' }> = {
         kind: 'msg',

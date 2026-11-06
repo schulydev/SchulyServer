@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 /** Client-side checks for files attached to a Helply message. The server stays the authority. */
 
 export const ACCEPTED_EXTENSIONS = [
@@ -51,13 +52,13 @@ export function checkFiles(files: readonly File[], existing: number): FileCheck 
   const errors: string[] = [];
   for (const file of files) {
     if (!(ACCEPTED_EXTENSIONS as readonly string[]).includes(extensionOf(file.name))) {
-      errors.push(`${file.name} can't be attached. Use an image, PDF, text, CSV, Markdown, Word, Excel or PowerPoint file.`);
+      errors.push(t('helply.attach.type', { name: file.name }));
     } else if (file.size > MAX_FILE_BYTES) {
-      errors.push(`${file.name} is larger than 20 MB.`);
+      errors.push(t('helply.attach.size', { name: file.name }));
     } else if (file.size === 0) {
-      errors.push(`${file.name} is empty.`);
+      errors.push(t('helply.attach.empty', { name: file.name }));
     } else if (existing + accepted.length >= MAX_FILES) {
-      errors.push(`You can attach up to ${MAX_FILES} files per message.`);
+      errors.push(t('helply.attach.max', { max: MAX_FILES }));
       break;
     } else {
       accepted.push(file);

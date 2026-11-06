@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -17,10 +18,10 @@ interface NavItem {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [HlmSidebarImports, NgIcon, RouterLink, RouterLinkActive, NavUser],
+  imports: [HlmSidebarImports, NgIcon, RouterLink, RouterLinkActive, NavUser, TranslatePipe],
   providers: [provideIcons({ lucideLayoutDashboard, lucideChartColumn, lucideCalendarDays, lucideUserX, lucideFileText, lucideHardDrive, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug })],
   template: `
-    <hlm-sidebar collapsible="icon" role="complementary" aria-label="Sidebar">
+    <hlm-sidebar collapsible="icon" role="complementary" [attr.aria-label]="'nav.sidebar' | translate">
       <div hlmSidebarHeader class="border-b">
         <ul hlmSidebarMenu>
           <li hlmSidebarMenuItem>
@@ -31,10 +32,10 @@ interface NavItem {
           </li>
         </ul>
       </div>
-      <nav hlmSidebarContent aria-label="Main">
+      <nav hlmSidebarContent [attr.aria-label]="'nav.main' | translate">
         @for (group of groups(); track group.label) {
           <div hlmSidebarGroup>
-            <div hlmSidebarGroupLabel>{{ group.label }}</div>
+            <div hlmSidebarGroupLabel>{{ group.label | translate }}</div>
             <div hlmSidebarGroupContent>
               <ul hlmSidebarMenu>
                 @for (item of group.items; track item.url) {
@@ -46,14 +47,14 @@ interface NavItem {
                       #rla="routerLinkActive"
                       [routerLinkActiveOptions]="{ exact: item.url === '/' }"
                       [isActive]="rla.isActive"
-                      [tooltip]="item.title"
+                      [tooltip]="item.title | translate"
                     >
                       @if (item.image) {
                         <img [src]="item.image" alt="" class="size-4 shrink-0" />
                       } @else {
                         <ng-icon [name]="item.icon!" />
                       }
-                      <span>{{ item.title }}</span>
+                      <span>{{ item.title | translate }}</span>
                     </a>
                   </li>
                 }
@@ -72,10 +73,10 @@ export class AppSidebar {
   private readonly linked = inject(LinkedAccountsStore);
 
   private readonly aiGroup = {
-    label: 'AI',
+    label: 'nav.ai',
     items: [
-      { title: 'Helply', url: '/ai/helply', image: 'helply-avatar.svg' },
-      { title: 'MCP', url: '/ai/mcp', icon: 'lucidePlug' },
+      { title: 'nav.helply', url: '/ai/helply', image: 'helply-avatar.svg' },
+      { title: 'nav.mcp', url: '/ai/mcp', icon: 'lucidePlug' },
     ],
   };
 
@@ -87,16 +88,16 @@ export class AppSidebar {
 
   private readonly schoolGroups: { label: string; items: NavItem[] }[] = [
     {
-      label: 'Home',
-      items: [{ title: 'Overview', url: '/', icon: 'lucideLayoutDashboard' }],
+      label: 'nav.home',
+      items: [{ title: 'nav.overview', url: '/', icon: 'lucideLayoutDashboard' }],
     },
     {
-      label: 'School',
+      label: 'nav.school',
       items: [
-        { title: 'Grades', url: '/grades', icon: 'lucideChartColumn' },
-        { title: 'Calendar', url: '/calendar', icon: 'lucideCalendarDays' },
-        { title: 'Absences', url: '/absences', icon: 'lucideUserX' },
-        { title: 'Documents', url: '/documents', icon: 'lucideFileText' },
+        { title: 'nav.grades', url: '/grades', icon: 'lucideChartColumn' },
+        { title: 'nav.calendar', url: '/calendar', icon: 'lucideCalendarDays' },
+        { title: 'nav.absences', url: '/absences', icon: 'lucideUserX' },
+        { title: 'nav.documents', url: '/documents', icon: 'lucideFileText' },
       ],
     },
   ];

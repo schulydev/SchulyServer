@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { DriveView, MINE_ROOT, listingOf, parseView, serializeView } from '../core/drive-location';
@@ -48,7 +49,7 @@ export const MailStore = signalStore(
     messages: computed(() =>
       store.items().map((m) => ({
         id: m.id,
-        sender: m.from?.emailAddress?.name || m.from?.emailAddress?.address || 'Unknown sender',
+        sender: m.from?.emailAddress?.name || m.from?.emailAddress?.address || t('mail.unknownSender'),
         address: m.from?.emailAddress?.address ?? null,
         subject: m.subject || '(no subject)',
         preview: cleanPreview(m.bodyPreview),
@@ -115,7 +116,7 @@ const kindOf = (item: DriveItem, name: string): DriveKind => {
 
 /** One drive item as a row: kind, size, links. `own` marks a listing of the user's own OneDrive, whose items download by their pre-authenticated link. */
 export function toDriveEntry(i: DriveItem, own: boolean) {
-  const name = i.name || 'Untitled';
+  const name = i.name || t('mail.untitled');
   const kind = kindOf(i, name);
   const driveId = own ? null : (i.parentReference?.driveId ?? null);
   const download = i.folder ? null : own ? (i['@microsoft.graph.downloadUrl'] ?? null) : null;

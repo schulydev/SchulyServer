@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, input, output } from '@angular/core';
 import { GradeGroup, SemesterResult, SubjectResult, hasPromotionDecisions, oneDecimal, promotionText } from '../core/grade-report';
 
@@ -11,6 +12,7 @@ interface Row {
 /** The class's Zeugnis as the school prints it: subjects down, semesters across, under the school years. */
 @Component({
   selector: 'app-grades-zeugnis',
+  imports: [TranslatePipe],
   template: `
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Zeugnis">
       <table class="w-full min-w-[38rem] border-collapse text-center tabular-nums">
@@ -26,7 +28,7 @@ interface Row {
             @for (number of columns(); track number) {
               <th scope="col" class="border-b px-1 py-2 font-medium" [class.border-l]="number % 2 === 1" [class.bg-muted]="number === selectedNumber()">
                 @if (semesterAt(number); as semester) {
-                  <button type="button" class="hover:text-foreground focus-visible:outline-ring rounded px-2 py-0.5 font-semibold underline decoration-dotted underline-offset-3 focus-visible:outline-2" [attr.aria-label]="'Show semester ' + number" [attr.aria-pressed]="number === selectedNumber()" (click)="selected.emit(semester.key)">{{ number }}</button>
+                  <button type="button" class="hover:text-foreground focus-visible:outline-ring rounded px-2 py-0.5 font-semibold underline decoration-dotted underline-offset-3 focus-visible:outline-2" [attr.aria-label]="'grades.showSemester' | translate: { number: number }" [attr.aria-pressed]="number === selectedNumber()" (click)="selected.emit(semester.key)">{{ number }}</button>
                 } @else {
                   {{ number }}
                 }
@@ -40,7 +42,7 @@ interface Row {
               <th scope="row" class="border-b px-1 py-2 text-left font-medium wrap-anywhere">
                 {{ row.name }}
                 @if (!row.counted) {
-                  <span class="text-muted-foreground block text-xs font-normal">Not in the average</span>
+                  <span class="text-muted-foreground block text-xs font-normal">{{ 'grades.notInAverage' | translate }}</span>
                 }
               </th>
               @for (cell of row.cells; track cell.semester) {
@@ -62,10 +64,10 @@ interface Row {
       </table>
     </div>
     @if (expectedNumber(); as number) {
-      <p class="text-muted-foreground mt-3 text-xs">Semester {{ number }} is expected until the real Zeugnis is out.</p>
+      <p class="text-muted-foreground mt-3 text-xs">{{ 'grades.zeugnisExpected' | translate: { number: number } }}</p>
     }
     @if (!expectedNumber() && hasPendingSemester()) {
-      <p class="text-muted-foreground mt-3 text-xs">This semester stays empty until the real Zeugnis is out.</p>
+      <p class="text-muted-foreground mt-3 text-xs">{{ 'grades.zeugnisPending' | translate }}</p>
     }
   `,
 })
@@ -126,6 +128,7 @@ export class GradesZeugnis {
       const semester = this.semesterAt(number);
       return semester ? read(semester) : '';
     };
+    // ponytail: these rows copy the printed Zeugnis, which Schulnetz writes in German whatever the app language.
     const lines = [
       { label: 'Durchschnitt', value: (n: number) => text(n, (s) => (s.average != null ? oneDecimal(s.average) : '')) },
       { label: 'Promotion', value: (n: number) => text(n, (s) => (s.expected ? (hasPromotionDecisions(this.group()) ? 'offen' : '') : promotionText(s.report?.promotionDecision))) },

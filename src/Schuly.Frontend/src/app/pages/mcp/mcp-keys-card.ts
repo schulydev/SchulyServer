@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideKeyRound, lucidePencil, lucidePlus, lucideTrash2, lucideTriangleAlert } from '@ng-icons/lucide';
@@ -26,14 +28,15 @@ const MAX_NAME = 100;
 const DAY = 24 * 3600 * 1000;
 
 const EXPIRIES = [
-  { value: '30', label: '30 days', days: 30 },
-  { value: '90', label: '90 days', days: 90 },
-  { value: '365', label: '1 year', days: 365 },
+  { value: '30', label: 'mcp.keys.days30', days: 30 },
+  { value: '90', label: 'mcp.keys.days90', days: 90 },
+  { value: '365', label: 'mcp.keys.year', days: 365 },
 ];
 
 @Component({
   selector: 'app-mcp-keys-card',
   imports: [
+    TranslatePipe,
     HlmAlertImports,
     HlmAlertDialogImports,
     HlmBadge,
@@ -55,12 +58,12 @@ const EXPIRIES = [
   template: `
     <section hlmCard>
       <div hlmCardHeader>
-        <h2 hlmCardTitle>API keys</h2>
-        <p hlmCardDescription>For clients that cannot open a browser. Treat a key like a password.</p>
+        <h2 hlmCardTitle>{{ 'mcp.keys.title' | translate }}</h2>
+        <p hlmCardDescription>{{ 'mcp.keys.description' | translate }}</p>
         <div hlmCardAction>
           <button hlmBtn type="button" (click)="openCreate()">
             <ng-icon name="lucidePlus" aria-hidden="true" />
-            Create key
+            {{ 'mcp.keys.create' | translate }}
           </button>
         </div>
       </div>
@@ -74,7 +77,7 @@ const EXPIRIES = [
         </div>
 
         @if (loading()) {
-          <hlm-spinner aria-label="Loading API keys" />
+          <hlm-spinner [attr.aria-label]="'mcp.keys.loading' | translate" />
         } @else if (keys().length) {
           <ul class="divide-y rounded-lg border">
             @for (key of keys(); track key.id) {
@@ -84,9 +87,9 @@ const EXPIRIES = [
                     <p class="truncate font-medium">{{ key.name }}</p>
                     <p class="text-muted-foreground font-mono text-xs">{{ key.prefix }}...</p>
                     <p class="text-muted-foreground text-xs">
-                      Created {{ date(key.createdAt) }}.
-                      {{ key.expiresAt ? 'Expires ' + date(key.expiresAt) : 'Never expires' }}.
-                      Last used {{ lastUsed(key.lastUsedAt) }}.
+                      {{ 'mcp.keys.created' | translate: { date: date(key.createdAt) } }}
+                      {{ key.expiresAt ? ('mcp.keys.expires' | translate: { date: date(key.expiresAt) }) : ('mcp.keys.neverExpires' | translate) }}
+                      {{ 'mcp.keys.lastUsed' | translate: { used: lastUsed(key.lastUsedAt) } }}
                     </p>
                   </div>
                   <div class="flex gap-2">
@@ -99,7 +102,7 @@ const EXPIRIES = [
                       (click)="edit(key)"
                     >
                       <ng-icon name="lucidePencil" aria-hidden="true" />
-                      Edit permissions
+                      {{ 'mcp.editPermissions' | translate }}
                     </button>
                     <hlm-alert-dialog>
                       <button
@@ -107,27 +110,27 @@ const EXPIRIES = [
                         hlmBtn
                         variant="outline"
                         size="sm"
-                        [attr.aria-label]="'Revoke ' + key.name"
+                        [attr.aria-label]="'mcp.revokeName' | translate: { name: key.name }"
                       >
                         <ng-icon name="lucideTrash2" aria-hidden="true" />
-                        Revoke
+                        {{ 'mcp.revoke' | translate }}
                       </button>
                       <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
                         <hlm-alert-dialog-header>
-                          <h2 hlmAlertDialogTitle>Revoke {{ key.name }}?</h2>
+                          <h2 hlmAlertDialogTitle>{{ 'mcp.revokeQuestion' | translate: { name: key.name } }}</h2>
                           <p hlmAlertDialogDescription>
-                            Anything using this key stops working right away. This cannot be undone.
+                            {{ 'mcp.keys.revokeHint' | translate }}
                           </p>
                         </hlm-alert-dialog-header>
                         <hlm-alert-dialog-footer>
-                          <button hlmAlertDialogCancel>Cancel</button>
-                          <button hlmAlertDialogAction variant="destructive" (click)="revoke(key)">Revoke</button>
+                          <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
+                          <button hlmAlertDialogAction variant="destructive" (click)="revoke(key)">{{ 'mcp.revoke' | translate }}</button>
                         </hlm-alert-dialog-footer>
                       </hlm-alert-dialog-content>
                     </hlm-alert-dialog>
                   </div>
                 </div>
-                <ul class="flex flex-wrap gap-1.5" aria-label="Access">
+                <ul class="flex flex-wrap gap-1.5" [attr.aria-label]="'mcp.access' | translate">
                   @for (chip of summary(key.permissions); track chip) {
                     <li><span hlmBadge variant="secondary">{{ chip }}</span></li>
                   }
@@ -138,8 +141,8 @@ const EXPIRIES = [
         } @else {
           <app-empty-state
             icon="lucideKeyRound"
-            title="No API keys"
-            description="Create a key for tools that sign in with a header instead of the browser."
+            [title]="'mcp.keys.none' | translate"
+            [description]="'mcp.keys.noneHint' | translate"
           />
         }
       </div>
@@ -148,12 +151,12 @@ const EXPIRIES = [
     <hlm-dialog [state]="createOpen() ? 'open' : 'closed'" (closed)="createOpen.set(false)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Create API key</h2>
-          <p hlmDialogDescription>The key is shown once after you create it.</p>
+          <h2 hlmDialogTitle>{{ 'mcp.keys.createTitle' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'mcp.keys.createHint' | translate }}</p>
         </hlm-dialog-header>
         <div class="flex flex-col gap-4" [attr.aria-busy]="creating()">
           <div hlmField>
-            <label hlmFieldLabel for="mcp-key-name">Name</label>
+            <label hlmFieldLabel for="mcp-key-name">{{ 'mcp.keys.name' | translate }}</label>
             <input
               #nameInput
               hlmInput
@@ -163,11 +166,11 @@ const EXPIRIES = [
               [attr.maxlength]="maxName"
               [value]="name()"
               (input)="name.set(nameInput.value)"
-              placeholder="Laptop, Cursor"
+              [placeholder]="'mcp.keys.namePlaceholder' | translate"
             />
           </div>
           <div hlmField>
-            <label hlmFieldLabel for="mcp-key-expiry">Expires</label>
+            <label hlmFieldLabel for="mcp-key-expiry">{{ 'mcp.keys.expiresLabel' | translate }}</label>
             <hlm-select [value]="expiry()" (valueChange)="expiry.set($event ?? '90')">
               <hlm-select-trigger buttonId="mcp-key-expiry" class="w-full">
                 <hlm-select-value />
@@ -175,7 +178,7 @@ const EXPIRIES = [
               <hlm-select-content *hlmSelectPortal>
                 <hlm-select-group>
                   @for (option of expiries; track option.value) {
-                    <hlm-select-item [value]="option.value">{{ option.label }}</hlm-select-item>
+                    <hlm-select-item [value]="option.value">{{ option.label | translate }}</hlm-select-item>
                   }
                 </hlm-select-group>
               </hlm-select-content>
@@ -184,7 +187,7 @@ const EXPIRIES = [
           <app-mcp-permission-editor [(value)]="newPermissions" />
           <label class="flex items-start gap-2 text-sm" for="mcp-key-opt-in">
             <hlm-checkbox class="mt-0.5" inputId="mcp-key-opt-in" [checked]="optIn()" (checkedChange)="optIn.set($event)" />
-            {{ optInText }}
+            {{ optInText | translate }}
           </label>
           <div aria-live="polite" role="status">
             @if (createError()) {
@@ -195,13 +198,13 @@ const EXPIRIES = [
           </div>
           <hlm-dialog-footer>
             <button hlmBtn variant="outline" type="button" [disabled]="creating()" (click)="createOpen.set(false)">
-              Cancel
+              {{ 'common.cancel' | translate }}
             </button>
             <button hlmBtn type="button" [disabled]="!nameValid() || !optIn() || creating()" (click)="create()">
               @if (creating()) {
                 <hlm-spinner aria-hidden="true" />
               }
-              Create key
+              {{ 'mcp.keys.create' | translate }}
             </button>
           </hlm-dialog-footer>
         </div>
@@ -211,19 +214,19 @@ const EXPIRIES = [
     <hlm-dialog [state]="secret() ? 'open' : 'closed'" (closed)="secret.set(null)">
       <hlm-dialog-content *hlmDialogPortal="let ctx" class="sm:max-w-lg">
         <hlm-dialog-header>
-          <h2 hlmDialogTitle>Your new API key</h2>
-          <p hlmDialogDescription>Copy it now and keep it somewhere safe.</p>
+          <h2 hlmDialogTitle>{{ 'mcp.keys.newTitle' | translate }}</h2>
+          <p hlmDialogDescription>{{ 'mcp.keys.newHint' | translate }}</p>
         </hlm-dialog-header>
         <div class="flex flex-col gap-4">
           <div hlmAlert>
             <ng-icon name="lucideTriangleAlert" hlmAlertIcon aria-hidden="true" />
-            <p hlmAlertDescription>This key will not be shown again. If you lose it, revoke it and create a new one.</p>
+            <p hlmAlertDescription>{{ 'mcp.keys.newWarning' | translate }}</p>
           </div>
           @if (secret(); as value) {
             <app-copy-block [text]="value" label="API key" [single]="true" />
           }
           <hlm-dialog-footer>
-            <button hlmBtn type="button" (click)="secret.set(null)">I have copied the key</button>
+            <button hlmBtn type="button" (click)="secret.set(null)">{{ 'mcp.keys.copied' | translate }}</button>
           </hlm-dialog-footer>
         </div>
       </hlm-dialog-content>
@@ -280,7 +283,7 @@ export class McpKeysCard implements OnInit {
     try {
       this.keys.set(await firstValueFrom(this.api.keys()));
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'We could not load your API keys.'));
+      this.error.set(mcpErrorMessage(error, t('mcp.keys.loadFailed')));
     } finally {
       this.loading.set(false);
     }
@@ -313,7 +316,7 @@ export class McpKeysCard implements OnInit {
       this.createOpen.set(false);
       this.secret.set(created.secret);
     } catch (error) {
-      this.createError.set(mcpErrorMessage(error, 'We could not create the key. Try again.'));
+      this.createError.set(mcpErrorMessage(error, t('mcp.keys.createFailed')));
     } finally {
       this.creating.set(false);
     }
@@ -343,9 +346,9 @@ export class McpKeysCard implements OnInit {
       const updated = await firstValueFrom(this.api.updateKey(current.id, permissions));
       this.keys.update((list) => list.map((item) => (item.id === updated.id ? updated : item)));
       this.editing.set(updated);
-      toast.success('Permissions saved.');
+      toast.success(t('mcp.saved'));
     } catch (error) {
-      this.sheetError.set(mcpErrorMessage(error, 'We could not save the permissions. Try again.'));
+      this.sheetError.set(mcpErrorMessage(error, t('mcp.saveFailed')));
     } finally {
       this.saving.set(false);
     }
@@ -358,7 +361,7 @@ export class McpKeysCard implements OnInit {
       this.keys.update((list) => list.filter((item) => item.id !== key.id));
       toast.success(`${key.name} was revoked.`);
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'We could not revoke this key. Try again.'));
+      this.error.set(mcpErrorMessage(error, t('mcp.keys.revokeFailed')));
     }
   }
 }

@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { DOCUMENT } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
@@ -13,18 +14,18 @@ import { CopyBlock } from '../../shared/copy-block';
 
 @Component({
   selector: 'app-mcp-clients-card',
-  imports: [BrandIcon, HlmButton, HlmCardImports, HlmCollapsibleImports, HlmTabsImports, NgIcon, CopyBlock],
+  imports: [TranslatePipe, BrandIcon, HlmButton, HlmCardImports, HlmCollapsibleImports, HlmTabsImports, NgIcon, CopyBlock],
   providers: [provideIcons({ lucideChevronDown, lucideCode, lucideMessageSquare, lucideMonitor, lucideTerminal })],
   template: `
     <section hlmCard>
       <div hlmCardHeader>
-        <h2 hlmCardTitle>Set up your client</h2>
-        <p hlmCardDescription>Pick the app you want to connect.</p>
+        <h2 hlmCardTitle>{{ 'mcp.clients.title' | translate }}</h2>
+        <p hlmCardDescription>{{ 'mcp.clients.description' | translate }}</p>
       </div>
       <div hlmCardContent>
         <hlm-tabs tab="claude-code" class="w-full">
           <div class="overflow-x-auto pb-1">
-            <hlm-tabs-list aria-label="Client">
+            <hlm-tabs-list [attr.aria-label]="'mcp.clients.client' | translate">
               @for (guide of guides(); track guide.id) {
                 <button hlmTabsTrigger [hlmTabsTrigger]="guide.id" class="px-2.5">
                   @if (guide.brand; as brand) {
@@ -68,23 +69,23 @@ import { CopyBlock } from '../../shared/copy-block';
               }
 
               <p class="text-sm">
-                <span class="font-medium">What happens next.</span>
-                Your browser opens {{ host }} to sign in and approve access. You choose what the app may see.
+                <span class="font-medium">{{ 'mcp.clients.next' | translate }}</span>
+                {{ 'mcp.clients.nextHint' | translate: { host: host } }}
               </p>
 
               <hlm-collapsible class="rounded-lg border">
                 <button hlmCollapsibleTrigger hlmBtn variant="ghost" class="w-full justify-between">
-                  Use an API key instead
+                  {{ 'mcp.clients.useKey' | translate }}
                   <ng-icon name="lucideChevronDown" aria-hidden="true" />
                 </button>
                 <hlm-collapsible-content>
                   <div class="flex flex-col gap-3 p-3 pt-0">
                     <p class="text-muted-foreground text-sm">
-                      Create a key in the API keys section below, then use it in place of the browser sign-in.
+                      {{ 'mcp.clients.useKeyHint' | translate }}
                       {{ guide.key.intro }}
                     </p>
                     @if (guide.key.snippet; as snippet) {
-                      <app-copy-block [text]="snippet.code" [label]="guide.name + ' API key ' + snippet.title" />
+                      <app-copy-block [text]="snippet.code" [label]="guide.name + ' ' + ('mcp.keys.apiKey' | translate) + ' ' + snippet.title" />
                     }
                   </div>
                 </hlm-collapsible-content>

@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withHooks, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
@@ -24,7 +25,7 @@ export function withCollection<T>(fetcher: () => () => Observable<T[]>) {
               fetch().pipe(
                 tapResponse({
                   next: (items) => patchState(store, { items, loading: false }),
-                  error: () => patchState(store, { loading: false, error: 'Could not load data.' }),
+                  error: () => patchState(store, { loading: false, error: t('account.failed.title') + '.' }),
                 }),
               ),
             ),

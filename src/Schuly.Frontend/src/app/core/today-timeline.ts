@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { AgendaEntryDto } from '../api';
 
 export type SlotState = 'done' | 'now' | 'later';
@@ -82,11 +83,11 @@ export function remainingPercent(start: Date, end: Date, now: Date): number {
 
 /** "40 min", "1 h 35 min" or "less than a minute". */
 export function durationText(minutes: number): string {
-  if (minutes < 1) return 'less than a minute';
+  if (minutes < 1) return t('overview.duration.lessThanMinute');
   const whole = Math.ceil(minutes);
-  if (whole < 60) return `${whole} min`;
+  if (whole < 60) return t('overview.duration.minutes', { minutes: whole });
   const rest = whole % 60;
-  return rest ? `${Math.floor(whole / 60)} h ${rest} min` : `${whole / 60} h`;
+  return rest ? t('overview.duration.hoursMinutes', { hours: Math.floor(whole / 60), minutes: rest }) : t('overview.duration.hours', { hours: whole / 60 });
 }
 
 export const minutesLeft = (end: Date, now: Date): number => (end.getTime() - now.getTime()) / 60_000;
@@ -98,14 +99,14 @@ export function relativeDay(iso: string | null, now: Date): string {
   if (Number.isNaN(day.getTime())) return '';
   const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((startOf(now) - startOf(day)) / 86_400_000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 14) return `${days} days ago`;
-  if (days < 60) return `${Math.floor(days / 7)} weeks ago`;
-  return `${Math.floor(days / 30)} months ago`;
+  if (days <= 0) return t('overview.ago.today');
+  if (days === 1) return t('overview.ago.yesterday');
+  if (days < 14) return t('overview.ago.days', { count: days });
+  if (days < 60) return t('overview.ago.weeks', { count: Math.floor(days / 7) });
+  return t('overview.ago.months', { count: Math.floor(days / 30) });
 }
 
 export function greeting(now: Date): string {
   const hour = now.getHours();
-  return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return t(hour < 12 ? 'overview.greeting.morning' : hour < 18 ? 'overview.greeting.afternoon' : 'overview.greeting.evening');
 }

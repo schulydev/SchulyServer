@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, ElementRef, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBold, lucideHeading, lucideItalic, lucideLink, lucideList, lucideListOrdered, lucideStrikethrough, lucideUnderline } from '@ng-icons/lucide';
@@ -14,12 +15,12 @@ interface Format {
 }
 
 const FORMATS: Omit<Format, 'pressed'>[] = [
-  { id: 'bold', label: 'Bold', icon: 'lucideBold', command: 'bold' },
-  { id: 'italic', label: 'Italic', icon: 'lucideItalic', command: 'italic' },
-  { id: 'underline', label: 'Underline', icon: 'lucideUnderline', command: 'underline' },
-  { id: 'strike', label: 'Strikethrough', icon: 'lucideStrikethrough', command: 'strikeThrough' },
-  { id: 'ul', label: 'Bulleted list', icon: 'lucideList', command: 'insertUnorderedList' },
-  { id: 'ol', label: 'Numbered list', icon: 'lucideListOrdered', command: 'insertOrderedList' },
+  { id: 'bold', label: 'chat.format.bold', icon: 'lucideBold', command: 'bold' },
+  { id: 'italic', label: 'chat.format.italic', icon: 'lucideItalic', command: 'italic' },
+  { id: 'underline', label: 'chat.format.underline', icon: 'lucideUnderline', command: 'underline' },
+  { id: 'strike', label: 'chat.format.strike', icon: 'lucideStrikethrough', command: 'strikeThrough' },
+  { id: 'ul', label: 'chat.format.ul', icon: 'lucideList', command: 'insertUnorderedList' },
+  { id: 'ol', label: 'chat.format.ol', icon: 'lucideListOrdered', command: 'insertOrderedList' },
 ];
 
 const asUrl = (value: string): string | null => {
@@ -32,7 +33,7 @@ const asUrl = (value: string): string | null => {
 /** A small rich-text editor over a contenteditable div. Content goes in through a sanitised, imported copy and out through the same allowlist. */
 @Component({
   selector: 'app-onenote-editor',
-  imports: [HlmButton, HlmInput, NgIcon],
+  imports: [TranslatePipe, HlmButton, HlmInput, NgIcon],
   providers: [provideIcons({ lucideBold, lucideHeading, lucideItalic, lucideLink, lucideList, lucideListOrdered, lucideStrikethrough, lucideUnderline })],
   host: { class: 'block min-w-0', '(document:selectionchange)': 'refresh()' },
   template: `
@@ -46,12 +47,12 @@ const asUrl = (value: string): string | null => {
             size="icon-sm"
             [attr.aria-pressed]="f.pressed"
             [class.bg-muted]="f.pressed"
-            [title]="f.label"
+            [title]="f.label | translate"
             (mousedown)="$event.preventDefault()"
             (click)="run(f.command)"
           >
             <ng-icon [name]="f.icon" aria-hidden="true" />
-            <span class="sr-only">{{ f.label }}</span>
+            <span class="sr-only">{{ f.label | translate }}</span>
           </button>
         }
         <button
@@ -61,12 +62,12 @@ const asUrl = (value: string): string | null => {
           size="icon-sm"
           [attr.aria-pressed]="heading()"
           [class.bg-muted]="heading()"
-          title="Heading"
+          [title]="'notes.heading' | translate"
           (mousedown)="$event.preventDefault()"
           (click)="toggleHeading()"
         >
           <ng-icon name="lucideHeading" aria-hidden="true" />
-          <span class="sr-only">Heading</span>
+          <span class="sr-only">{{ 'notes.heading' | translate }}</span>
         </button>
         <button
           hlmBtn
@@ -76,17 +77,17 @@ const asUrl = (value: string): string | null => {
           [attr.aria-pressed]="link()"
           [attr.aria-expanded]="linkOpen()"
           [class.bg-muted]="link()"
-          title="Link"
+          [title]="'chat.format.link' | translate"
           (mousedown)="$event.preventDefault()"
           (click)="openLink()"
         >
           <ng-icon name="lucideLink" aria-hidden="true" />
-          <span class="sr-only">Link</span>
+          <span class="sr-only">{{ 'chat.format.link' | translate }}</span>
         </button>
       </div>
       @if (linkOpen()) {
         <div class="flex items-center gap-2 border-b p-2">
-          <label class="sr-only" [for]="linkId">Link address</label>
+          <label class="sr-only" [for]="linkId">{{ 'chat.composer.linkAddress' | translate }}</label>
           <input
             #linkInput
             hlmInput
@@ -98,8 +99,8 @@ const asUrl = (value: string): string | null => {
             (keydown.enter)="$event.preventDefault(); applyLink(linkInput.value)"
             (keydown.escape)="$event.stopPropagation(); closeLink()"
           />
-          <button hlmBtn type="button" size="sm" (click)="applyLink(linkInput.value)">Apply</button>
-          <button hlmBtn type="button" size="sm" variant="ghost" (click)="closeLink()">Cancel</button>
+          <button hlmBtn type="button" size="sm" (click)="applyLink(linkInput.value)">{{ 'notes.apply' | translate }}</button>
+          <button hlmBtn type="button" size="sm" variant="ghost" (click)="closeLink()">{{ 'common.cancel' | translate }}</button>
         </div>
       }
       <div
