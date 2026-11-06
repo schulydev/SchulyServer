@@ -1,19 +1,27 @@
 /**
- * What Schulnetz's approval fields mean. No real values have been seen yet, so this only knows the words a school's
- * help pages name (KS Rotkreuz: Offen, Bestätigt, Abgelehnt). Any other word means "unknown": no step, never a guess.
- * When real data shows other words, this is the one place to add them.
+ * What Schulnetz's approval fields mean. The mobile API sends English codes, seen on BBB accounts: `statusEAB` (the
+ * Lehrmeister) is `open`, `confirmed` or `declined`, and `statusEAE` (the parents) is `ofAge` for adults, which means there
+ * is no parents' step. Some help pages name German words (KS Rotkreuz: Offen, Bestätigt, Abgelehnt), so those stay too.
+ * Any other word means "unknown": no step, never a guess. This is the one place to add new words.
  */
 export type ApprovalState = 'open' | 'confirmed' | 'rejected' | 'excused';
 
 const WORDS: Record<string, ApprovalState> = {
+  open: 'open',
+  confirmed: 'confirmed',
+  declined: 'rejected',
   offen: 'open',
   'bestätigt': 'confirmed',
   abgelehnt: 'rejected',
   entschuldigt: 'excused',
 };
 
+/** Codes that say the step doesn't apply. Unlike an unknown word this is certain, but the result is the same: no step. */
+const NOT_APPLICABLE = new Set(['ofage']);
+
 export function approvalState(value: string | null | undefined): ApprovalState | null {
-  return WORDS[(value ?? '').trim().toLowerCase()] ?? null;
+  const word = (value ?? '').trim().toLowerCase();
+  return NOT_APPLICABLE.has(word) ? null : WORDS[word] ?? null;
 }
 
 export type StepState = 'done' | 'next' | 'todo' | 'rejected';

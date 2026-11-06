@@ -190,7 +190,9 @@ const firstMessagePages = {
   messagesLoadedMore: null,
 };
 
-type LoadMode = 'initial' | 'silent' | 'more';
+const LIVE_RETRY_MS = 1_000;
+
+type LoadMode = 'initial' | 'silent' | 'more' | 'uncached';
 
 export const ChatStore = signalStore(
   withState<ChatState>({
@@ -374,7 +376,10 @@ export const ChatStore = signalStore(
       }
       try {
         await lastValueFrom(
-          responses.swr<ChatMessage[]>(`${cachedChatUrl(accountId, chatId)}/messages`, { top }, `${chatUrl(accountId, chatId)}/messages`).pipe(
+          (mode === 'uncached'
+            ? http.get<ChatMessage[]>(`${chatUrl(accountId, chatId)}/messages`, { params: { top } })
+            : responses.swr<ChatMessage[]>(`${cachedChatUrl(accountId, chatId)}/messages`, { top }, `${chatUrl(accountId, chatId)}/messages`)
+          ).pipe(
             tap((items) => {
               if (accounts.selectedId('chat') !== accountId || store.openId() !== chatId || seq !== messagesSeq) return;
               const messages = (Array.isArray(items) ? items : []).slice().reverse();
@@ -453,6 +458,17 @@ export const ChatStore = signalStore(
     return {
       loadChats,
       refreshMessages: () => loadMessages(true),
+      /** After a live event. A message someone else just sent was in the list at once in testing; if it isn't, one short retry that skips the cache. */
+      async refreshAfterLive(newMessage: boolean): Promise<void> {
+        const chatId = store.openId();
+        const newest = () => store.messages().at(-1)?.id;
+        const before = newest();
+        await loadMessages(true);
+        if (!newMessage || store.openId() !== chatId || newest() !== before) return;
+        setTimeout(() => {
+          if (store.openId() === chatId) void fetchMessages('uncached');
+        }, LIVE_RETRY_MS);
+      },
       /** Warms the cache for a chat the user is about to open (hover or focus). */
       prefetchChat(chatId: string): void {
         const accountId = accounts.selectedId('chat');

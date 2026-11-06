@@ -12,17 +12,20 @@ import { SearchField } from '../shared/search-field';
 import { SplitHandle } from '../shared/split-handle';
 import { persistedNumber } from '../core/persisted';
 import { ChatApi } from '../core/chat-api';
+import { ChatLive, LiveRefresher, pollDue } from '../core/chat-live';
 import { ChatStore } from '../stores/chat.store';
 import { ChatConversation } from './chat-conversation';
 
 import { keepFresh } from '../core/response-cache';
 
 const MESSAGE_POLL_MS = 15_000;
+const MESSAGE_POLL_LIVE_MS = 60_000;
+const CHATS_POLL_LIVE_MS = 120_000;
 
 @Component({
   selector: 'app-chat',
   imports: [HlmSkeletonImports, NgIcon, ChatAvatar, EmptyState, ListTime, LoadMore, AccountPicker, AccountProblem, SearchField, SplitHandle, ChatConversation],
-  providers: [provideIcons({ lucideMessagesSquare }), ChatStore, ChatApi],
+  providers: [provideIcons({ lucideMessagesSquare }), ChatStore, ChatApi, ChatLive],
   host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' },
   template: `
     <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -158,11 +161,33 @@ export class Chat {
   });
 
   constructor() {
+    const live = inject(ChatLive);
+    let messagesAt = 0;
+    let chatsAt = 0;
+    const refresher = new LiveRefresher(
+      () => this.store.openId(),
+      (newMessage) => {
+        messagesAt = Date.now();
+        void this.store.refreshAfterLive(newMessage);
+      },
+      () => {
+        chatsAt = Date.now();
+        void this.store.loadChats(true);
+      },
+    );
+    live.listen((event) => refresher.push(event));
     const stopMessages = keepFresh(() => {
-      if (this.store.openId()) void this.store.refreshMessages();
+      if (!this.store.openId() || !pollDue(live.connected(), messagesAt, Date.now(), MESSAGE_POLL_LIVE_MS)) return;
+      messagesAt = Date.now();
+      void this.store.refreshMessages();
     }, MESSAGE_POLL_MS);
-    const stopChats = keepFresh(() => void this.store.loadChats(true));
+    const stopChats = keepFresh(() => {
+      if (!pollDue(live.connected(), chatsAt, Date.now(), CHATS_POLL_LIVE_MS)) return;
+      chatsAt = Date.now();
+      void this.store.loadChats(true);
+    });
     inject(DestroyRef).onDestroy(() => {
+      refresher.stop();
       stopMessages();
       stopChats();
     });
