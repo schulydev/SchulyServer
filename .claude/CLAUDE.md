@@ -79,7 +79,7 @@ Applied at startup by `ApplyMigrations()` in `Program.cs`.
 
 ## Auth
 
-- Sign-in is built in via Toamaisutaa (`Toamaisutaa.*` 0.14.0). No external IdP. Tables live in the Schuly DB (migration `AddToamaisutaa`).
+- Sign-in is built in via Toamaisutaa (`Toamaisutaa.*` 0.15.0). No external IdP. Tables live in the Schuly DB (migration `AddToamaisutaa`).
 - Endpoints under `/auth` (register, login, refresh, logout, password, email, `2fa/*`, devices, `external/*` for optional OIDC single sign-on). `/api/*` takes `Authorization: Bearer`. Access tokens live 15 min; refresh tokens rotate on every use.
 - Web app sends `X-Schuly-Client: web` and gets refresh + device tokens as `HttpOnly` `SameSite=Strict` cookies on `/auth`; other clients get them in the JSON body.
 - Required secrets: `LocalLogin:SigningKey`, `TwoFactor:EncryptionKey` (base64, 32 bytes, keep stable). Set via user-secrets or env vars.

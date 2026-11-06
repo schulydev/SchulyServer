@@ -34,9 +34,9 @@
     <PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.*" />
-    <PackageReference Include="Toamaisutaa.AspNetCore" Version="0.14.0" />
-    <PackageReference Include="Toamaisutaa.Email.Smtp" Version="0.14.0" />
-    <PackageReference Include="Toamaisutaa.OpenIdConnect" Version="0.14.0" />
+    <PackageReference Include="Toamaisutaa.AspNetCore" Version="0.15.0" />
+    <PackageReference Include="Toamaisutaa.Email.Smtp" Version="0.15.0" />
+    <PackageReference Include="Toamaisutaa.OpenIdConnect" Version="0.15.0" />
   </ItemGroup>
 
   <ItemGroup>
