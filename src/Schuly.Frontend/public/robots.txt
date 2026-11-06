@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /login
+Allow: /register
+Disallow: /
+
+Sitemap: https://schuly.dev/sitemap.xml
