@@ -127,7 +127,7 @@ function quoteView(q: MessageQuote): QuoteView {
           tabindex="0" class="absolute inset-0 overflow-x-hidden overflow-y-auto [overflow-anchor:none] focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
           (scroll)="onScroll()"
         >
-          <div class="flex min-h-full w-full flex-col justify-end px-4 py-4 sm:px-6">
+          <div #content class="flex min-h-full w-full flex-col justify-end px-4 py-4 sm:px-6">
             <app-load-more
               label="Load older messages"
               [hasMore]="store.messagesMore()"
@@ -340,6 +340,7 @@ export class ChatConversation {
   private readonly localUrls = new Map<File, string>();
   protected readonly newBelow = signal(false);
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
+  private readonly content = viewChild<ElementRef<HTMLElement>>('content');
   private readonly composer = viewChild<ChatComposer>('composer');
 
   /** Scroll geometry from just before older messages were requested; restoring it keeps the same message in view. */
@@ -495,6 +496,20 @@ export class ChatConversation {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.localUrls.forEach((url) => URL.revokeObjectURL(url)));
+    // Whatever grows after rendering (an image or emoji loading, a card, the composer getting taller) keeps the newest
+    // message in view, unless the reader scrolled up or older messages are being restored.
+    // The scroller only exists while a chat is open, so the observer follows the element.
+    effect((onCleanup) => {
+      const log = this.log()?.nativeElement;
+      const content = this.content()?.nativeElement;
+      if (!log || !content) return;
+      const observer = new ResizeObserver(() => {
+        if (this.atBottom && !this.anchor) log.scrollTop = log.scrollHeight;
+      });
+      observer.observe(log);
+      observer.observe(content);
+      onCleanup(() => observer.disconnect());
+    });
     effect(() => {
       this.oneOnOneId();
       untracked(() => {

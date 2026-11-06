@@ -105,53 +105,53 @@ const EMPTY: Composed = { html: '', text: '', mentions: [], imageIds: [], plain:
     }),
   ],
   styles: `
-    .editor:focus {
+    :host ::ng-deep .editor:focus {
       outline: none;
     }
-    .editor ul {
+    :host ::ng-deep .editor ul {
       list-style: disc;
       padding-inline-start: 1.25rem;
     }
-    .editor ol {
+    :host ::ng-deep .editor ol {
       list-style: decimal;
       padding-inline-start: 1.25rem;
     }
-    .editor blockquote {
+    :host ::ng-deep .editor blockquote {
       border-inline-start: 2px solid var(--border);
       padding-inline-start: 0.75rem;
       color: var(--muted-foreground);
     }
-    .editor pre {
+    :host ::ng-deep .editor pre {
       font-family: var(--font-mono, monospace);
       background: var(--muted);
       border-radius: 0.375rem;
       padding: 0.25rem 0.5rem;
       white-space: pre-wrap;
     }
-    .editor code {
+    :host ::ng-deep .editor code {
       font-family: var(--font-mono, monospace);
       background: var(--muted);
       border-radius: 0.25rem;
       padding: 0 0.25rem;
     }
-    .editor a {
+    :host ::ng-deep .editor a {
       text-decoration: underline;
       font-weight: 500;
     }
-    .editor img {
+    :host ::ng-deep .editor img {
       display: inline-block;
       max-height: 8rem;
       max-width: 100%;
       border-radius: 0.375rem;
       vertical-align: bottom;
     }
-    .editor img[data-emoji-id] {
+    :host ::ng-deep .editor img[data-emoji-id] {
       height: 1.5rem;
       width: 1.5rem;
       max-height: none;
       vertical-align: middle;
     }
-    .editor .mention {
+    :host ::ng-deep .editor .mention {
       background: color-mix(in oklab, var(--primary) 15%, transparent);
       border-radius: 0.25rem;
       padding: 0 0.25rem;
