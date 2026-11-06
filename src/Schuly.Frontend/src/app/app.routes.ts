@@ -16,7 +16,7 @@ export const routes: Routes = [
     children: [
       { path: '', title: 'Overview', loadComponent: () => import('./pages/overview').then((m) => m.Overview) },
       { path: 'grades', title: 'Grades', loadComponent: () => import('./pages/grades').then((m) => m.Grades) },
-      { path: 'exams', title: 'Exams', loadComponent: () => import('./pages/exams').then((m) => m.Exams) },
+      { path: 'exams', redirectTo: 'grades' },
       { path: 'calendar', title: 'Calendar', loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar) },
       { path: 'agenda', redirectTo: 'calendar' },
       { path: 'absences', title: 'Absences', loadComponent: () => import('./pages/absences').then((m) => m.Absences) },

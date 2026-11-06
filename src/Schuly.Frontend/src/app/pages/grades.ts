@@ -4,9 +4,14 @@ import { lucideChartColumn, lucideChevronDown, lucideSearch } from '@ng-icons/lu
 import { HlmInputGroupImports } from '@spartan-ng/helm/input-group';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { ExamGrade, GradeGroup, GradeHeadline, SubjectResult, buildGradeGroups, chooseGradeCase, countsInAverage, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, subjectLabel, subjectsBelowFour, weightedMean } from '../core/grade-report';
+import { ExamGrade, GradeGroup, GradeHeadline, SubjectResult, buildGradeGroups, chooseGradeCase, countsInAverage, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, subjectKey, subjectLabel, subjectsBelowFour, weightedMean } from '../core/grade-report';
+import { shortDay } from '../core/absence-view';
+import { toIsoDate } from '../core/dates';
+import { UpcomingTest, nextTestBySubject, upcomingTests } from '../core/upcoming-tests';
 import { EmptyState } from '../shared/empty-state';
 import { SyncingNotice } from '../shared/syncing-notice';
+import { AgendaStore } from '../stores/agenda.store';
+import { ClassesStore } from '../stores/classes.store';
 import { GradesStore } from '../stores/grades.store';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { MySchoolsStore, SemesterReportsStore } from '../stores/semester-reports.store';
@@ -146,6 +151,9 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
                     <span class="min-w-0">
                       <span class="block font-medium wrap-anywhere">{{ subject.name }}</span>
                       <span class="text-muted-foreground text-xs">{{ subjectDetail(subject) }}</span>
+                      @if (nextTest(subject); as test) {
+                        <span class="text-muted-foreground block text-xs">Test on {{ day(test) }}</span>
+                      }
                     </span>
                     <span class="relative col-span-3 row-start-2 block h-4 sm:col-span-1 sm:row-start-auto" aria-hidden="true">
                       <span class="bg-muted-foreground/35 absolute inset-x-0 top-[7px] h-0.5 rounded-full"></span>
@@ -174,15 +182,33 @@ const SEGMENT = 'text-foreground/80 aria-pressed:bg-background aria-pressed:text
           }
           @case ('date') {
             <div class="flex flex-col">
+              @if (upcoming().length) {
+                <h3 class="text-muted-foreground px-1.5 pb-1 text-xs font-semibold">Upcoming</h3>
+                <div class="flex flex-col divide-y border-b px-1.5">
+                  @for (test of upcoming(); track test.key) {
+                    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2">
+                      <div class="min-w-0 wrap-anywhere">
+                        {{ test.title }}
+                        @if (test.subject) {<div class="text-muted-foreground text-sm">{{ subjectName(test.subject) }}</div>}
+                      </div>
+                      <div class="text-muted-foreground text-right text-xs tabular-nums sm:text-sm">
+                        {{ day(test) }}@if (!test.allDay) { · {{ time(test.start) }}}@if (test.room) { · {{ test.room }}}
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
               @for (month of months(); track month.key; let first = $first) {
-                <h3 class="text-muted-foreground px-1.5 pb-1 text-xs font-semibold" [class.pt-5]="!first">{{ month.label }}</h3>
+                <h3 class="text-muted-foreground px-1.5 pb-1 text-xs font-semibold" [class.pt-5]="!first || upcoming().length > 0">{{ month.label }}</h3>
                 <div class="flex flex-col divide-y border-b px-1.5">
                   @for (row of month.rows; track row.id) {
                     <app-grades-exam-row [row]="row" [classNames]="classNames()" [showSubject]="true" />
                   }
                 </div>
               } @empty {
-                <p class="text-muted-foreground py-7 text-sm">{{ emptyText() }}</p>
+                @if (!upcoming().length) {
+                  <p class="text-muted-foreground py-7 text-sm">{{ emptyText() }}</p>
+                }
               }
             </div>
           }
@@ -368,6 +394,23 @@ export class Grades {
   protected examsOf(subject: SubjectResult): ExamGrade[] {
     return [...subject.rows].filter((r) => this.matches(r) || subject.name.toLowerCase().includes(this.query().trim().toLowerCase())).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
   }
+
+  private readonly agenda = inject(AgendaStore);
+  private readonly classes = inject(ClassesStore);
+
+  /** Tests not graded yet, in the selected class only when Schuly knows which subjects it has. */
+  private readonly allUpcoming = computed(() => upcomingTests(this.agenda.items(), this.grades.exams(), (id) => this.classes.names().get(id ?? '') ?? '', new Date()));
+  protected readonly upcoming = computed(() => {
+    const group = this.group();
+    const keys = new Set(group ? group.semesters.flatMap((s) => s.subjects.map((sub) => sub.key)) : []);
+    const query = this.query().trim().toLowerCase();
+    return this.allUpcoming().filter((t) => (!keys.size || !t.subject || keys.has(subjectKey(t.subject))) && (!query || t.title.toLowerCase().includes(query) || t.subject.toLowerCase().includes(query)));
+  });
+  private readonly nextTests = computed(() => nextTestBySubject(this.allUpcoming()));
+  protected readonly nextTest = (subject: SubjectResult): UpcomingTest | null => this.nextTests().get(subject.key) ?? null;
+  protected readonly day = (test: UpcomingTest): string => shortDay(toIsoDate(test.start));
+  protected readonly time = (date: Date): string => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  protected readonly subjectName = subjectLabel;
 
   protected subjectDetail(subject: SubjectResult): string {
     const graded = subject.rows.filter((r) => isGraded(r.score)).length;

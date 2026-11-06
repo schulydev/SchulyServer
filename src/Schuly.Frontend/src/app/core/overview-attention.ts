@@ -1,5 +1,5 @@
-import { AgendaEntryDto } from '../api';
-import { AbsenceRow } from './absence-view';
+import { AbsenceDto, AgendaEntryDto } from '../api';
+import { AbsenceRow, dayOf } from './absence-view';
 
 export interface AttentionItem {
   key: string;
@@ -44,7 +44,15 @@ export function attentionItems(absences: AbsenceRow[], agenda: AgendaEntryDto[],
     .filter((t) => !Number.isNaN(t.at.getTime()) && t.at.getTime() >= now.getTime() && t.at.getTime() < until)
     .sort((a, b) => a.at.getTime() - b.at.getTime());
   for (const { entry, at } of tests) {
-    items.push({ key: `test|${entry.id ?? entry.date}`, tone: 'warn', title: `Test: ${entry.title}`, detail: entry.place || entry.description || '', when: daysUntil(at, now), link: '/exams' });
+    items.push({ key: `test|${entry.id ?? entry.date}`, tone: 'warn', title: `Test: ${entry.title}`, detail: entry.place || entry.description || '', when: daysUntil(at, now), link: '/grades' });
   }
   return items;
+}
+
+/**
+ * Whether the reported absences are worth asking Schulnetz for: only a report can turn an unexcused absence into a waiting one,
+ * so without a past, unexcused absence there is nothing a report would change on the Overview.
+ */
+export function needsReportLookup(absences: AbsenceDto[], today: string): boolean {
+  return absences.some((a) => a.type !== 'Delay' && a.isExcused === false && dayOf(a.from) <= today);
 }

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, Injector, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCoffee, lucideUtensils } from '@ng-icons/lucide';
@@ -8,12 +8,13 @@ import { buildAbsenceRows, todayInSwitzerland } from '../core/absence-view';
 import { dateOnly } from '../core/calendar';
 import { AppDatePipe } from '../core/date-format';
 import { buildGradeGroups, cleanExamName, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, semesterOfDate, subjectsBelowFour } from '../core/grade-report';
-import { attentionItems } from '../core/overview-attention';
+import { attentionItems, needsReportLookup } from '../core/overview-attention';
 import { buildTimeline, currentLesson, durationText, greeting, minutesLeft, nextLesson, relativeDay, remainingPercent } from '../core/today-timeline';
 import { SyncingNotice } from '../shared/syncing-notice';
 import { AbsencesStore } from '../stores/absences.store';
 import { AgendaStore } from '../stores/agenda.store';
 import { GradesStore } from '../stores/grades.store';
+import { ReportedAbsencesCache } from '../stores/reported-absences-cache';
 import { MySchoolsStore, SemesterReportsStore } from '../stores/semester-reports.store';
 import { UserStore } from '../stores/user.store';
 import { gradeTone } from './grades-tone';
@@ -181,9 +182,20 @@ export class Overview {
   /** The clock the timeline runs on; it moves every TICK_MS so the countdown stays current. */
   private readonly now = signal(new Date());
 
+  private readonly injector = inject(Injector);
+  private readonly reportsCache = inject(ReportedAbsencesCache);
+  /** Opened only once a past unexcused absence shows up, so an Overview with nothing open costs no Schulnetz request. */
+  private readonly reportStore = signal<ReturnType<ReportedAbsencesCache['open']> | null>(null);
+
   constructor() {
     const timer = setInterval(() => this.now.set(new Date()), TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    effect(() => {
+      const needed = needsReportLookup(this.absences.items(), todayInSwitzerland(this.now()));
+      untracked(() => {
+        if (needed && !this.reportStore()) this.reportStore.set(this.reportsCache.open(this.injector));
+      });
+    });
   }
 
   protected readonly isLesson = (entry: AgendaEntryDto): boolean => entry.entryType === 'Lesson';
@@ -249,8 +261,8 @@ export class Overview {
       isBbb: (schoolId: string | null) => (schoolId ? bbb.has(schoolId) : onlyBbb),
       website: (schoolId: string | null) => (schoolId ? schools.find((s) => s.id === schoolId) : schools[0])?.website ?? null,
     };
-    // ponytail: no reported-absence lookup here, so the Overview costs no Schulnetz request; the Absences page merges reports.
-    return attentionItems(buildAbsenceRows(this.absences.items(), [], context), this.agenda.upcoming(), this.now());
+    const reports = this.reportStore()?.reports() ?? [];
+    return attentionItems(buildAbsenceRows(this.absences.items(), reports, context), this.agenda.upcoming(), this.now());
   });
 
   /** All-day entries arrive as midnight UTC (the calendar's rule), so they show a date or a range instead of a time. */
