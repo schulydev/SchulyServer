@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDownload, lucideTriangleAlert } from '@ng-icons/lucide';
+import { TranslatePipe } from '@ngx-translate/core';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -8,6 +9,8 @@ import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
+import { t } from '../../core/i18n';
+import { UsernameHint } from '../../shared/password-field';
 import { SecurityStore } from '../../stores/security.store';
 import { UserStore } from '../../stores/user.store';
 import { Proof } from './proof';
@@ -17,36 +20,36 @@ type Dialog = 'email' | 'export' | 'delete';
 /** Changes to the account itself: its email, a copy of its data, and deleting it. */
 @Component({
   selector: 'app-danger-zone-card',
-  imports: [NgIcon, HlmAlertImports, HlmButton, HlmCardImports, HlmDialogImports, HlmFieldImports, HlmInput, HlmSpinner, Proof],
+  imports: [NgIcon, TranslatePipe, HlmAlertImports, HlmButton, HlmCardImports, HlmDialogImports, HlmFieldImports, HlmInput, HlmSpinner, UsernameHint, Proof],
   providers: [provideIcons({ lucideDownload, lucideTriangleAlert })],
   template: `
     <section hlmCard class="border-destructive/40" aria-labelledby="danger-title">
       <div hlmCardHeader>
-        <h3 hlmCardTitle id="danger-title" class="text-destructive">Danger zone</h3>
-        <p hlmCardDescription>Changes to the account itself.</p>
+        <h3 hlmCardTitle id="danger-title" class="text-destructive">{{ 'settings.danger.title' | translate }}</h3>
+        <p hlmCardDescription>{{ 'settings.danger.description' | translate }}</p>
       </div>
       <div hlmCardContent>
         <ul class="divide-y">
           <li class="flex items-center justify-between gap-4 py-3.5">
             <div class="grid min-w-0 gap-0.5">
-              <span class="text-sm font-medium">Change email</span>
-              <span class="text-muted-foreground text-sm">Where Schuly sends codes and notices.</span>
+              <span class="text-sm font-medium">{{ 'settings.danger.email.label' | translate }}</span>
+              <span class="text-muted-foreground text-sm">{{ 'settings.danger.email.text' | translate }}</span>
             </div>
-            <button hlmBtn variant="outline" type="button" class="shrink-0" aria-label="Change email" (click)="open('email')">Change</button>
+            <button hlmBtn variant="outline" type="button" class="shrink-0" [attr.aria-label]="'settings.danger.email.label' | translate" (click)="open('email')">{{ 'settings.danger.email.change' | translate }}</button>
           </li>
           <li class="flex items-center justify-between gap-4 py-3.5">
             <div class="grid min-w-0 gap-0.5">
-              <span class="text-sm font-medium">Export your data</span>
-              <span class="text-muted-foreground text-sm">A file with your profile, linked accounts and synced school data.</span>
+              <span class="text-sm font-medium">{{ 'settings.danger.export.label' | translate }}</span>
+              <span class="text-muted-foreground text-sm">{{ 'settings.danger.export.text' | translate }}</span>
             </div>
-            <button hlmBtn variant="outline" type="button" class="shrink-0" aria-label="Export your data" (click)="open('export')">Export</button>
+            <button hlmBtn variant="outline" type="button" class="shrink-0" [attr.aria-label]="'settings.danger.export.label' | translate" (click)="open('export')">{{ 'settings.danger.export.button' | translate }}</button>
           </li>
           <li class="flex items-center justify-between gap-4 py-3.5">
             <div class="grid min-w-0 gap-0.5">
-              <span class="text-sm font-medium">Delete account</span>
-              <span class="text-muted-foreground text-sm">Removes your account and everything Schuly stored. This can't be undone.</span>
+              <span class="text-sm font-medium">{{ 'settings.delete.title' | translate }}</span>
+              <span class="text-muted-foreground text-sm">{{ 'settings.danger.delete.text' | translate }}</span>
             </div>
-            <button hlmBtn variant="destructive" type="button" class="shrink-0" aria-label="Delete account" (click)="open('delete')">Delete</button>
+            <button hlmBtn variant="destructive" type="button" class="shrink-0" [attr.aria-label]="'settings.delete.title' | translate" (click)="open('delete')">{{ 'common.delete' | translate }}</button>
           </li>
         </ul>
       </div>
@@ -57,83 +60,85 @@ type Dialog = 'email' | 'export' | 'delete';
         @switch (dialog()) {
           @case ('email') {
             <hlm-dialog-header>
-              <h2 hlmDialogTitle>Change email</h2>
-              <p hlmDialogDescription>We send a link to the new address; your email changes once you open it.</p>
+              <h2 hlmDialogTitle>{{ 'settings.danger.email.label' | translate }}</h2>
+              <p hlmDialogDescription>{{ 'settings.danger.email.description' | translate }}</p>
             </hlm-dialog-header>
             @if (!user.hasPassword()) {
               <div hlmAlert>
-                <h3 hlmAlertTitle>Add a password first</h3>
-                <p hlmAlertDescription>Your email here belongs to the provider you sign in with. Add a password in Security, then you can choose your own.</p>
+                <h3 hlmAlertTitle>{{ 'settings.danger.email.passwordFirst' | translate }}</h3>
+                <p hlmAlertDescription>{{ 'settings.danger.email.passwordFirstText' | translate }}</p>
               </div>
               <hlm-dialog-footer>
-                <button hlmBtn variant="outline" type="button" data-autofocus (click)="close()">Close</button>
+                <button hlmBtn variant="outline" type="button" data-autofocus (click)="close()">{{ 'common.close' | translate }}</button>
               </hlm-dialog-footer>
             } @else if (sentTo()) {
               <div hlmAlert role="status">
-                <h3 hlmAlertTitle>Check your inbox</h3>
-                <p hlmAlertDescription>We sent a link to {{ sentTo() }}. Open it to finish the change.</p>
+                <h3 hlmAlertTitle>{{ 'settings.danger.email.checkInbox' | translate }}</h3>
+                <p hlmAlertDescription>{{ 'settings.danger.email.sentTo' | translate: { email: sentTo() } }}</p>
               </div>
               <hlm-dialog-footer>
-                <button hlmBtn type="button" data-autofocus (click)="close()">Done</button>
+                <button hlmBtn type="button" data-autofocus (click)="close()">{{ 'common.done' | translate }}</button>
               </hlm-dialog-footer>
             } @else {
               <form class="flex flex-col gap-4" (submit)="changeEmail($event)">
+                <app-username-hint [username]="user.email()" />
                 <div hlmField>
-                  <label hlmFieldLabel for="new-email">New email</label>
-                  <input hlmInput id="new-email" type="email" autocomplete="email" placeholder="name@example.ch" data-autofocus [value]="newEmail()" (input)="newEmail.set($any($event.target).value)" />
+                  <label hlmFieldLabel for="new-email">{{ 'settings.danger.email.newEmail' | translate }}</label>
+                  <input hlmInput id="new-email" name="email" type="email" autocomplete="email" placeholder="name@example.ch" data-autofocus [value]="newEmail()" (input)="newEmail.set($any($event.target).value)" />
                 </div>
-                <app-proof #proof inputId="email-password" what="change your email" resume="email" [(password)]="password" />
+                <app-proof #proof [reason]="'settings.proof.reason.email' | translate" resume="email" [(password)]="password" />
                 @if (error()) {
                   <p class="text-destructive text-sm" role="alert">{{ error() }}</p>
                 }
                 <hlm-dialog-footer>
-                  <button hlmBtn variant="outline" type="button" (click)="close()">Cancel</button>
-                  <button hlmBtn type="submit" [disabled]="busy() || !proof.ready() || !validEmail()">Send link</button>
+                  <button hlmBtn variant="outline" type="button" (click)="close()">{{ 'common.cancel' | translate }}</button>
+                  <button hlmBtn type="submit" [disabled]="busy() || !proof.ready() || !validEmail()">{{ 'settings.danger.email.submit' | translate }}</button>
                 </hlm-dialog-footer>
               </form>
             }
           }
           @case ('export') {
             <hlm-dialog-header>
-              <h2 hlmDialogTitle>Export your data</h2>
-              <p hlmDialogDescription>Download your account, school data, Helply chats, connected apps and devices as a JSON file. Document files stay in Documents, and the file lists anything else it leaves out.</p>
+              <h2 hlmDialogTitle>{{ 'settings.danger.export.label' | translate }}</h2>
+              <p hlmDialogDescription>{{ 'settings.data.description' | translate }}</p>
             </hlm-dialog-header>
             <hlm-dialog-footer>
-              <button hlmBtn variant="outline" type="button" (click)="close()">Cancel</button>
+              <button hlmBtn variant="outline" type="button" (click)="close()">{{ 'common.cancel' | translate }}</button>
               <button hlmBtn type="button" data-autofocus [disabled]="user.busy()" (click)="user.exportData()">
                 @if (user.busy()) {
                   <hlm-spinner class="size-4" />
                 } @else {
                   <ng-icon name="lucideDownload" aria-hidden="true" />
                 }
-                Export data
+                {{ 'settings.data.export' | translate }}
               </button>
             </hlm-dialog-footer>
           }
           @case ('delete') {
             <hlm-dialog-header>
-              <h2 hlmDialogTitle>Delete your account?</h2>
-              <p hlmDialogDescription>Your profile, linked accounts and all synced school data are deleted. Your school accounts themselves stay untouched.</p>
+              <h2 hlmDialogTitle>{{ 'settings.delete.confirmTitle' | translate }}</h2>
+              <p hlmDialogDescription>{{ 'settings.danger.delete.description' | translate }}</p>
             </hlm-dialog-header>
             <form class="flex flex-col gap-4" (submit)="deleteAccount($event)">
+              <app-username-hint [username]="user.email()" />
               <div hlmAlert variant="destructive">
                 <ng-icon name="lucideTriangleAlert" hlmAlertIcon aria-hidden="true" />
-                <h3 hlmAlertTitle>This can't be undone</h3>
-                <p hlmAlertDescription>Export your data first if you want to keep it.</p>
+                <h3 hlmAlertTitle>{{ 'settings.danger.delete.alertTitle' | translate }}</h3>
+                <p hlmAlertDescription>{{ 'settings.danger.delete.alertText' | translate }}</p>
               </div>
-              <app-proof #proof inputId="delete-password" what="delete your account" resume="delete" [(password)]="password" />
+              <app-proof #proof [reason]="'settings.proof.reason.delete' | translate" resume="delete" [(password)]="password" />
               @if (proof.mode() !== 'reauth') {
                 <div hlmField>
-                  <label hlmFieldLabel for="delete-confirm">Type DELETE to confirm</label>
-                  <input hlmInput id="delete-confirm" autocomplete="off" autocapitalize="characters" spellcheck="false" [attr.data-autofocus]="proof.mode() === 'none' ? '' : null" [value]="confirmText()" (input)="confirmText.set($any($event.target).value)" />
+                  <label hlmFieldLabel for="delete-confirm">{{ 'settings.danger.delete.typeConfirm' | translate: { word: confirmWord() } }}</label>
+                  <input hlmInput id="delete-confirm" name="delete-confirm" autocapitalize="characters" spellcheck="false" [attr.data-autofocus]="proof.mode() === 'none' ? '' : null" [value]="confirmText()" (input)="confirmText.set($any($event.target).value)" />
                 </div>
               }
               @if (user.deleteError(); as problem) {
                 <p class="text-destructive text-sm" role="alert">{{ problem }}</p>
               }
               <hlm-dialog-footer>
-                <button hlmBtn variant="outline" type="button" (click)="close()">Cancel</button>
-                <button hlmBtn variant="destructive" type="submit" [disabled]="user.busy() || !proof.ready() || confirmText().trim() !== 'DELETE'">Delete account</button>
+                <button hlmBtn variant="outline" type="button" (click)="close()">{{ 'common.cancel' | translate }}</button>
+                <button hlmBtn variant="destructive" type="submit" [disabled]="user.busy() || !proof.ready() || confirmText().trim().toUpperCase() !== confirmWord()">{{ 'settings.delete.title' | translate }}</button>
               </hlm-dialog-footer>
             </form>
           }
@@ -155,6 +160,8 @@ export class DangerZoneCard {
   protected readonly sentTo = signal<string | null>(null);
   protected readonly busy = computed(() => this.security.busy());
   protected readonly error = signal<string | null>(null);
+  /** The word to type, in the page's language ("DELETE", "LÖSCHEN", ...). */
+  protected readonly confirmWord = computed(() => t('settings.danger.delete.word').toUpperCase());
   private readonly proof = viewChild<Proof>('proof');
   private resumed = false;
 

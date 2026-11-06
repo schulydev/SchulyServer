@@ -1,11 +1,11 @@
+import { PasswordField } from '../../shared/password-field';
 import { TranslatePipe } from '@ngx-translate/core';
 import { t } from '../../core/i18n';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEye, lucideEyeOff } from '@ng-icons/lucide';
+
 import { BrnInputOtp } from '@spartan-ng/brain/input-otp';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -13,7 +13,6 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmCheckbox } from '@spartan-ng/helm/checkbox';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmInput } from '@spartan-ng/helm/input';
-import { HlmInputGroupImports } from '@spartan-ng/helm/input-group';
 import { HlmInputOtpImports } from '@spartan-ng/helm/input-otp';
 import { HlmSeparator } from '@spartan-ng/helm/separator';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
@@ -35,14 +34,13 @@ const CODE_LENGTH = 6;
     FormRoot,
     FormField,
     RouterLink,
-    NgIcon,
     BrnInputOtp,
     HlmButton,
     HlmCardImports,
     HlmCheckbox,
     HlmFieldImports,
     HlmInput,
-    HlmInputGroupImports,
+    PasswordField,
     HlmInputOtpImports,
     HlmSeparator,
     HlmSpinner,
@@ -51,7 +49,7 @@ const CODE_LENGTH = 6;
     MicrosoftSignInButton,
     TranslatePipe,
   ],
-  providers: [provideIcons({ lucideEye, lucideEyeOff })],
+
   template: `
     <app-auth-layout
       [title]="title()"
@@ -92,26 +90,7 @@ const CODE_LENGTH = 6;
                     >{{ 'auth.login.forgot' | translate }}</a
                   >
                 </div>
-                <div hlmInputGroup>
-                  <input
-                    hlmInputGroupInput
-                    id="password"
-                    autocomplete="current-password"
-                    [type]="passwordVisible() ? 'text' : 'password'"
-                    [formField]="credentials.password"
-                  />
-                  <div hlmInputGroupAddon align="inline-end">
-                    <button
-                      hlmInputGroupButton
-                      size="icon-xs"
-                      [attr.aria-label]="passwordVisible() ? ('auth.login.hidePassword' | translate) : ('auth.login.showPassword' | translate)"
-                      [attr.aria-pressed]="passwordVisible()"
-                      (click)="passwordVisible.set(!passwordVisible())"
-                    >
-                      <ng-icon [name]="passwordVisible() ? 'lucideEyeOff' : 'lucideEye'" />
-                    </button>
-                  </div>
-                </div>
+                <app-password-field inputId="password" fieldName="password" autocomplete="current-password" [markInvalid]="!!error()" [formField]="credentials.password" />
                 @if (error()) {
                   <hlm-field-error forceShow>{{ error() }}</hlm-field-error>
                 }
@@ -240,7 +219,6 @@ export class Login implements OnInit {
   protected readonly codeLength = CODE_LENGTH;
   protected readonly slots = Array.from({ length: CODE_LENGTH }, (_, index) => index);
   protected readonly step = signal<'credentials' | 'email' | 'code'>('credentials');
-  protected readonly passwordVisible = signal(false);
   protected readonly usingRecoveryCode = signal(false);
   protected readonly rememberDevice = signal(false);
   protected readonly error = signal<string | null>(null);

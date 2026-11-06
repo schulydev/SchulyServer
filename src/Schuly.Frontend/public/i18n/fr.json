@@ -291,7 +291,14 @@
       "invalid": "Cette confirmation n'est plus valable. Retourne à la connexion et recommence.",
       "sendFailed": "L'envoi du code a échoué. Réessaie dans un instant.",
       "mismatch": "Ce code ne correspond pas. Vérifie l'e-mail et réessaie.",
-      "expired": "Ce code a expiré. Nous pouvons t'en envoyer un nouveau."
+      "expired": "Ce code a expiré. Nous pouvons t'en envoyer un nouveau.",
+      "changeAddress": "Mauvaise adresse ? Changer l’e-mail",
+      "newAddress": "Ton adresse e-mail",
+      "newAddressHint": "Nous y envoyons un nouveau code. L’ancien ne fonctionne plus.",
+      "sendCode": "Envoyer le code",
+      "sentToNew": "Nous avons envoyé un nouveau code à ta nouvelle adresse.",
+      "addressTaken": "Un autre compte utilise déjà cette adresse e-mail.",
+      "addressInvalid": "Saisis une adresse e-mail valide."
     },
     "verify": "Vérifier",
     "backToSignIn": "Retour à la connexion",
@@ -338,7 +345,8 @@
       "account_exists": "Un compte avec cet e-mail existe déjà. Connecte-toi avec ton mot de passe, puis associe ce fournisseur dans les paramètres.",
       "linked_to_another_account": "Cette connexion appartient déjà à un autre compte Schuly.",
       "provider_already_linked": "Ce fournisseur est déjà associé à ton compte.",
-      "external_login_failed": "La connexion avec ce fournisseur n'a pas marché. Réessaie."
+      "external_login_failed": "La connexion avec ce fournisseur n'a pas marché. Réessaie.",
+      "email_not_verified": "Ce fournisseur n’a pas confirmé ton adresse e-mail, aucun compte n’a donc été créé. Confirme-la d’abord chez lui ou crée un compte avec ton e-mail."
     },
     "tooMany": "Trop de tentatives. Attends une minute et réessaie.",
     "unreachable": "Schuly n'est pas joignable pour l'instant.",
@@ -396,6 +404,208 @@
       "confirmTitle": "Supprimer ton compte ?",
       "confirmDescription": "Cela supprime définitivement ton compte Schuly, tes comptes scolaires liés et toutes les notes, épreuves, absences et documents synchronisés sur le serveur.",
       "password": "Ton mot de passe (laisse vide si tu utilises uniquement l'authentification unique)"
+    },
+    "profile": {
+      "label": "Profil",
+      "changePicture": "Changer la photo de profil",
+      "upload": "Téléverser une photo…",
+      "confirmed": "Confirmée",
+      "tooLarge": "La photo ne doit pas dépasser 2 Mo."
+    },
+    "accounts": {
+      "title": "Écoles et comptes",
+      "description": "Les écoles et services que Schuly synchronise pour toi.",
+      "add": "Ajouter",
+      "addAria": "Ajouter une école ou un compte",
+      "loading": "Chargement des comptes liés",
+      "groupAria": "Comptes {{name}}",
+      "loadFailed": "Impossible de charger les comptes",
+      "noAnswer": "Ce service n’a pas répondu. Réessaie plus tard.",
+      "status": {
+        "ok": "Connecté",
+        "syncing": "Synchronisation",
+        "expired": "Connexion expirée",
+        "error": "Problème"
+      },
+      "signInAgain": "Se reconnecter",
+      "signInAgainAria": "Se reconnecter à {{name}}",
+      "reauth": "Se réauthentifier",
+      "reauthAria": "Se réauthentifier à {{name}}",
+      "unlink": "Délier",
+      "unlinkAria": "Délier {{name}}",
+      "unlinkTitle": "Délier {{name}} ?",
+      "unlinkText": "Schuly arrête de le lire et supprime ce qu’il en a enregistré. Tu peux le rajouter à tout moment.",
+      "none": "Aucune école ni aucun compte lié pour l’instant. Ajoutes-en un pour lancer la synchronisation.",
+      "linked": "{{name}} lié",
+      "accountLinked": "Compte lié",
+      "finishFailed": "Impossible de terminer la connexion.",
+      "unlinked": "{{name}} délié"
+    },
+    "security": {
+      "title": "Sécurité",
+      "description": "Comment tu te connectes à Schuly et où tu es connecté.",
+      "password": {
+        "label": "Mot de passe",
+        "set": "Défini",
+        "notSet": "Non défini · tu te connectes avec un fournisseur",
+        "change": "Modifier",
+        "add": "Ajouter un mot de passe"
+      },
+      "twoFactor": {
+        "label": "Authentification à deux facteurs",
+        "on": "Activée · {count, plural, one {# code de récupération restant} other {# codes de récupération restants}}",
+        "off": "Désactivée · un code de ton téléphone à chaque nouvelle connexion",
+        "setUp": "Configurer",
+        "turnOff": "Désactiver"
+      },
+      "providers": {
+        "title": "Fournisseurs de connexion",
+        "link": "Lier",
+        "linkAria": "Lier un fournisseur de connexion",
+        "unlink": "Délier",
+        "unlinkAria": "Délier {{name}}",
+        "none": "Aucun fournisseur lié. Lies-en un pour te connecter sans mot de passe."
+      },
+      "devices": {
+        "title": "Appareils",
+        "lastActive": "Dernière activité : {{when}}",
+        "thisDevice": "Cet appareil",
+        "signOut": "Déconnecter",
+        "signOutAria": "Déconnecter {{name}}",
+        "signedOut": "{{name}} déconnecté",
+        "remembered": "{count, plural, one {# appareil saute} other {# appareils sautent}} le code à deux facteurs.",
+        "forget": "Oublier les appareils mémorisés",
+        "unknown": "Appareil inconnu",
+        "app": "App Schuly",
+        "on": "{{browser}} sur {{system}}"
+      },
+      "passwordDialog": {
+        "changeTitle": "Modifier le mot de passe",
+        "addTitle": "Ajouter un mot de passe",
+        "changeDescription": "Ensuite, reconnecte-toi avec le nouveau, ici et sur tes autres appareils.",
+        "addDescription": "Tu pourras alors aussi te connecter avec ton e-mail et ce mot de passe.",
+        "newPassword": "Nouveau mot de passe",
+        "newPasswordHint": "Au moins {{min}} caractères. Une phrase dont tu te souviens fonctionne bien.",
+        "submitChange": "Modifier le mot de passe",
+        "submitAdd": "Ajouter le mot de passe"
+      },
+      "twoFactorDialog": {
+        "title": "Configurer l’authentification à deux facteurs",
+        "step": "Étape {{step}} sur 3 · {{label}}",
+        "steps": {
+          "proof": "confirme que c’est toi",
+          "app": "connecte ton app",
+          "codes": "codes de récupération"
+        },
+        "codesTitle": "Enregistre tes codes de récupération",
+        "codesText": "Chacun te connecte une fois si tu perds ton téléphone. Garde-les en lieu sûr, pas seulement sur cet appareil. Ils ne sont affichés que maintenant.",
+        "codesAria": "Codes de récupération",
+        "copyCodes": "Copier les codes",
+        "copied": "Codes de récupération copiés",
+        "copyFailed": "Copie impossible. Sélectionne les codes et copie-les toi-même.",
+        "saved": "Je les ai enregistrés",
+        "scan": "Scanne ceci avec ton app d’authentification, puis saisis le code à 6 chiffres qu’elle affiche.",
+        "qrAlt": "Code QR pour ton app d’authentification",
+        "cantScan": "Impossible de scanner ? Saisis",
+        "codeLabel": "Code de l’app",
+        "verify": "Vérifier",
+        "appTitle": "Il te faut une app d’authentification",
+        "appText": "Microsoft Authenticator, Google Authenticator ou ton gestionnaire de mots de passe."
+      },
+      "twoFactorOff": {
+        "title": "Désactiver l’authentification à deux facteurs",
+        "description": "Pour te connecter, il ne faudra alors plus que ton mot de passe ou ton fournisseur.",
+        "codeLabel": "Code de ton app ou code de récupération"
+      },
+      "linkPick": {
+        "title": "Lier un fournisseur",
+        "description": "Choisis-en un pour te connecter, en plus de ceux que tu as.",
+        "linkAria": "Lier {{name}}"
+      },
+      "link": {
+        "title": "Lier {{name}}",
+        "description": "Tu pourras alors aussi te connecter avec {{name}}.",
+        "codeLabel": "Code de ton app",
+        "submit": "Continuer vers {{name}}"
+      },
+      "unlink": {
+        "title": "Délier {{name}} ?",
+        "description": "Tu ne pourras plus te connecter avec {{name}} et tu seras déconnecté partout, ici aussi."
+      },
+      "lastWayIn": {
+        "title": "Tu ne peux pas encore délier {{name}}",
+        "alertTitle": "C’est ton seul moyen de connexion",
+        "alertText": "Ajoute d’abord un mot de passe ou lie un autre fournisseur, sinon tu te bloquerais.",
+        "addPassword": "Ajouter un mot de passe"
+      },
+      "signOutDialog": {
+        "title": "Déconnecter {{name}} ?",
+        "description": "Il devra se reconnecter pour utiliser Schuly."
+      },
+      "signInAgain": {
+        "description": "Pour ta sécurité, modifier ta connexion met fin à toutes les sessions, y compris celle-ci.",
+        "button": "Se reconnecter"
+      },
+      "messages": {
+        "loadFailed": "Impossible de charger tes paramètres de sécurité.",
+        "passwordAdded": "Ton mot de passe est ajouté. Reconnecte-toi.",
+        "passwordChanged": "Ton mot de passe est modifié. Reconnecte-toi avec le nouveau.",
+        "checkCurrentPassword": "Cela n’a pas fonctionné. Vérifie ton mot de passe actuel.",
+        "emailSent": "Nous avons envoyé une confirmation à {{email}}. Ton e-mail change dès que tu la confirmes.",
+        "checkPassword": "Cela n’a pas fonctionné. Vérifie ton mot de passe.",
+        "codeMismatch": "Ce code ne correspond pas. Essaie celui affiché actuellement dans ton app.",
+        "twoFactorOn": "L’authentification à deux facteurs est activée. Reconnecte-toi avec un code de ton app.",
+        "twoFactorOff": "L’authentification à deux facteurs est désactivée. Reconnecte-toi.",
+        "codeOrPassword": "Le code ou le mot de passe ne correspond pas.",
+        "unlinked": "Le fournisseur est délié. Reconnecte-toi.",
+        "unlinkFailed": "Cela n’a pas fonctionné. Vérifie ton code ou ton mot de passe et garde au moins un moyen de connexion.",
+        "linked": "Le fournisseur est lié. Tu peux maintenant te connecter avec.",
+        "signOutFailed": "Impossible de déconnecter cet appareil.",
+        "forgetFailed": "Impossible d’oublier tes appareils."
+      }
+    },
+    "proof": {
+      "currentPassword": "Mot de passe actuel",
+      "continueWith": "Continuer avec {{name}}",
+      "signOutAndIn": "Déconnecte-toi puis reconnecte-toi, puis réessaie.",
+      "reason": {
+        "addPassword": "Pour ajouter un mot de passe, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "twoFactor": "Pour activer l’authentification à deux facteurs, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "twoFactorOff": "Pour désactiver l’authentification à deux facteurs, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "link": "Pour lier {{name}}, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "unlink": "Pour délier {{name}}, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "email": "Pour changer ton e-mail, confirme que c’est toi en te reconnectant. Tu reviens directement ici.",
+        "delete": "Pour supprimer ton compte, confirme que c’est toi en te reconnectant. Tu reviens directement ici."
+      }
+    },
+    "danger": {
+      "title": "Zone de danger",
+      "description": "Modifications du compte lui-même.",
+      "email": {
+        "label": "Changer l’e-mail",
+        "text": "Où Schuly envoie les codes et les avis.",
+        "change": "Modifier",
+        "description": "Nous envoyons un lien à la nouvelle adresse ; ton e-mail change dès que tu l’ouvres.",
+        "passwordFirst": "Ajoute d’abord un mot de passe",
+        "passwordFirstText": "Ton e-mail ici appartient au fournisseur avec lequel tu te connectes. Ajoute un mot de passe sous Sécurité, puis tu pourras choisir le tien.",
+        "checkInbox": "Consulte ta boîte de réception",
+        "sentTo": "Nous avons envoyé un lien à {{email}}. Ouvre-le pour terminer le changement.",
+        "newEmail": "Nouvel e-mail",
+        "submit": "Envoyer le lien"
+      },
+      "export": {
+        "label": "Exporter tes données",
+        "text": "Un fichier avec ton profil, tes comptes liés et les données scolaires synchronisées.",
+        "button": "Exporter"
+      },
+      "delete": {
+        "text": "Supprime ton compte et tout ce que Schuly a enregistré. C’est irréversible.",
+        "description": "Ton profil, tes comptes liés et toutes les données scolaires synchronisées sont supprimés. Tes comptes scolaires eux-mêmes restent intacts.",
+        "alertTitle": "C’est irréversible",
+        "alertText": "Exporte d’abord tes données si tu veux les garder.",
+        "typeConfirm": "Saisis {{word}} pour confirmer",
+        "word": "SUPPRIMER"
+      }
     }
   },
   "chat": {

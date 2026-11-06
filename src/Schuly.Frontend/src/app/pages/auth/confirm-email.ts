@@ -93,22 +93,22 @@ export function confirmEmailHint(challenge: EmailChallenge | null): string {
         @if (changing()) {
           <form class="mt-4 flex flex-col gap-3 border-t pt-4" (submit)="changeAddress($event)">
             <div hlmField>
-              <label hlmFieldLabel for="new-address">Your email address</label>
+              <label hlmFieldLabel for="new-address">{{ 'auth.confirm.newAddress' | translate }}</label>
               <input hlmInput id="new-address" type="email" autocomplete="email" [value]="newAddress()" (input)="newAddress.set($any($event.target).value)" />
-              <p hlmFieldDescription>We send a new code there. The old one stops working.</p>
+              <p hlmFieldDescription>{{ 'auth.confirm.newAddressHint' | translate }}</p>
             </div>
             <div class="flex gap-2">
               <button hlmBtn type="submit" class="flex-1" [disabled]="busy() || !newAddress().includes('@')">
                 @if (busy()) {
                   <hlm-spinner />
                 }
-                Send code
+                {{ 'auth.confirm.sendCode' | translate }}
               </button>
-              <button hlmBtn variant="outline" type="button" (click)="changing.set(false)">Cancel</button>
+              <button hlmBtn variant="outline" type="button" (click)="changing.set(false)">{{ 'common.cancel' | translate }}</button>
             </div>
           </form>
         } @else {
-          <button hlmBtn variant="link" type="button" class="w-full" (click)="changing.set(true)">Wrong address? Change email</button>
+          <button hlmBtn variant="link" type="button" class="w-full" (click)="changing.set(true)">{{ 'auth.confirm.changeAddress' | translate }}</button>
         }
       </div>
     </section>
@@ -195,18 +195,18 @@ export class ConfirmEmail {
       await this.auth.changeEmailCodeAddress(this.newAddress().trim());
       this.model.set({ code: '' });
       this.changing.set(false);
-      this.notice.set('We sent a new code to your new address.');
+      this.notice.set(t('auth.confirm.sentToNew'));
       document.getElementById('email-code')?.focus();
     } catch (error) {
       const status = error instanceof HttpErrorResponse ? error.status : 0;
       this.error.set(
         status === 409
-          ? 'Another account already uses that email address.'
+          ? t('auth.confirm.addressTaken')
           : status === 400
-            ? 'Enter a valid email address.'
+            ? t('auth.confirm.addressInvalid')
             : status === 401
-              ? 'This confirmation is no longer valid. Go back to sign in and start again.'
-              : 'Something went wrong. Try again in a moment.',
+              ? t('auth.confirm.invalid')
+              : t('auth.confirm.sendFailed'),
       );
     } finally {
       this.busy.set(false);

@@ -6,21 +6,23 @@ import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { UserStore } from '../../stores/user.store';
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 
 /** One profile line: the picture, changed from a small menu on it, then the name and sign-in email. */
 @Component({
   selector: 'app-account-card',
-  imports: [NgIcon, HlmAlertImports, HlmAvatarImports, HlmCardImports, HlmDropdownMenuImports],
+  imports: [NgIcon, HlmAlertImports, HlmAvatarImports, HlmCardImports, HlmDropdownMenuImports, TranslatePipe],
   providers: [provideIcons({ lucideLoader2, lucidePencil })],
   template: `
-    <section hlmCard aria-label="Profile">
+    <section hlmCard [attr.aria-label]="'settings.profile.label' | translate">
       <div hlmCardContent class="flex flex-col gap-4">
         <div class="flex items-center gap-4">
           <input #file type="file" accept="image/png,image/jpeg,image/webp" class="hidden" tabindex="-1" aria-hidden="true" (change)="upload(file)" />
           <button
             type="button"
             class="focus-visible:ring-ring/50 relative shrink-0 rounded-full outline-none focus-visible:ring-[3px]"
-            aria-label="Change profile picture"
+            [attr.aria-label]="'settings.profile.changePicture' | translate"
             [disabled]="user.busy()"
             [hlmDropdownMenuTrigger]="picMenu"
             align="start"
@@ -46,7 +48,7 @@ import { UserStore } from '../../stores/user.store';
               {{ user.email() }}
               <!-- Sign-in needs a confirmed address, so an unconfirmed one shows no label rather than a warning nobody can act on here. -->
               @if (user.email() && user.emailConfirmed()) {
-                · <span class="text-green-700 dark:text-green-400">Confirmed</span>
+                · <span class="text-green-700 dark:text-green-400">{{ 'settings.profile.confirmed' | translate }}</span>
               }
             </p>
           </div>
@@ -62,9 +64,9 @@ import { UserStore } from '../../stores/user.store';
 
     <ng-template #picMenu>
       <hlm-dropdown-menu class="min-w-44">
-        <button hlmDropdownMenuItem type="button" (click)="file.click()">Upload a picture…</button>
+        <button hlmDropdownMenuItem type="button" (click)="file.click()">{{ 'settings.profile.upload' | translate }}</button>
         @if (user.avatar()) {
-          <button hlmDropdownMenuItem type="button" variant="destructive" (click)="user.removeAvatar()">Remove</button>
+          <button hlmDropdownMenuItem type="button" variant="destructive" (click)="user.removeAvatar()">{{ 'common.remove' | translate }}</button>
         }
       </hlm-dropdown-menu>
     </ng-template>
@@ -79,7 +81,7 @@ export class AccountCard {
     input.value = '';
     if (!file) return;
     if (file.size > 2_000_000) {
-      this.picError.set('The picture must be at most 2 MB.');
+      this.picError.set(t('settings.profile.tooLarge'));
       return;
     }
     this.picError.set(null);

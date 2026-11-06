@@ -71,7 +71,7 @@ import { ThemeStore } from '../../stores/theme.store';
           </ul>
         </nav>
         <div class="flex items-center gap-4">
-          <app-language-select />
+          <app-language-select size="sm" />
           <p>© {{ year }} Schuly</p>
         </div>
       </footer>

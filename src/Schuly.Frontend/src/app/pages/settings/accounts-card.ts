@@ -15,29 +15,31 @@ import { failureMessage, isTerminal, linkErrorMessage } from '../../core/linking
 import { ProviderIcon } from '../../shared/provider-icon';
 import { LinkedAccountsStore } from '../../stores/linked-accounts.store';
 import { LinkDialog } from './link-dialog';
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 
 const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: string }> = {
-  ok: { label: 'Connected', dot: 'bg-green-500', tone: '' },
-  syncing: { label: 'Syncing', dot: 'bg-muted-foreground', tone: '' },
-  expired: { label: 'Sign-in expired', dot: 'bg-amber-500', tone: 'text-amber-700 dark:text-amber-300' },
-  error: { label: 'Problem', dot: 'bg-destructive', tone: 'text-destructive' },
+  ok: { label: 'settings.accounts.status.ok', dot: 'bg-green-500', tone: '' },
+  syncing: { label: 'settings.accounts.status.syncing', dot: 'bg-muted-foreground', tone: '' },
+  expired: { label: 'settings.accounts.status.expired', dot: 'bg-amber-500', tone: 'text-amber-700 dark:text-amber-300' },
+  error: { label: 'settings.accounts.status.error', dot: 'bg-destructive', tone: 'text-destructive' },
 };
 
 /** Every linked school and service, grouped by provider, with add, re-authenticate and unlink. Nothing here knows a provider by name. */
 @Component({
   selector: 'app-accounts-card',
-  imports: [HlmAlertImports, HlmAlertDialogImports, HlmButton, HlmCardImports, HlmSpinner, NgIcon, LinkDialog, ProviderIcon],
+  imports: [TranslatePipe, HlmAlertImports, HlmAlertDialogImports, HlmButton, HlmCardImports, HlmSpinner, NgIcon, LinkDialog, ProviderIcon],
   providers: [provideIcons({ lucidePlus })],
   template: `
     <section hlmCard aria-labelledby="accounts-title">
       <div hlmCardHeader class="flex items-start justify-between gap-3">
         <div class="grid gap-1">
-          <h3 hlmCardTitle id="accounts-title">Schools &amp; accounts</h3>
-          <p hlmCardDescription>The schools and services Schuly syncs for you.</p>
+          <h3 hlmCardTitle id="accounts-title">{{ 'settings.accounts.title' | translate }}</h3>
+          <p hlmCardDescription>{{ 'settings.accounts.description' | translate }}</p>
         </div>
-        <button hlmBtn variant="outline" type="button" class="shrink-0" aria-label="Add a school or account" (click)="dialog().openAdd()">
+        <button hlmBtn variant="outline" type="button" class="shrink-0" [attr.aria-label]="'settings.accounts.addAria' | translate" (click)="dialog().openAdd()">
           <ng-icon name="lucidePlus" aria-hidden="true" />
-          Add
+          {{ 'settings.accounts.add' | translate }}
         </button>
       </div>
       <div hlmCardContent class="flex flex-col gap-5">
@@ -53,7 +55,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
         }
 
         @if (store.loading()) {
-          <hlm-spinner aria-label="Loading linked accounts" />
+          <hlm-spinner [attr.aria-label]="'settings.accounts.loading' | translate" />
         } @else if (store.groups().length) {
           @for (group of store.groups(); track group.providerId) {
             <div class="flex flex-col gap-2">
@@ -66,12 +68,12 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
                   }
                 </div>
               </div>
-              <ul class="divide-y rounded-xl border" [attr.aria-label]="group.name + ' accounts'">
+              <ul class="divide-y rounded-xl border" [attr.aria-label]="'settings.accounts.groupAria' | translate: { name: group.name }">
                 @for (account of group.accounts; track account.id) {
                   @if (!account.id) {
                     <li class="flex flex-col gap-1 px-3.5 py-3 text-sm">
-                      <span class="text-destructive font-medium">Could not load the accounts</span>
-                      <span class="text-muted-foreground text-xs">{{ account.message || 'This service did not answer. Try again later.' }}</span>
+                      <span class="text-destructive font-medium">{{ 'settings.accounts.loadFailed' | translate }}</span>
+                      <span class="text-muted-foreground text-xs">{{ account.message || ('settings.accounts.noAnswer' | translate) }}</span>
                     </li>
                   } @else {
                     <li class="flex flex-col gap-2 px-3.5 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -84,7 +86,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
                           }
                           <span class="inline-flex items-center gap-1.5" [class]="status(account).tone">
                             <span class="size-1.5 rounded-full" [class]="status(account).dot" aria-hidden="true"></span>
-                            {{ status(account).label }}
+                            {{ status(account).label | translate }}
                           </span>
                         </span>
                         @if (account.message) {
@@ -94,21 +96,21 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
                       <span class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                         @if (account.canReauth) {
                           @if (account.status === 'expired') {
-                            <button hlmBtn size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'Sign in again to ' + account.title" (click)="reauth(account)">Sign in again</button>
+                            <button hlmBtn size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'settings.accounts.signInAgainAria' | translate: { name: account.title }" (click)="reauth(account)">{{ 'settings.accounts.signInAgain' | translate }}</button>
                           } @else {
-                            <button hlmBtn variant="outline" size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'Re-authenticate ' + account.title" (click)="reauth(account)">Re-authenticate</button>
+                            <button hlmBtn variant="outline" size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'settings.accounts.reauthAria' | translate: { name: account.title }" (click)="reauth(account)">{{ 'settings.accounts.reauth' | translate }}</button>
                           }
                         }
                         <hlm-alert-dialog>
-                          <button hlmAlertDialogTrigger hlmBtn variant="outline" size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'Unlink ' + account.title">Unlink</button>
+                          <button hlmAlertDialogTrigger hlmBtn variant="outline" size="sm" type="button" [disabled]="store.busy()" [attr.aria-label]="'settings.accounts.unlinkAria' | translate: { name: account.title }">{{ 'settings.accounts.unlink' | translate }}</button>
                           <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx">
                             <hlm-alert-dialog-header>
-                              <h2 hlmAlertDialogTitle>Unlink {{ account.title }}?</h2>
-                              <p hlmAlertDialogDescription>Schuly stops reading it and deletes what it stored from it. You can add it again any time.</p>
+                              <h2 hlmAlertDialogTitle>{{ 'settings.accounts.unlinkTitle' | translate: { name: account.title } }}</h2>
+                              <p hlmAlertDialogDescription>{{ 'settings.accounts.unlinkText' | translate }}</p>
                             </hlm-alert-dialog-header>
                             <hlm-alert-dialog-footer>
-                              <button hlmAlertDialogCancel>Cancel</button>
-                              <button hlmAlertDialogAction variant="destructive" (click)="unlink(account)">Unlink</button>
+                              <button hlmAlertDialogCancel>{{ 'common.cancel' | translate }}</button>
+                              <button hlmAlertDialogAction variant="destructive" (click)="unlink(account)">{{ 'settings.accounts.unlink' | translate }}</button>
                             </hlm-alert-dialog-footer>
                           </hlm-alert-dialog-content>
                         </hlm-alert-dialog>
@@ -120,7 +122,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
             </div>
           }
         } @else if (!store.loadError()) {
-          <p class="text-muted-foreground text-sm">No schools or accounts linked yet. Add one to start syncing.</p>
+          <p class="text-muted-foreground text-sm">{{ 'settings.accounts.none' | translate }}</p>
         }
       </div>
     </section>
@@ -148,10 +150,10 @@ export class AccountsCard {
       const session = await firstValueFrom(this.api.poll(id));
       const end = isTerminal(session);
       if (end === 'failed') toast.error(failureMessage(session));
-      else if (end === 'done') toast.success(session.step.done?.title ? `Linked ${session.step.done.title}` : 'Account linked');
+      else if (end === 'done') toast.success(session.step.done?.title ? t('settings.accounts.linked', { name: session.step.done.title }) : t('settings.accounts.accountLinked'));
       await this.store.afterLink();
     } catch (error) {
-      toast.error(linkErrorMessage(error, 'Could not finish the sign-in.'));
+      toast.error(linkErrorMessage(error, t('settings.accounts.finishFailed')));
       await this.store.afterLink();
     }
   }
@@ -165,6 +167,6 @@ export class AccountsCard {
   }
 
   protected async unlink(account: LinkedAccountDto): Promise<void> {
-    if (await this.store.unlink(account)) toast.success(`Unlinked ${account.title}`);
+    if (await this.store.unlink(account)) toast.success(t('settings.accounts.unlinked', { name: account.title }));
   }
 }

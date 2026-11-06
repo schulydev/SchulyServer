@@ -291,7 +291,14 @@
       "invalid": "Questa confermaziun n'è betg pli valida. Turna a l'annunzia e cumenza da nov.",
       "sendFailed": "Insatge è ì mal cun trametter il code. Emprova anc ina giada en in mument.",
       "mismatch": "Il code na correspunda betg. Controllescha l'e-mail ed emprova anc ina giada.",
-      "expired": "Quest code è scadì. Nus pudain trametter a tai in nov."
+      "expired": "Quest code è scadì. Nus pudain trametter a tai in nov.",
+      "changeAddress": "Adressa sbagliada? Midar l’e-mail",
+      "newAddress": "Tia adressa d’e-mail",
+      "newAddressHint": "Nus ta tramettain là in nov code. Il vegl na funcziuna betg pli.",
+      "sendCode": "Trametter il code",
+      "sentToNew": "Nus avain tramess in nov code a tia nova adressa.",
+      "addressTaken": "In auter conto utilisescha gia questa adressa d’e-mail.",
+      "addressInvalid": "Endatescha ina adressa d’e-mail valida."
     },
     "verify": "Verifitgar",
     "backToSignIn": "Enavos a l'annunzia",
@@ -338,7 +345,8 @@
       "account_exists": "I dat gia in conto cun questa adressa dad e-mail. T'annunzia cun tes pled-clav e collia lura quest purschider en ils parameters.",
       "linked_to_another_account": "Questa annunzia tutga gia tar in auter conto Schuly.",
       "provider_already_linked": "Quest purschider è gia collià cun tes conto.",
-      "external_login_failed": "L'annunzia cun quest purschider n'ha betg funcziunà. Emprova anc ina giada."
+      "external_login_failed": "L'annunzia cun quest purschider n'ha betg funcziunà. Emprova anc ina giada.",
+      "email_not_verified": "Quest purschider n’ha betg confermà tia adressa d’e-mail, perquai n’è nagin conto vegnì creà. Conferma l’adressa l’emprim là u creescha in conto cun tia e-mail."
     },
     "tooMany": "Memia bleras emprovas. Spetga ina minuta ed emprova anc ina giada.",
     "unreachable": "Schuly n'è per il mument betg cuntanschibel.",
@@ -396,6 +404,208 @@
       "confirmTitle": "Stizzar tes conto?",
       "confirmDescription": "Quai stizza definitivamain tes conto Schuly, tes contos da scola colliads e tut las notas, tests, absenzas e documents sincronisads sin il server.",
       "password": "Tes pled-clav (lascha vid, sche ti duvras mo single sign-on)"
+    },
+    "profile": {
+      "label": "Profil",
+      "changePicture": "Midar il maletg dal profil",
+      "upload": "Chargiar si in maletg…",
+      "confirmed": "Confermà",
+      "tooLarge": "Il maletg dastga esser maximalmain 2 MB grond."
+    },
+    "accounts": {
+      "title": "Scolas & contos",
+      "description": "Las scolas e ils servetschs che Schuly sincronisescha per tai.",
+      "add": "Agiuntar",
+      "addAria": "Agiuntar ina scola u in conto",
+      "loading": "Ils contos colliads vegnan chargiads",
+      "groupAria": "Contos tar {{name}}",
+      "loadFailed": "Ils contos n’han betg pudì vegnir chargiads",
+      "noAnswer": "Quest servetsch n’ha betg respundì. Emprova pli tard anc ina giada.",
+      "status": {
+        "ok": "Collià",
+        "syncing": "Vegn sincronisà",
+        "expired": "Annunzia scadida",
+        "error": "Problem"
+      },
+      "signInAgain": "S’annunziar da nov",
+      "signInAgainAria": "S’annunziar da nov tar {{name}}",
+      "reauth": "S’autentifitgar da nov",
+      "reauthAria": "S’autentifitgar da nov tar {{name}}",
+      "unlink": "Separar",
+      "unlinkAria": "Separar {{name}}",
+      "unlinkTitle": "Separar {{name}}?",
+      "unlinkText": "Schuly na legia betg pli quai e stizza tut quai ch’el ha memorisà da quai. Ti pos agiuntar quai da nov da tut temp.",
+      "none": "Anc naginas scolas u contos colliads. Agiunta in, per ch’il sincronisar cumenza.",
+      "linked": "{{name}} collià",
+      "accountLinked": "Conto collià",
+      "finishFailed": "L’annunzia n’ha betg pudì vegnir terminada.",
+      "unlinked": "{{name}} separà"
+    },
+    "security": {
+      "title": "Segirezza",
+      "description": "Co che ti t’annunzias tar Schuly e nua che ti es annunzià.",
+      "password": {
+        "label": "Pled-clav",
+        "set": "Definì",
+        "notSet": "Betg definì · ti t’annunzias cun in purschider",
+        "change": "Midar",
+        "add": "Agiuntar in pled-clav"
+      },
+      "twoFactor": {
+        "label": "Autentificaziun da dus facturs",
+        "on": "Activ · {count, plural, one {# code da recuperaziun restant} other {# codes da recuperaziun restants}}",
+        "off": "Deactivà · in code da tes telefonin tar mintga nova annunzia",
+        "setUp": "Installar",
+        "turnOff": "Deactivar"
+      },
+      "providers": {
+        "title": "Purschiders d’annunzia",
+        "link": "Colliar",
+        "linkAria": "Colliar in purschider d’annunzia",
+        "unlink": "Separar",
+        "unlinkAria": "Separar {{name}}",
+        "none": "Nagin purschider collià. Collia in per t’annunziar senza pled-clav."
+      },
+      "devices": {
+        "title": "Apparats",
+        "lastActive": "L’ultima giada activ: {{when}}",
+        "thisDevice": "Quest apparat",
+        "signOut": "Deconnectar",
+        "signOutAria": "Deconnectar {{name}}",
+        "signedOut": "{{name}} deconnectà",
+        "remembered": "{count, plural, one {# apparat sursiglia} other {# apparats sursiglian}} il code da dus facturs.",
+        "forget": "Emblidar ils apparats memorisads",
+        "unknown": "Apparat nunenconuschent",
+        "app": "App Schuly",
+        "on": "{{browser}} sin {{system}}"
+      },
+      "passwordDialog": {
+        "changeTitle": "Midar il pled-clav",
+        "addTitle": "Agiuntar in pled-clav",
+        "changeDescription": "Silsuenter t’annunzias ti cun il nov, qua e sin tes auters apparats.",
+        "addDescription": "Silsuenter pos ti t’annunziar er cun tia e-mail e quest pled-clav.",
+        "newPassword": "Nov pled-clav",
+        "newPasswordHint": "Almain {{min}} caracters. Ina frasa che ti ta regordas va bain.",
+        "submitChange": "Midar il pled-clav",
+        "submitAdd": "Agiuntar il pled-clav"
+      },
+      "twoFactorDialog": {
+        "title": "Installar l’autentificaziun da dus facturs",
+        "step": "Pass {{step}} da 3 · {{label}}",
+        "steps": {
+          "proof": "conferma che ti es ti",
+          "app": "colliar tia app",
+          "codes": "codes da recuperaziun"
+        },
+        "codesTitle": "Memorisescha tes codes da recuperaziun",
+        "codesText": "Mintgin t’annunzia ina giada, sche ti perdas tes telefonin. Tegna els en in lieu segir, betg mo sin quest apparat. Els vegnan mussads mo ussa.",
+        "codesAria": "Codes da recuperaziun",
+        "copyCodes": "Copiar ils codes",
+        "copied": "Codes da recuperaziun copiads",
+        "copyFailed": "Copiar n’ha betg funcziunà. Marca ils codes e copiescha els sez.",
+        "saved": "Jau als hai memorisà",
+        "scan": "Scannescha quai cun tia app d’autentificaziun ed endatescha lura il code da 6 cifras ch’ella mussa.",
+        "qrAlt": "Code QR per tia app d’autentificaziun",
+        "cantScan": "Scannar na va betg? Endatescha",
+        "codeLabel": "Code da l’app",
+        "verify": "Verifitgar",
+        "appTitle": "Ti dovras ina app d’autentificaziun",
+        "appText": "Microsoft Authenticator, Google Authenticator u tes administratur da pleds-clav."
+      },
+      "twoFactorOff": {
+        "title": "Deactivar l’autentificaziun da dus facturs",
+        "description": "Per t’annunziar dovras ti lura mo pli tes pled-clav u tes purschider.",
+        "codeLabel": "Code da tia app u in code da recuperaziun"
+      },
+      "linkPick": {
+        "title": "Colliar in purschider",
+        "description": "Tscherna in, cun il qual ti vuls t’annunziar supplementarmain.",
+        "linkAria": "Colliar {{name}}"
+      },
+      "link": {
+        "title": "Colliar {{name}}",
+        "description": "Silsuenter pos ti t’annunziar er cun {{name}}.",
+        "codeLabel": "Code da tia app",
+        "submit": "Vinavant tar {{name}}"
+      },
+      "unlink": {
+        "title": "Separar {{name}}?",
+        "description": "Ti na pos lura betg pli t’annunziar cun {{name}} e vegns deconnectà dapertut, er qua."
+      },
+      "lastWayIn": {
+        "title": "Ti na pos anc betg separar {{name}}",
+        "alertTitle": "Quai è tia suletta pussaivladad d’annunzia",
+        "alertText": "Agiunta l’emprim in pled-clav u collia in auter purschider, uschiglio ta serras ti ora.",
+        "addPassword": "Agiuntar in pled-clav"
+      },
+      "signOutDialog": {
+        "title": "Deconnectar {{name}}?",
+        "description": "L’apparat sto s’annunziar da nov per duvrar Schuly."
+      },
+      "signInAgain": {
+        "description": "Per tia segirezza termina ina midada da tia annunzia tut las sesidas, er questa.",
+        "button": "S’annunziar da nov"
+      },
+      "messages": {
+        "loadFailed": "Tes parameters da segirezza n’han betg pudì vegnir chargiads.",
+        "passwordAdded": "Tes pled-clav è agiuntà. T’annunzia da nov.",
+        "passwordChanged": "Tes pled-clav è midà. T’annunzia da nov cun il nov.",
+        "checkCurrentPassword": "Quai n’ha betg funcziunà. Controllescha tes pled-clav actual.",
+        "emailSent": "Nus avain tramess ina conferma a {{email}}. Tia e-mail sa mida uschespert che ti la confermas.",
+        "checkPassword": "Quai n’ha betg funcziunà. Controllescha tes pled-clav.",
+        "codeMismatch": "Quest code na correspunda betg. Emprova l’actual da tia app.",
+        "twoFactorOn": "L’autentificaziun da dus facturs è activa. T’annunzia da nov cun in code da tia app.",
+        "twoFactorOff": "L’autentificaziun da dus facturs è deactivada. T’annunzia da nov.",
+        "codeOrPassword": "Il code u il pled-clav na correspunda betg.",
+        "unlinked": "Il purschider è separà. T’annunzia da nov.",
+        "unlinkFailed": "Quai n’ha betg funcziunà. Controllescha code u pled-clav e tegna almain ina pussaivladad d’annunzia.",
+        "linked": "Il purschider è collià. Ti pos ussa t’annunziar cun el.",
+        "signOutFailed": "Quest apparat n’ha betg pudì vegnir deconnectà.",
+        "forgetFailed": "Tes apparats n’han betg pudì vegnir emblidads."
+      }
+    },
+    "proof": {
+      "currentPassword": "Pled-clav actual",
+      "continueWith": "Vinavant cun {{name}}",
+      "signOutAndIn": "Deconnectescha e t’annunzia da nov, lura emprova anc ina giada.",
+      "reason": {
+        "addPassword": "Per agiuntar in pled-clav, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "twoFactor": "Per activar l’autentificaziun da dus facturs, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "twoFactorOff": "Per deactivar l’autentificaziun da dus facturs, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "link": "Per colliar {{name}}, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "unlink": "Per separar {{name}}, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "email": "Per midar tia e-mail, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua.",
+        "delete": "Per stizzar tes conto, conferma cun ina nova annunzia che ti es ti. Ti turnas directamain qua."
+      }
+    },
+    "danger": {
+      "title": "Zona privlusa",
+      "description": "Midadas vi dal conto sez.",
+      "email": {
+        "label": "Midar l’e-mail",
+        "text": "Nua che Schuly tramet codes ed avis.",
+        "change": "Midar",
+        "description": "Nus tramettain ina colliaziun a la nova adressa; tia e-mail sa mida uschespert che ti l’averschas.",
+        "passwordFirst": "Agiunta l’emprim in pled-clav",
+        "passwordFirstText": "Tia e-mail qua tutga tar il purschider cun il qual ti t’annunzias. Agiunta sut Segirezza in pled-clav, lura pos ti tscherner tia atgna.",
+        "checkInbox": "Guarda en tia chascha da posta",
+        "sentTo": "Nus avain tramess ina colliaziun a {{email}}. Avra la per terminar la midada.",
+        "newEmail": "Nova e-mail",
+        "submit": "Trametter la colliaziun"
+      },
+      "export": {
+        "label": "Exportar tias datas",
+        "text": "Ina datoteca cun tes profil, tes contos colliads e las datas da scola sincronisadas.",
+        "button": "Exportar"
+      },
+      "delete": {
+        "text": "Allontanescha tes conto e tut quai che Schuly ha memorisà. Quai na po betg vegnir revocà.",
+        "description": "Tes profil, tes contos colliads e tut las datas da scola sincronisadas vegnan stizzads. Tes contos da scola sezs restan intacts.",
+        "alertTitle": "Quai na po betg vegnir revocà",
+        "alertText": "Exportescha l’emprim tias datas, sche ti las vuls tegnair.",
+        "typeConfirm": "Endatescha {{word}} per confermar",
+        "word": "STIZZAR"
+      }
     }
   },
   "chat": {

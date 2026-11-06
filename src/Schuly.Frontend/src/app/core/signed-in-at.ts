@@ -34,11 +34,20 @@ export function proofMode(hasPassword: boolean, fresh = signedInRecently()): Pro
   return fresh ? 'none' : 'reauth';
 }
 
+/** The words around the names, so the caller can translate them. */
+export interface AgentWords {
+  unknown: string;
+  app: string;
+  on: (browser: string, system: string) => string;
+}
+
+const ENGLISH: AgentWords = { unknown: 'Unknown device', app: 'Schuly app', on: (browser, system) => `${browser} on ${system}` };
+
 /** "Firefox on Linux" from a raw user agent; the Schuly app names itself. */
-export function describeAgent(agent: string | null | undefined): string {
-  if (!agent) return 'Unknown device';
-  if (/^schuly|dart\//i.test(agent)) return /android/i.test(agent) ? 'Schuly app on Android' : /ios|iphone|ipad/i.test(agent) ? 'Schuly app on iOS' : 'Schuly app';
+export function describeAgent(agent: string | null | undefined, words: AgentWords = ENGLISH): string {
+  if (!agent) return words.unknown;
+  if (/^schuly|dart\//i.test(agent)) return /android/i.test(agent) ? words.on(words.app, 'Android') : /ios|iphone|ipad/i.test(agent) ? words.on(words.app, 'iOS') : words.app;
   const browser = /Edg\//.test(agent) ? 'Edge' : /OPR\//.test(agent) ? 'Opera' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : 'Browser';
   const system = /Windows/.test(agent) ? 'Windows' : /Android/.test(agent) ? 'Android' : /iPhone|iPad/.test(agent) ? 'iOS' : /Mac OS/.test(agent) ? 'macOS' : /Linux/.test(agent) ? 'Linux' : '';
-  return system ? `${browser} on ${system}` : browser;
+  return system ? words.on(browser, system) : browser;
 }

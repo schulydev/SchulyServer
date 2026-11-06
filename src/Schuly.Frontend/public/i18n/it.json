@@ -291,7 +291,14 @@
       "invalid": "Questa conferma non è più valida. Torna all'accesso e ricomincia.",
       "sendFailed": "Qualcosa è andato storto nell'invio del codice. Riprova tra poco.",
       "mismatch": "Il codice non corrisponde. Controlla l'e-mail e riprova.",
-      "expired": "Questo codice è scaduto. Possiamo inviartene uno nuovo."
+      "expired": "Questo codice è scaduto. Possiamo inviartene uno nuovo.",
+      "changeAddress": "Indirizzo sbagliato? Cambia e-mail",
+      "newAddress": "Il tuo indirizzo e-mail",
+      "newAddressHint": "Ti mandiamo lì un nuovo codice. Quello vecchio non funziona più.",
+      "sendCode": "Invia il codice",
+      "sentToNew": "Abbiamo mandato un nuovo codice al tuo nuovo indirizzo.",
+      "addressTaken": "Un altro account usa già questo indirizzo e-mail.",
+      "addressInvalid": "Inserisci un indirizzo e-mail valido."
     },
     "verify": "Verifica",
     "backToSignIn": "Torna all'accesso",
@@ -338,7 +345,8 @@
       "account_exists": "Esiste già un account con questa e-mail. Accedi con la password, poi collega questo provider nelle impostazioni.",
       "linked_to_another_account": "Questo accesso appartiene già a un altro account Schuly.",
       "provider_already_linked": "Questo provider è già collegato al tuo account.",
-      "external_login_failed": "L'accesso con questo provider non ha funzionato. Riprova."
+      "external_login_failed": "L'accesso con questo provider non ha funzionato. Riprova.",
+      "email_not_verified": "Questo provider non ha confermato il tuo indirizzo e-mail, quindi non è stato creato nessun account. Confermalo prima lì o crea un account con la tua e-mail."
     },
     "tooMany": "Troppi tentativi. Aspetta un minuto e riprova.",
     "unreachable": "Schuly non è raggiungibile al momento.",
@@ -396,6 +404,208 @@
       "confirmTitle": "Eliminare il tuo account?",
       "confirmDescription": "Elimina definitivamente il tuo account Schuly, gli account scolastici collegati e tutte le note, verifiche, assenze e documenti sincronizzati sul server.",
       "password": "La tua password (lascia vuoto se usi solo il single sign-on)"
+    },
+    "profile": {
+      "label": "Profilo",
+      "changePicture": "Cambia l’immagine del profilo",
+      "upload": "Carica un’immagine…",
+      "confirmed": "Confermata",
+      "tooLarge": "L’immagine può pesare al massimo 2 MB."
+    },
+    "accounts": {
+      "title": "Scuole e account",
+      "description": "Le scuole e i servizi che Schuly sincronizza per te.",
+      "add": "Aggiungi",
+      "addAria": "Aggiungi una scuola o un account",
+      "loading": "Caricamento degli account collegati",
+      "groupAria": "Account {{name}}",
+      "loadFailed": "Impossibile caricare gli account",
+      "noAnswer": "Questo servizio non ha risposto. Riprova più tardi.",
+      "status": {
+        "ok": "Connesso",
+        "syncing": "Sincronizzazione",
+        "expired": "Accesso scaduto",
+        "error": "Problema"
+      },
+      "signInAgain": "Accedi di nuovo",
+      "signInAgainAria": "Accedi di nuovo a {{name}}",
+      "reauth": "Autenticati di nuovo",
+      "reauthAria": "Autenticati di nuovo su {{name}}",
+      "unlink": "Scollega",
+      "unlinkAria": "Scollega {{name}}",
+      "unlinkTitle": "Scollegare {{name}}?",
+      "unlinkText": "Schuly smette di leggerlo e cancella quanto ne ha salvato. Puoi aggiungerlo di nuovo in qualsiasi momento.",
+      "none": "Nessuna scuola o account collegato. Aggiungine uno per iniziare a sincronizzare.",
+      "linked": "{{name}} collegato",
+      "accountLinked": "Account collegato",
+      "finishFailed": "Impossibile completare l’accesso.",
+      "unlinked": "{{name}} scollegato"
+    },
+    "security": {
+      "title": "Sicurezza",
+      "description": "Come accedi a Schuly e dove hai effettuato l’accesso.",
+      "password": {
+        "label": "Password",
+        "set": "Impostata",
+        "notSet": "Non impostata · accedi con un provider",
+        "change": "Cambia",
+        "add": "Aggiungi password"
+      },
+      "twoFactor": {
+        "label": "Autenticazione a due fattori",
+        "on": "Attiva · {count, plural, one {# codice di recupero rimasto} other {# codici di recupero rimasti}}",
+        "off": "Disattivata · un codice dal tuo telefono a ogni nuovo accesso",
+        "setUp": "Configura",
+        "turnOff": "Disattiva"
+      },
+      "providers": {
+        "title": "Provider di accesso",
+        "link": "Collega",
+        "linkAria": "Collega un provider di accesso",
+        "unlink": "Scollega",
+        "unlinkAria": "Scollega {{name}}",
+        "none": "Nessun provider collegato. Collegane uno per accedere senza password."
+      },
+      "devices": {
+        "title": "Dispositivi",
+        "lastActive": "Ultima attività: {{when}}",
+        "thisDevice": "Questo dispositivo",
+        "signOut": "Disconnetti",
+        "signOutAria": "Disconnetti {{name}}",
+        "signedOut": "{{name}} disconnesso",
+        "remembered": "{count, plural, one {# dispositivo salta} other {# dispositivi saltano}} il codice a due fattori.",
+        "forget": "Dimentica i dispositivi memorizzati",
+        "unknown": "Dispositivo sconosciuto",
+        "app": "App Schuly",
+        "on": "{{browser}} su {{system}}"
+      },
+      "passwordDialog": {
+        "changeTitle": "Cambia password",
+        "addTitle": "Aggiungi una password",
+        "changeDescription": "Poi accedi di nuovo con quella nuova, qui e sugli altri tuoi dispositivi.",
+        "addDescription": "Poi potrai accedere anche con la tua e-mail e questa password.",
+        "newPassword": "Nuova password",
+        "newPasswordHint": "Almeno {{min}} caratteri. Una frase che ricordi funziona bene.",
+        "submitChange": "Cambia password",
+        "submitAdd": "Aggiungi password"
+      },
+      "twoFactorDialog": {
+        "title": "Configura l’autenticazione a due fattori",
+        "step": "Passo {{step}} di 3 · {{label}}",
+        "steps": {
+          "proof": "conferma che sei tu",
+          "app": "collega la tua app",
+          "codes": "codici di recupero"
+        },
+        "codesTitle": "Salva i tuoi codici di recupero",
+        "codesText": "Ognuno ti fa accedere una volta se perdi il telefono. Conservali in un posto sicuro, non solo su questo dispositivo. Vengono mostrati solo ora.",
+        "codesAria": "Codici di recupero",
+        "copyCodes": "Copia i codici",
+        "copied": "Codici di recupero copiati",
+        "copyFailed": "Impossibile copiare. Seleziona i codici e copiali tu.",
+        "saved": "Li ho salvati",
+        "scan": "Scansiona questo con la tua app di autenticazione, poi inserisci il codice a 6 cifre che mostra.",
+        "qrAlt": "Codice QR per la tua app di autenticazione",
+        "cantScan": "Non riesci a scansionare? Inserisci",
+        "codeLabel": "Codice dall’app",
+        "verify": "Verifica",
+        "appTitle": "Ti serve un’app di autenticazione",
+        "appText": "Microsoft Authenticator, Google Authenticator o il tuo gestore di password."
+      },
+      "twoFactorOff": {
+        "title": "Disattiva l’autenticazione a due fattori",
+        "description": "Per accedere ti basterà poi la password o il provider.",
+        "codeLabel": "Codice dalla tua app o codice di recupero"
+      },
+      "linkPick": {
+        "title": "Collega un provider",
+        "description": "Scegline uno con cui accedere, oltre a quelli che hai.",
+        "linkAria": "Collega {{name}}"
+      },
+      "link": {
+        "title": "Collega {{name}}",
+        "description": "Poi potrai accedere anche con {{name}}.",
+        "codeLabel": "Codice dalla tua app",
+        "submit": "Continua su {{name}}"
+      },
+      "unlink": {
+        "title": "Scollegare {{name}}?",
+        "description": "Non potrai più accedere con {{name}} e verrai disconnesso ovunque, anche qui."
+      },
+      "lastWayIn": {
+        "title": "Non puoi ancora scollegare {{name}}",
+        "alertTitle": "È il tuo unico modo per accedere",
+        "alertText": "Aggiungi prima una password o collega un altro provider, altrimenti resteresti chiuso fuori.",
+        "addPassword": "Aggiungi una password"
+      },
+      "signOutDialog": {
+        "title": "Disconnettere {{name}}?",
+        "description": "Dovrà accedere di nuovo per usare Schuly."
+      },
+      "signInAgain": {
+        "description": "Per la tua sicurezza, cambiare il modo di accesso chiude tutte le sessioni, anche questa.",
+        "button": "Accedi di nuovo"
+      },
+      "messages": {
+        "loadFailed": "Impossibile caricare le tue impostazioni di sicurezza.",
+        "passwordAdded": "La password è stata aggiunta. Accedi di nuovo.",
+        "passwordChanged": "La password è cambiata. Accedi di nuovo con quella nuova.",
+        "checkCurrentPassword": "Non ha funzionato. Controlla la password attuale.",
+        "emailSent": "Abbiamo mandato una conferma a {{email}}. La tua e-mail cambia appena la confermi.",
+        "checkPassword": "Non ha funzionato. Controlla la password.",
+        "codeMismatch": "Il codice non corrisponde. Prova quello attuale nella tua app.",
+        "twoFactorOn": "L’autenticazione a due fattori è attiva. Accedi di nuovo con un codice dalla tua app.",
+        "twoFactorOff": "L’autenticazione a due fattori è disattivata. Accedi di nuovo.",
+        "codeOrPassword": "Il codice o la password non corrisponde.",
+        "unlinked": "Il provider è scollegato. Accedi di nuovo.",
+        "unlinkFailed": "Non ha funzionato. Controlla codice o password e tieni almeno un modo per accedere.",
+        "linked": "Il provider è collegato. Ora puoi accedere con esso.",
+        "signOutFailed": "Impossibile disconnettere questo dispositivo.",
+        "forgetFailed": "Impossibile dimenticare i tuoi dispositivi."
+      }
+    },
+    "proof": {
+      "currentPassword": "Password attuale",
+      "continueWith": "Continua con {{name}}",
+      "signOutAndIn": "Esci e accedi di nuovo, poi riprova.",
+      "reason": {
+        "addPassword": "Per aggiungere una password, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "twoFactor": "Per attivare l’autenticazione a due fattori, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "twoFactorOff": "Per disattivare l’autenticazione a due fattori, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "link": "Per collegare {{name}}, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "unlink": "Per scollegare {{name}}, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "email": "Per cambiare la tua e-mail, conferma che sei tu accedendo di nuovo. Torni subito qui.",
+        "delete": "Per eliminare il tuo account, conferma che sei tu accedendo di nuovo. Torni subito qui."
+      }
+    },
+    "danger": {
+      "title": "Zona pericolosa",
+      "description": "Modifiche all’account stesso.",
+      "email": {
+        "label": "Cambia e-mail",
+        "text": "Dove Schuly invia codici e avvisi.",
+        "change": "Cambia",
+        "description": "Mandiamo un link al nuovo indirizzo; la tua e-mail cambia appena lo apri.",
+        "passwordFirst": "Aggiungi prima una password",
+        "passwordFirstText": "La tua e-mail qui appartiene al provider con cui accedi. Aggiungi una password in Sicurezza, poi potrai sceglierne una tua.",
+        "checkInbox": "Controlla la tua casella",
+        "sentTo": "Abbiamo mandato un link a {{email}}. Aprilo per completare la modifica.",
+        "newEmail": "Nuova e-mail",
+        "submit": "Invia il link"
+      },
+      "export": {
+        "label": "Esporta i tuoi dati",
+        "text": "Un file con il tuo profilo, gli account collegati e i dati scolastici sincronizzati.",
+        "button": "Esporta"
+      },
+      "delete": {
+        "text": "Rimuove il tuo account e tutto ciò che Schuly ha salvato. Non si può annullare.",
+        "description": "Il tuo profilo, gli account collegati e tutti i dati scolastici sincronizzati vengono eliminati. I tuoi account scolastici restano intatti.",
+        "alertTitle": "Non si può annullare",
+        "alertText": "Esporta prima i tuoi dati se vuoi tenerli.",
+        "typeConfirm": "Scrivi {{word}} per confermare",
+        "word": "ELIMINA"
+      }
     }
   },
   "chat": {
