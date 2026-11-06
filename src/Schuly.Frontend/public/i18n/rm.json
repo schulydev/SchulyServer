@@ -74,7 +74,7 @@
     "delay": "Retard",
     "delays": "Retards",
     "lessons": "Lecziuns",
-    "daysMissed": "Dis absents",
+    "daysMissed": "Dis d'absenza",
     "semester": "Semester",
     "summary": "Resumaziun",
     "detailsFor": "Detagls per {{range}}",
@@ -98,10 +98,10 @@
       "School": "Scola"
     },
     "status": {
-      "excused": "Stgüsà",
+      "excused": "Perstgisà",
       "upcoming": "Planisà",
-      "notExcused": "Betg stgüsà",
-      "needsExcuse": "Stgisa necessaria {{due}}",
+      "notExcused": "Betg perstgisà",
+      "needsExcuse": "Perstgisa necessaria {{due}}",
       "due": "fin ils {{date}}",
       "dueExpected": "fin ils {{date}} (probablamain)",
       "waitingParents": "Spetga sin ils geniturs",
@@ -111,23 +111,23 @@
       "rejectedLehrmeister": "Refusà dal Lehrmeister"
     },
     "answer": {
-      "needs": "{count, plural, one {# absenza sto vegnir stgüsada} other {# absenzas ston vegnir stgüsadas}}",
-      "needsHintBbb": "Entaifer 14 dis suenter l'absenza. CHF 10 per lecziun, sch'ella resta betg stgüsada.",
-      "needsHint": "Stgüsa ella uschia sco che tia scola pretenda.",
+      "needs": "{count, plural, one {# absenza sto vegnir perstgisada} other {# absenzas ston vegnir perstgisadas}}",
+      "needsHintBbb": "Entaifer 14 dis suenter l'absenza. CHF 10 per lecziun, sch'ella resta betg perstgisada.",
+      "needsHint": "Perstgisa ella uschia sco che tia scola pretenda.",
       "rejected": "{count, plural, one {# absenza è vegnida refusada} other {# absenzas èn vegnidas refusadas}}",
-      "rejectedHint": "Scleresch cun la persuna che ha refusà u cun tia scola.",
-      "unexcused": "{count, plural, one {# absenza n'è betg stgüsada} other {# absenzas n'èn betg stgüsadas}}",
-      "unexcusedHintBbb": "Absenzas betg stgüsadas custan CHF 10 per lecziun e vegnan en il Zeugnis.",
+      "rejectedHint": "Sclerescha la chaussa cun la persuna che ha refusà u cun tia scola.",
+      "unexcused": "{count, plural, one {# absenza n'è betg perstgisada} other {# absenzas n'èn betg perstgisadas}}",
+      "unexcusedHintBbb": "Absenzas betg perstgisadas custan CHF 10 per lecziun e vegnan en il Zeugnis.",
       "unexcusedHint": "Las reglas da tia scola decidan co ch'i va vinavant.",
       "nothingToDo": "Per il mument nagut da far",
       "plannedBbb": "Absenzas planisadas vegnan inscrittas en Schulnetz almain 7 dis ordavant.",
       "upcoming": "{count, plural, one {# absenza planisada.} other {# absenzas planisadas.}}",
-      "allExcused": "Tut stgüsà",
-      "allExcusedHint": "Mintga absenza da quest semester è stgüsada.",
+      "allExcused": "Tut perstgisà",
+      "allExcusedHint": "Mintga absenza da quest semester è perstgisada.",
       "none": "Naginas absenzas en quest semester",
       "noneHint": "Qua cumparan las absenzas ed ils retards che tia scola registrescha.",
       "nothingOpen": "Nagut marcà sco avert",
-      "nothingOpenHint": "Tia scola na di betg, sch'ellas èn tuttas stgüsadas."
+      "nothingOpenHint": "Tia scola na di betg, sch'ellas èn tuttas perstgisadas."
     },
     "withdraw": {
       "action": "Retrair",
@@ -172,7 +172,7 @@
     "next": "sco proxim: {{title}}",
     "nextIn": "sco proxim: {{title}} en {{room}}",
     "lessonsOver": "las lecziuns èn finidas per oz",
-    "onTrack": "Sin bun via",
+    "onTrack": "Sin buna via",
     "atRisk": "En privel",
     "inDays": "{count, plural, =0 {oz} =1 {damaun} other {en # dis}}",
     "ago": {
@@ -191,22 +191,22 @@
     "attention": {
       "title": "Basegna tia attenziun",
       "none": "Per il mument nagut da far.",
-      "fine": "CHF 10 per lecziun, sch'ella resta betg stgüsada",
-      "needsExcuse": "L'absenza dals {{date}} sto vegnir stgüsada",
+      "fine": "CHF 10 per lecziun, sch'ella resta betg perstgisada",
+      "needsExcuse": "L'absenza dals {{date}} sto vegnir perstgisada",
       "rejected": "L'absenza dals {{date}} è vegnida refusada",
       "test": "Test: {{title}}"
     }
   },
   "grades": {
-    "otherSubjects": "Autras rolas",
-    "belowSoFar": "{count, plural, =0 {Fin ussa nagina rola sut 4} one {Fin ussa # rola sut 4} other {Fin ussa # rolas sut 4}}",
-    "below": "{count, plural, =0 {Nagina rola sut 4} one {# rola sut 4} other {# rolas sut 4}}",
+    "otherSubjects": "Auters roms",
+    "belowSoFar": "{count, plural, =0 {Fin ussa nagin rom sut 4} one {Fin ussa # rom sut 4} other {Fin ussa # roms sut 4}}",
+    "below": "{count, plural, =0 {Nagin rom sut 4} one {# rom sut 4} other {# roms sut 4}}",
     "risk": {
-      "subjects": "{count, plural, one {# rola sut 4, il limit è 2} other {# rolas sut 4, il limit è 2}}",
+      "subjects": "{count, plural, one {# rom sut 4, il limit è 2} other {# roms sut 4, il limit è 2}}",
       "points": "{{points}} puncts sut 4, il limit è 2",
       "average": "la media è sut 4",
       "atRisk": "Promotion en privel: {{risk}}",
-      "onTrack": "Sin bun via per la Promotion"
+      "onTrack": "Sin buna via per la Promotion"
     },
     "allSemesters": "Tut ils semesters",
     "promotion": "Promotion: {{promotion}}",
@@ -218,7 +218,7 @@
       "fromZeugnis": "Da tes Zeugnis.",
       "noAverage": "Ils Zeugnis da tia scola n'han nagina media generala, perquai na mussa Schuly nagina.",
       "pending": "La media dal semester cumpara, uschespert ch'il Zeugnis è qua. {{below}}.",
-      "noClass": "Schuly n'ha betg pudì attribuir questas rolas ad ina classa.",
+      "noClass": "Schuly n'ha betg pudì attribuir quests roms ad ina classa.",
       "noZeugnisYet": "Schuly n'ha anc nagin Zeugnis da tai.",
       "firstZeugnis": "Tes emprim Zeugnis vegn a la fin da quest semester.",
       "withoutDate": "Questas notas n'han nagina data e na tutgan perquai tar nagin semester."
@@ -228,19 +228,19 @@
       "description": "Tia scola n'ha anc partì naginas notas cun Schuly."
     },
     "class": "Classa",
-    "subjects": "Rolas",
+    "subjects": "Roms",
     "deviation": "Negative Abweichung",
-    "subjectsBelowFour": "Rolas sut 4",
-    "search": "Tschertgar tests u rolas",
+    "subjectsBelowFour": "Roms sut 4",
+    "search": "Tschertgar tests u roms",
     "view": "Vista",
-    "bySubject": "Tenor rola",
+    "bySubject": "Tenor rom",
     "byDate": "Tenor data",
     "zeugnis": "Zeugnis",
     "testOn": "Test ils {{day}}",
-    "zeugnisOnlyHint": "Da tes Zeugnis. Schuly n'ha nagins tests per questa rola.",
+    "zeugnisOnlyHint": "Da tes Zeugnis. Schuly n'ha nagins tests per quest rom.",
     "upcoming": "Proximamain",
     "undated": "{count, plural, one {# nota n'ha nagina data e n'è en nagin semester. Tscherna «Nagina data» en la glista per la vesair.} other {# notas n'han nagina data e n'èn en nagin semester. Tscherna «Nagina data» en la glista per las vesair.}}",
-    "plainAverage": "Las rolas mussan lur media simpla. Quella po esser autra che quella che tia scola stampa.",
+    "plainAverage": "Ils roms mussan lur media simpla. Quella po esser autra che quella che tia scola stampa.",
     "withoutDate": "Notas senza data",
     "noMatch": "Nagin test na correspunda a «{{query}}».",
     "noneInSemester": "En quest semester datti anc naginas notas.",
@@ -279,9 +279,9 @@
       "contact": "Contact"
     },
     "confirm": {
-      "checkEmail": "Guarda en tias e-mails per confermar tia adressa.",
+      "checkEmail": "Guarda en tes e-mails per confermar tia adressa.",
       "sentTo": "Nus avain tramess in code da 6 cifras a {{email}}. Endatescha el per terminar.",
-      "sent": "Nus avain tramess in code da 6 cifras a tia e-mail. Endatescha el per terminar.",
+      "sent": "Nus avain tramess in code da 6 cifras a tia adressa dad e-mail. Endatescha el per terminar.",
       "code": "Code da confermaziun",
       "resendIn": "Trametter danovamain il code en {{seconds}} s",
       "resend": "Trametter danovamain il code",
@@ -329,11 +329,11 @@
       "codeFailed": "Quest code n'ha betg funcziunà. Spetga sin il proxim code en tia app ed endatescha quel."
     },
     "password": "Pled-clav",
-    "confirmEmail": "Conferma tia e-mail",
+    "confirmEmail": "Conferma tia adressa dad e-mail",
     "external": {
       "access_denied": "Ti has interrut l'annunzia.",
       "account_not_found": "Anc nagin conto Schuly na duvra questa annunzia. Creescha l'emprim in conto e collia ella lura en ils parameters.",
-      "account_exists": "I dat gia in conto cun questa e-mail. T'annunzia cun tes pled-clav e collia lura quest purschider en ils parameters.",
+      "account_exists": "I dat gia in conto cun questa adressa dad e-mail. T'annunzia cun tes pled-clav e collia lura quest purschider en ils parameters.",
       "linked_to_another_account": "Questa annunzia tutga gia tar in auter conto Schuly.",
       "provider_already_linked": "Quest purschider è gia collià cun tes conto.",
       "external_login_failed": "L'annunzia cun quest purschider n'ha betg funcziunà. Emprova anc ina giada."
@@ -343,12 +343,12 @@
     "register": {
       "title": "Creescha tes conto.",
       "subtitle": "Gratuit, e tias datas da scola restan tias.",
-      "emailHint": "Nus tramettain in code per la confermar.",
+      "emailHint": "Nus tramettain in code da confermaziun.",
       "agree": "Cun crear in conto accepteschas ti nossas",
       "see": "Guarda nossa",
       "policy": "decleraziun da protecziun da datas",
       "already": "Has ti gia in conto?",
-      "taken": "Quest num d'utilisader u questa e-mail è gia occupà."
+      "taken": "Quest num d'utilisader u questa adressa dad e-mail è gia occupà."
     },
     "username": "Num d'utilisader",
     "minLength": "Almain 8 caracters.",
@@ -365,9 +365,9 @@
       "expired": "Questa colliaziun è scadida u è gia vegnida duvrada. Dumonda ina nova."
     },
     "verifyEmail": {
-      "title": "Tia e-mail vegn confermada.",
+      "title": "Tia adressa dad e-mail vegn confermada.",
       "working": "Vegn confermà",
-      "done": "E-mail confermada",
+      "done": "Adressa dad e-mail confermada",
       "doneHint": "Tia adressa è verifitgada. Cun quella pos ti reinizialisar tes pled-clav, sche necessari.",
       "failed": "Questa colliaziun n'ha betg funcziunà",
       "failedHint": "Ella è forsa scadida u gia duvrada. Dumonda ina nova en tes parameters.",
@@ -512,7 +512,7 @@
       "start": "Entschatta",
       "end": "Ura da la fin",
       "descriptionField": "Descripziun (facultativ)",
-      "needSubject": "Da in object a la sesida.",
+      "needSubject": "Dà in object a la sesida.",
       "needTimes": "Tscherna ina data, in'ura da cumenzament ed in'ura da la fin.",
       "endAfterStart": "La sesida sto finir suenter l'entschatta.",
       "done": "Sesida planisada.",
@@ -646,8 +646,8 @@
       "size": "Grondezza"
     },
     "sort": {
-      "descending": "{{column}} en urden descendenta",
-      "ascending": "{{column}} en urden ascendenta",
+      "descending": "{{column}} en urden descendent",
+      "ascending": "{{column}} en urden ascendent",
       "by": "Zavrar tenor {{sort}}",
       "currentDown": "(actual, descendent)",
       "currentUp": "(actual, ascendent)",
@@ -838,7 +838,7 @@
       "deleteAll": "Stizzar tut ils discurs",
       "retention": "Ils discurs vegnan stizzads automaticamain suenter 30 dis.",
       "renameTitle": "Renumnar il discurs",
-      "renameHint": "Da a quest discurs in num che ti renconuschas.",
+      "renameHint": "Dà a quest discurs in num che ti renconuschas.",
       "title": "Titel",
       "deleteOne": "Stizzar quest discurs?",
       "deleteAllDescription": "Tut ils discurs cun Helply vegnan stizzads. Quai na po betg vegnir revocà. Ils discurs vegnan er stizzads automaticamain suenter 30 dis.",
@@ -881,10 +881,10 @@
     "sendFailed": "Quest messadi n'ha betg pudì vegnir tramess. Controllescha sia lunghezza ed emprova anc ina giada.",
     "suggest": {
       "exams": "Tge tests hai jau quest'emna?",
-      "mail": "Fa in resumaziun da mes e-mails betg legids",
+      "mail": "Fa ina resumaziun da mes e-mails betg legids",
       "grades": "Co stattan mias notas en quest semester?",
       "calendar": "Tge stat damaun en mia agenda?",
-      "absences": "Hai jau absenzas betg stgüsadas?",
+      "absences": "Hai jau absenzas betg perstgisadas?",
       "teams": "Tge è nov en mes chats da Teams?",
       "drive": "Tge datotecas hai jau midà ultimamain?",
       "onenote": "Tge hai jau notà l'emna passada en OneNote?",
@@ -941,9 +941,9 @@
       "schoolAccounts": "Contos da scola",
       "schoolAccountsHint": "Tge scolas e classas èn colliadas.",
       "mail": "E-mail",
-      "mailHint": "Leger e-mails. Scriver tramet, respunda, transmetta, spusta, marca e marca sco legì.",
+      "mailHint": "Leger e-mails. Scriver trametta, respunda, transmetta, spusta, marca e marca sco legì.",
       "teams": "Teams",
-      "teamsHint": "Leger chats. Scriver tramet er messadis.",
+      "teamsHint": "Leger chats. Scriver trametta er messadis.",
       "drive": "Drive",
       "driveHint": "Navigar en tias datotecas OneDrive.",
       "onenote": "OneNote",
@@ -1062,7 +1062,7 @@
       "loading": "Activitad vegn chargiada",
       "allowed": "Permess",
       "denied": "Refusà",
-      "latest": "Ils ultims 100 clomps dals ultims 30 dis.",
+      "latest": "Ils ultims 100 cloms dals ultims 30 dis.",
       "none": "Nagina activitad en ils ultims 30 dis."
     },
     "keys": {
@@ -1207,7 +1207,7 @@
     "showImage": "Mussar il maletg",
     "imageFrom": "da {{host}}",
     "copyLabel": "Copiar {{label}}",
-    "copiedTo": "{{label}} copià en la tavla da copiar",
+    "copiedTo": "{{label}} copià en l'archiv provisoric",
     "copyFailed": "Copiar n'ha betg funcziunà. Marca il text e copiescha el a maun.",
     "viewer": {
       "previous": "Datoteca precedenta",
