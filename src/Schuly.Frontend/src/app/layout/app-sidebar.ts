@@ -1,7 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCalendarDays, lucideChartColumn, lucideClipboardList, lucideFileText, lucideHardDrive, lucideLayoutDashboard, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug, lucideUserX } from '@ng-icons/lucide';
+import { lucideCalendarDays, lucideChartColumn, lucideFileText, lucideHardDrive, lucideLayoutDashboard, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug, lucideUserX } from '@ng-icons/lucide';
 import { HlmSidebarImports } from '@spartan-ng/helm/sidebar';
 import { LinkedAccountsStore } from '../stores/linked-accounts.store';
 import { NavUser } from './nav-user';
@@ -18,7 +18,7 @@ interface NavItem {
 @Component({
   selector: 'app-sidebar',
   imports: [HlmSidebarImports, NgIcon, RouterLink, RouterLinkActive, NavUser],
-  providers: [provideIcons({ lucideLayoutDashboard, lucideChartColumn, lucideClipboardList, lucideCalendarDays, lucideUserX, lucideFileText, lucideHardDrive, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug })],
+  providers: [provideIcons({ lucideLayoutDashboard, lucideChartColumn, lucideCalendarDays, lucideUserX, lucideFileText, lucideHardDrive, lucideMail, lucideMessagesSquare, lucideNotebook, lucidePlug })],
   template: `
     <hlm-sidebar collapsible="icon" role="complementary" aria-label="Sidebar">
       <div hlmSidebarHeader class="border-b">
@@ -94,7 +94,6 @@ export class AppSidebar {
       label: 'School',
       items: [
         { title: 'Grades', url: '/grades', icon: 'lucideChartColumn' },
-        { title: 'Exams', url: '/exams', icon: 'lucideClipboardList' },
         { title: 'Calendar', url: '/calendar', icon: 'lucideCalendarDays' },
         { title: 'Absences', url: '/absences', icon: 'lucideUserX' },
         { title: 'Documents', url: '/documents', icon: 'lucideFileText' },

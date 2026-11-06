@@ -1,339 +1,289 @@
-import { DecimalPipe } from '@angular/common';
-import { SyncingNotice } from '../shared/syncing-notice';
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, Injector, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowRight,
-  lucideCalendarDays,
-  lucideChartColumn,
-  lucideTrendingDown,
-  lucideTrendingUp,
-} from '@ng-icons/lucide';
-import { HlmBadge } from '@spartan-ng/helm/badge';
-import { HlmButton } from '@spartan-ng/helm/button';
-import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmProgressImports } from '@spartan-ng/helm/progress';
+import { lucideCoffee, lucideUtensils } from '@ng-icons/lucide';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { HlmTableImports } from '@spartan-ng/helm/table';
+import { AgendaEntryDto } from '../api';
+import { buildAbsenceRows, todayInSwitzerland } from '../core/absence-view';
 import { dateOnly } from '../core/calendar';
-import { AgendaTypeBadge } from '../shared/agenda-type-badge';
-import { EmptyState } from '../shared/empty-state';
-import { GradeBadge } from '../shared/grade-badge';
+import { AppDatePipe } from '../core/date-format';
+import { buildGradeGroups, cleanExamName, gradeHeadline, groupClassNames, isBbbWebsite, isGraded, oneDecimal, semesterOfDate, subjectsBelowFour } from '../core/grade-report';
+import { attentionItems, needsReportLookup } from '../core/overview-attention';
+import { buildTimeline, currentLesson, durationText, greeting, minutesLeft, nextLesson, relativeDay, remainingPercent } from '../core/today-timeline';
+import { SyncingNotice } from '../shared/syncing-notice';
 import { AbsencesStore } from '../stores/absences.store';
 import { AgendaStore } from '../stores/agenda.store';
 import { GradesStore } from '../stores/grades.store';
+import { ReportedAbsencesCache } from '../stores/reported-absences-cache';
+import { MySchoolsStore, SemesterReportsStore } from '../stores/semester-reports.store';
 import { UserStore } from '../stores/user.store';
-import { AppDatePipe } from '../core/date-format';
+import { gradeTone } from './grades-tone';
+
+/** How often the running lesson's countdown moves on. */
+const TICK_MS = 15_000;
+const COMING_UP = 5;
+const NEW_GRADES = 3;
+
+const hhmm = (date: Date): string => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
 @Component({
   selector: 'app-overview',
-  imports: [SyncingNotice, 
-    HlmCardImports,
-    HlmBadge,
-    HlmButton,
-    HlmTableImports,
-    HlmProgressImports,
-    HlmSkeletonImports,
-    NgIcon,
-    RouterLink,
-    AppDatePipe,
-    DecimalPipe,
-    GradeBadge,
-    AgendaTypeBadge,
-    EmptyState,
-  ],
-  providers: [
-    provideIcons({
-      lucideTrendingUp,
-      lucideTrendingDown,
-      lucideArrowRight,
-      lucideChartColumn,
-      lucideCalendarDays,
-    }),
-  ],
+  imports: [SyncingNotice, HlmSkeletonImports, NgIcon, RouterLink, AppDatePipe],
+  providers: [provideIcons({ lucideCoffee, lucideUtensils })],
+  host: { class: 'block' },
   template: `
-    <div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div class="px-4 lg:px-6 empty:hidden"><app-syncing-notice /></div>
-      <div class="px-4 lg:px-6">
-        <h2 class="text-2xl font-semibold tracking-tight">Hi {{ firstName() }}</h2>
-        <p class="text-muted-foreground text-sm">Here is what is going on at school.</p>
-      </div>
+    <div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 lg:px-6">
+      <div class="empty:hidden"><app-syncing-notice /></div>
+      <header>
+        <h2 class="text-2xl font-semibold tracking-tight text-balance">{{ hello() }}</h2>
+        <p class="text-muted-foreground mt-1 text-sm">{{ subline() }}</p>
+      </header>
 
-      <div
-        class="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
-      >
-        <div class="@container/card" hlmCard>
-          <div hlmCardHeader>
-            <p hlmCardDescription>Average grade</p>
-            <h3 hlmCardTitle class="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              @if (grades.overallAverage(); as average) {
-                {{ average | number: '1.2-2' }}
-              } @else {
-                -
-              }
-            </h3>
-            <div hlmCardAction>
-              <span hlmBadge variant="outline">
-                <ng-icon
-                  [name]="grades.insufficientCount() ? 'lucideTrendingDown' : 'lucideTrendingUp'"
-                />
-                {{ grades.subjectAverages().length }} subjects
-              </span>
+      <div class="grid items-start gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <div class="flex min-w-0 flex-col gap-8 max-lg:contents">
+          <section aria-labelledby="today-title" class="max-lg:order-1">
+            <div class="mb-2.5 flex items-baseline justify-between gap-3">
+              <h3 id="today-title" class="text-[15px] font-semibold">Today</h3>
+              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">Timetable</a>
             </div>
-          </div>
-          <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
-            <div class="line-clamp-1 flex gap-2 font-medium">
-              @if (grades.insufficientCount(); as count) {
-                {{ count }} {{ count === 1 ? 'subject' : 'subjects' }} below 4
-              } @else {
-                All subjects at 4 or above
-              }
-            </div>
-            <div class="text-muted-foreground">Weighted average across all subjects</div>
-          </div>
-        </div>
-
-        <div class="@container/card" hlmCard>
-          <div hlmCardHeader>
-            <p hlmCardDescription>Upcoming tests</p>
-            <h3 hlmCardTitle class="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {{ upcoming().length }}
-            </h3>
-            <div hlmCardAction>
-              <span hlmBadge variant="outline">{{ examsThisWeek() }} this week</span>
-            </div>
-          </div>
-          <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
-            <div class="line-clamp-1 flex gap-2 font-medium">
-              @if (upcoming()[0]; as next) {
-                Next: {{ next.name }}
-              } @else {
-                Nothing scheduled
-              }
-            </div>
-            <div class="text-muted-foreground">
-              @if (upcoming()[0]?.date; as date) {
-                {{ date | appDate: 'weekdayDayMonthLong' }}
-              } @else {
-                Enjoy the quiet
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="@container/card" hlmCard>
-          <div hlmCardHeader>
-            <p hlmCardDescription>Today</p>
-            <h3 hlmCardTitle class="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {{ agenda.today().length }}
-            </h3>
-            <div hlmCardAction>
-              <span hlmBadge variant="outline">
-                <ng-icon name="lucideCalendarDays" />
-                {{ agenda.upcoming().length }} ahead
-              </span>
-            </div>
-          </div>
-          <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
-            <div class="line-clamp-1 flex gap-2 font-medium">
-              @if (agenda.today()[0]; as first) {
-                {{ first.title }}
-              } @else {
-                Free day
-              }
-            </div>
-            <div class="text-muted-foreground">Lessons and events in your agenda</div>
-          </div>
-        </div>
-
-        <div class="@container/card" hlmCard>
-          <div hlmCardHeader>
-            <p hlmCardDescription>Absences</p>
-            <h3 hlmCardTitle class="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {{ absences.absenceCount() }}
-            </h3>
-            <div hlmCardAction>
-              <span hlmBadge variant="outline">{{ absences.delayCount() }} delays</span>
-            </div>
-          </div>
-          <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
-            <div class="line-clamp-1 flex gap-2 font-medium">
-              {{ absences.daysMissed() }} days missed
-            </div>
-            <div class="text-muted-foreground">Recorded by your school</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-4 px-4 lg:px-6 @5xl/main:grid-cols-7">
-        <section hlmCard class="@5xl/main:col-span-4">
-          <div hlmCardHeader>
-            <h3 hlmCardTitle>Recent grades</h3>
-            <p hlmCardDescription>Your latest results</p>
-            <div hlmCardAction>
-              <a hlmBtn variant="ghost" size="sm" routerLink="/grades">
-                View all
-                <ng-icon name="lucideArrowRight" />
-              </a>
-            </div>
-          </div>
-          <div hlmCardContent>
-            @if (grades.loading()) {
-              <div class="flex flex-col gap-2">
-                @for (i of [1, 2, 3, 4]; track i) {
-                  <hlm-skeleton class="h-9 w-full" />
-                }
-              </div>
-            } @else if (recentGrades().length) {
-              <div hlmTableContainer>
-                <table hlmTable>
-                  <thead hlmTHead>
-                    <tr hlmTr>
-                      <th hlmTh>Exam</th>
-                      <th hlmTh class="hidden sm:table-cell">Subject</th>
-                      <th hlmTh class="hidden md:table-cell">Date</th>
-                      <th hlmTh class="text-right">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody hlmTBody>
-                    @for (grade of recentGrades(); track grade.id) {
-                      <tr hlmTr>
-                        <td hlmTd class="font-medium">{{ grade.exam }}</td>
-                        <td hlmTd class="text-muted-foreground hidden sm:table-cell">
-                          {{ grade.subject }}
-                        </td>
-                        <td hlmTd class="text-muted-foreground hidden md:table-cell">
-                          {{ grade.date | appDate: 'date' }}
-                        </td>
-                        <td hlmTd class="text-right"><app-grade-badge [score]="grade.score" /></td>
-                      </tr>
+            @if (agenda.loading() && !agenda.items().length) {
+              <div class="flex flex-col gap-2">@for (i of [1, 2, 3]; track i) {<div hlmSkeleton class="h-12 w-full"></div>}</div>
+            } @else if (timeline().length) {
+              <ol class="flex flex-col">
+                @for (slot of timeline(); track slot.key) {
+                  <li class="relative grid grid-cols-[52px_14px_minmax(0,1fr)] gap-2.5" [class.opacity-55]="slot.state === 'done'">
+                    <span class="text-muted-foreground text-right text-[13px] tabular-nums" [class]="slot.kind === 'lesson' ? 'pt-2.5' : 'pt-1'">{{ time(slot.start) }}</span>
+                    <span class="relative self-stretch" aria-hidden="true">
+                      <span class="bg-border absolute inset-y-0 left-1.5 w-0.5" [class.top-3.5]="$first" [class.bottom-auto]="$last" [class.h-3.5]="$last && !$first"></span>
+                      @if (slot.kind === 'lesson') {
+                        <span class="absolute top-3 left-0.5 size-2.5 rounded-full border-2"
+                          [class]="slot.state === 'now' ? 'border-primary bg-primary ring-primary/25 ring-4' : slot.state === 'done' ? 'border-border bg-border' : 'border-border bg-background'"></span>
+                      } @else {
+                        <span class="absolute top-2.5 left-1 size-1.5 rotate-45 rounded-[2px]" [class]="slot.state === 'now' ? 'bg-primary' : 'bg-muted-foreground'"></span>
+                      }
+                    </span>
+                    @if (slot.kind === 'lesson') {
+                      <div class="mb-1.5 rounded-lg px-3 py-2" [class.bg-muted]="slot.state === 'now'">
+                        <p class="flex flex-wrap items-center gap-1.5 font-medium">
+                          {{ slot.title }}
+                          @if (slot.test) {<span class="rounded-md bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Test</span>}
+                        </p>
+                        <p class="text-muted-foreground text-[13px]">{{ time(slot.start) }} – {{ time(slot.end) }}@if (slot.room) { · {{ slot.room }}}@if (slot.test) { · {{ slot.test }}}</p>
+                        @if (slot.state === 'now') {
+                          <p class="text-muted-foreground mt-1 flex items-center gap-1.5 text-[13px]">
+                            <span class="size-3 shrink-0 -scale-x-100 rounded-full" role="progressbar" aria-label="Time left in the lesson" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="pie(slot.start, slot.end)"
+                              [style.background]="'conic-gradient(var(--primary) ' + pie(slot.start, slot.end) + '%, color-mix(in oklab, var(--muted-foreground) 30%, transparent) 0)'"></span>
+                            <span><b class="text-foreground font-semibold tabular-nums">{{ left(slot.end) }}</b> left · ends {{ time(slot.end) }}</span>
+                          </p>
+                        }
+                      </div>
+                    } @else {
+                      <p class="text-muted-foreground mb-1.5 flex items-center gap-1.5 px-3 py-1 text-[13px]" [class.text-foreground]="slot.state === 'now'">
+                        <ng-icon [name]="slot.lunch ? 'lucideUtensils' : 'lucideCoffee'" class="shrink-0 text-sm" aria-hidden="true" />
+                        {{ slot.lunch ? 'Lunch break' : 'Big break' }} · {{ time(slot.start) }} – {{ time(slot.end) }}
+                      </p>
                     }
-                  </tbody>
-                </table>
-              </div>
+                  </li>
+                }
+              </ol>
             } @else {
-              <app-empty-state
-                icon="lucideChartColumn"
-                title="No grades yet"
-                description="Grades show up here once your school publishes them."
-              />
+              <p class="text-muted-foreground py-2 text-sm">{{ agenda.items().some(isLesson) ? 'No lessons today.' : "Your school doesn't share a timetable with Schuly." }}</p>
             }
-          </div>
-        </section>
+          </section>
 
-        <section hlmCard class="@5xl/main:col-span-3">
-          <div hlmCardHeader>
-            <h3 hlmCardTitle>Coming up</h3>
-            <p hlmCardDescription>Tests and events in your agenda</p>
-            <div hlmCardAction>
-              <a hlmBtn variant="ghost" size="sm" routerLink="/calendar">
-                Calendar
-                <ng-icon name="lucideArrowRight" />
+          <section aria-labelledby="grades-title" class="max-lg:order-4">
+            <div class="mb-2.5 flex items-baseline justify-between gap-3">
+              <h3 id="grades-title" class="text-[15px] font-semibold">New grades</h3>
+              <a routerLink="/grades" class="text-muted-foreground hover:text-foreground text-sm">
+                @if (standing(); as s) {<b class="text-foreground font-semibold">{{ s.value }}</b>@if (s.state) { · <span [class]="s.tone === 'bad' ? 'text-destructive font-medium' : 'font-medium text-green-700 dark:text-green-400'">{{ s.state }}</span>} · }All grades
               </a>
             </div>
-          </div>
-          <div hlmCardContent class="flex flex-col gap-4">
-            @for (entry of comingUp(); track entry.id) {
-              <div class="flex items-start gap-3">
-                <div class="bg-muted flex w-12 shrink-0 flex-col items-center rounded-md py-1.5">
-                  <span class="text-muted-foreground text-[10px] font-medium uppercase">{{
-                    entry.start | appDate: 'month'
-                  }}</span>
-                  <span class="text-lg leading-none font-semibold tabular-nums">{{
-                    entry.start | appDate: 'day'
-                  }}</span>
-                </div>
-                <div class="grid flex-1 gap-0.5">
-                  <span class="truncate text-sm font-medium">{{ entry.title }}</span>
-                  <span class="text-muted-foreground truncate text-xs"
-                    >@if (entry.end) {{{ entry.start | appDate: 'weekdayDayMonth' }} - {{ entry.end | appDate: 'weekdayDayMonth' }}} @else if (entry.allDay) {{{ entry.start | appDate: 'weekdayLong' }}, all day} @else {{{ entry.start | appDate: 'weekdayLongTime' }}}{{ entry.place ? ' - ' + entry.place : '' }}</span
-                  >
-                </div>
-                <app-agenda-type-badge [type]="entry.entryType" />
-              </div>
-            } @empty {
-              <app-empty-state
-                icon="lucideCalendarDays"
-                title="Nothing coming up"
-                description="Your agenda is clear."
-              />
+            @if (newGrades().length) {
+              <ul class="flex flex-col divide-y">
+                @for (grade of newGrades(); track grade.id) {
+                  <li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+                    <div class="min-w-0">
+                      <p class="font-medium break-words">{{ grade.exam }}</p>
+                      <p class="text-muted-foreground text-[13px]">{{ grade.subject }}@if (grade.when) { · {{ grade.when }}}</p>
+                    </div>
+                    <span class="min-w-11 rounded-lg px-2 py-0.5 text-center text-[13px] font-semibold tabular-nums" [class]="toneClass(grade.score)">{{ grade.score.toFixed(1) }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-muted-foreground py-2 text-sm">No grades yet.</p>
             }
-          </div>
-        </section>
-      </div>
-
-      @if (grades.subjectAverages().length) {
-        <div class="px-4 lg:px-6">
-          <section hlmCard>
-            <div hlmCardHeader>
-              <h3 hlmCardTitle>Subjects</h3>
-              <p hlmCardDescription>Weighted average per subject on the Swiss 1 to 6 scale</p>
-            </div>
-            <div hlmCardContent class="grid gap-x-8 gap-y-4 @3xl/main:grid-cols-2">
-              @for (subject of grades.subjectAverages(); track subject.subject) {
-                <div class="flex flex-col gap-1.5">
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="font-medium">{{ subject.subject }}</span>
-                    <span class="tabular-nums" [class.text-destructive]="subject.average < 4">{{
-                      subject.average | number: '1.2-2'
-                    }}</span>
-                  </div>
-                  <hlm-progress
-                    [value]="gradeBar(subject.average)"
-                    [attr.aria-label]="subject.subject + ' average'"
-                  >
-                    <hlm-progress-indicator />
-                  </hlm-progress>
-                </div>
-              }
-            </div>
           </section>
         </div>
-      }
+
+        <div class="flex min-w-0 flex-col gap-8 max-lg:contents">
+          <section aria-labelledby="todo-title" class="max-lg:order-2">
+            <h3 id="todo-title" class="mb-2.5 text-[15px] font-semibold">Needs your attention</h3>
+            @if (attention().length) {
+              <div class="flex flex-col divide-y overflow-hidden rounded-xl border">
+                @for (item of attention(); track item.key) {
+                  <a [routerLink]="item.link" class="bg-card hover:bg-muted grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3">
+                    <span class="size-2 rounded-full" [class]="item.tone === 'bad' ? 'bg-destructive' : 'bg-amber-500'" aria-hidden="true"></span>
+                    <span class="min-w-0">
+                      <span class="block font-medium">{{ item.title }}</span>
+                      @if (item.detail) {<span class="text-muted-foreground block text-[13px]">{{ item.detail }}</span>}
+                    </span>
+                    <span class="text-[13px] whitespace-nowrap" [class]="item.tone === 'bad' ? 'text-destructive font-medium' : 'text-muted-foreground'">{{ item.when }}</span>
+                  </a>
+                }
+              </div>
+            } @else {
+              <p class="text-muted-foreground flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-sm">
+                <span class="size-2 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>Nothing needs your attention.
+              </p>
+            }
+          </section>
+
+          <section aria-labelledby="next-title" class="max-lg:order-3">
+            <div class="mb-2.5 flex items-baseline justify-between gap-3">
+              <h3 id="next-title" class="text-[15px] font-semibold">Coming up</h3>
+              <a routerLink="/calendar" class="text-muted-foreground hover:text-foreground text-sm">Calendar</a>
+            </div>
+            @if (comingUp().length) {
+              <ul class="flex flex-col divide-y">
+                @for (entry of comingUp(); track entry.key) {
+                  <li class="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
+                    <span class="bg-muted flex size-[46px] flex-col items-center justify-center rounded-lg leading-tight" aria-hidden="true">
+                      <small class="text-muted-foreground text-[11px] uppercase">{{ entry.start | appDate: 'weekday' }}</small>
+                      <strong class="text-lg font-semibold tabular-nums">{{ entry.start.getDate() }}</strong>
+                    </span>
+                    <span class="min-w-0">
+                      <span class="block font-medium break-words">{{ entry.title }}</span>
+                      <span class="text-muted-foreground block text-[13px]">
+                        @if (entry.end) {{{ entry.start | appDate: 'weekdayDayMonth' }} – {{ entry.end | appDate: 'weekdayDayMonth' }}} @else {{{ entry.start | appDate: 'weekdayDayMonth' }}}@if (entry.time) { · {{ entry.time }}}@if (entry.place) { · {{ entry.place }}}
+                      </span>
+                    </span>
+                    <span class="text-[12px] whitespace-nowrap" [class]="entry.isTest ? 'font-medium text-amber-700 dark:text-amber-300' : 'text-muted-foreground'">{{ entry.kind }}</span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-muted-foreground py-2 text-sm">Nothing coming up.</p>
+            }
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })
 export class Overview {
-  /** Grades run from 1 to 6, but a school can report an average of 0, and a progress bar throws outside 0 to 100. */
-  protected gradeBar(average: number): number {
-    return Math.min(100, Math.max(0, ((average - 1) / 5) * 100));
-  }
-
-  protected readonly grades = inject(GradesStore);
   protected readonly agenda = inject(AgendaStore);
-  protected readonly absences = inject(AbsencesStore);
+  private readonly grades = inject(GradesStore);
+  private readonly absences = inject(AbsencesStore);
+  private readonly reports = inject(SemesterReportsStore);
+  private readonly schools = inject(MySchoolsStore);
   private readonly user = inject(UserStore);
 
-  protected readonly firstName = computed(() => this.user.name().split(' ')[0]);
-  protected readonly recentGrades = computed(() => this.grades.grades().filter((g) => g.score > 0).slice(0, 6));
-  /** All-day entries arrive as midnight UTC (the calendar's rule), so they show a date or a range instead of 01:00. */
-  protected readonly comingUp = computed(() =>
-    this.agenda
+  /** The clock the timeline runs on; it moves every TICK_MS so the countdown stays current. */
+  private readonly now = signal(new Date());
+
+  private readonly injector = inject(Injector);
+  private readonly reportsCache = inject(ReportedAbsencesCache);
+  /** Opened only once a past unexcused absence shows up, so an Overview with nothing open costs no Schulnetz request. */
+  private readonly reportStore = signal<ReturnType<ReportedAbsencesCache['open']> | null>(null);
+
+  constructor() {
+    const timer = setInterval(() => this.now.set(new Date()), TICK_MS);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    effect(() => {
+      const needed = needsReportLookup(this.absences.items(), todayInSwitzerland(this.now()));
+      untracked(() => {
+        if (needed && !this.reportStore()) this.reportStore.set(this.reportsCache.open(this.injector));
+      });
+    });
+  }
+
+  protected readonly isLesson = (entry: AgendaEntryDto): boolean => entry.entryType === 'Lesson';
+  protected readonly time = hhmm;
+  protected readonly left = (end: Date): string => durationText(minutesLeft(end, this.now()));
+  protected readonly pie = (start: Date, end: Date): number => Math.round(remainingPercent(start, end, this.now()) * 10) / 10;
+  protected readonly toneClass = gradeTone;
+
+  protected readonly timeline = computed(() => buildTimeline(this.agenda.today(), this.now()));
+
+  protected readonly hello = computed(() => {
+    const first = this.user.name().split(' ')[0];
+    return first ? `${greeting(this.now())}, ${first}` : greeting(this.now());
+  });
+
+  private readonly groups = computed(() => {
+    const schools = this.schools.items();
+    const bbb = new Set(schools.filter((s) => isBbbWebsite(s.website)).map((s) => s.id));
+    const onlyBbb = schools.length > 0 && bbb.size === schools.length;
+    return buildGradeGroups(this.grades.grades(), this.reports.items(), (schoolId) => (schoolId ? bbb.has(schoolId) : onlyBbb));
+  });
+
+  private readonly classNames = computed(() => this.groups().flatMap(groupClassNames));
+
+  protected readonly subline = computed(() => {
+    const now = this.now();
+    const parts = [new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(now)];
+    const today = semesterOfDate(now.toISOString());
+    const semester = this.groups()[0]?.semesters.find((s) => s.yearStart === today.yearStart && s.half === today.half);
+    if (semester) parts.push(`Semester ${semester.number}`);
+    const slots = this.timeline();
+    const next = nextLesson(slots);
+    if (next && !currentLesson(slots)) parts.push(`next: ${next.title}${next.room ? ` in ${next.room}` : ''}`);
+    else if (slots.length && !next && !currentLesson(slots)) parts.push('lessons are over for today');
+    return parts.join(' · ');
+  });
+
+  /** The Grades page's headline for its default class and newest semester, shortened, wherever that page shows a number. */
+  protected readonly standing = computed(() => {
+    const group = this.groups()[0];
+    const semester = group?.semesters[group.semesters.length - 1] ?? null;
+    if (!group || !semester) return null;
+    const headline = gradeHeadline(group, semester, subjectsBelowFour(semester.subjects));
+    if (headline.value == null) return null;
+    const state = headline.tone === 'good' ? 'On track' : headline.tone === 'bad' ? 'At risk' : '';
+    return { value: oneDecimal(headline.value), state, tone: headline.tone };
+  });
+
+  protected readonly newGrades = computed(() =>
+    this.grades
+      .grades()
+      .filter((g) => isGraded(g.score))
+      .slice(0, NEW_GRADES)
+      .map((g) => ({ ...g, exam: cleanExamName(g.exam, g.subject, this.classNames()), when: relativeDay(g.date, this.now()) })),
+  );
+
+  protected readonly attention = computed(() => {
+    const schools = this.schools.items();
+    const bbb = new Set(schools.filter((s) => isBbbWebsite(s.website)).map((s) => s.id));
+    const onlyBbb = schools.length > 0 && bbb.size === schools.length;
+    const context = {
+      today: todayInSwitzerland(this.now()),
+      isBbb: (schoolId: string | null) => (schoolId ? bbb.has(schoolId) : onlyBbb),
+      website: (schoolId: string | null) => (schoolId ? schools.find((s) => s.id === schoolId) : schools[0])?.website ?? null,
+    };
+    const reports = this.reportStore()?.reports() ?? [];
+    return attentionItems(buildAbsenceRows(this.absences.items(), reports, context), this.agenda.upcoming(), this.now());
+  });
+
+  /** All-day entries arrive as midnight UTC (the calendar's rule), so they show a date or a range instead of a time. */
+  protected readonly comingUp = computed(() => {
+    const now = this.now();
+    return this.agenda
       .upcoming()
-      .filter((entry) => entry.entryType !== 'Lesson')
-      .slice(0, 5)
-      .map((entry) => {
-        const startDay = dateOnly(entry.date);
-        const endDay = entry.endDate ? dateOnly(entry.endDate) : startDay;
+      .filter((e) => e.entryType !== 'Lesson')
+      .map((e) => {
+        const startDay = dateOnly(e.date);
+        const endDay = e.endDate ? dateOnly(e.endDate) : startDay;
         const allDay = startDay !== null && endDay !== null;
-        const start = allDay ? startDay : new Date(entry.date);
-        const end = allDay && endDay.getTime() !== startDay.getTime() ? endDay : null;
-        return { ...entry, start, end, allDay };
-      }),
-  );
-  protected readonly upcoming = computed(() =>
-    [
-      ...this.grades.upcomingExams().map((exam) => ({ name: exam.name, date: exam.date })),
-      ...this.agenda
-        .upcoming()
-        .filter((entry) => entry.entryType === 'Test')
-        .map((entry) => ({ name: entry.title, date: entry.date })),
-    ].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
-  );
-  protected readonly examsThisWeek = computed(() => {
-    const weekAhead = Date.now() + 7 * 24 * 3_600_000;
-    return this.upcoming().filter((exam) => exam.date && new Date(exam.date).getTime() <= weekAhead)
-      .length;
+        const start = allDay ? startDay : new Date(e.date);
+        const endTime = !allDay && e.endDate ? new Date(e.endDate) : null;
+        const end = allDay && endDay && endDay.getTime() !== startDay.getTime() ? endDay : null;
+        const time = allDay ? '' : endTime && endTime.getTime() !== start.getTime() ? `${hhmm(start)} – ${hhmm(endTime)}` : hhmm(start);
+        const isTest = e.entryType === 'Test';
+        return { key: e.id ?? `${e.date}|${e.title}`, title: e.title, place: e.place || '', start, end, time, allDay, isTest, kind: isTest ? 'Test' : e.entryType === 'Holiday' ? 'Holiday' : 'Event' };
+      })
+      // A timed entry that has started is today's business, shown in the timeline; all-day and multi-day ones stay until they end.
+      .filter((e) => e.allDay || e.start.getTime() >= now.getTime())
+      .slice(0, COMING_UP);
   });
 }
