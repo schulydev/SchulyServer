@@ -15,10 +15,11 @@ import { AppDatePipe } from '../../core/date-format';
 @Component({
   selector: 'app-week-view',
   imports: [AppDatePipe],
+  host: { class: 'block md:min-h-0 md:flex-1' },
   template: `
-    <div class="overflow-x-auto rounded-lg border">
-      <div class="min-w-[44rem]">
-        <div class="bg-muted/50 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b">
+    <div class="overflow-x-auto rounded-lg border md:flex md:h-full md:flex-col">
+      <div class="min-w-[44rem] md:flex md:min-h-0 md:flex-1 md:flex-col">
+        <div class="bg-muted/50 grid border-b" [style.grid-template-columns]="columns()">
           <div></div>
           @for (day of days(); track day.date.getTime()) {
             <button
@@ -42,7 +43,7 @@ import { AppDatePipe } from '../../core/date-format';
         </div>
 
         @if (hasAllDay()) {
-          <div class="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b">
+          <div class="grid border-b" [style.grid-template-columns]="columns()">
             <div class="text-muted-foreground self-center pr-2 text-right text-[0.65rem]">
               All day
             </div>
@@ -64,9 +65,10 @@ import { AppDatePipe } from '../../core/date-format';
           </div>
         }
 
-        <div class="max-h-[65vh] overflow-y-auto">
+        <div class="max-h-[65vh] overflow-y-auto md:max-h-none md:min-h-0 md:flex-1">
           <div
-            class="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]"
+            class="grid"
+            [style.grid-template-columns]="columns()"
             [style.height.px]="hours().length * hourHeight"
           >
             <div class="relative">
@@ -111,7 +113,7 @@ import { AppDatePipe } from '../../core/date-format';
                 }
                 @if (day.today && nowOffset() !== null) {
                   <div
-                    class="bg-destructive pointer-events-none absolute right-0 left-0 h-0.5"
+                    class="bg-primary pointer-events-none absolute right-0 left-0 h-0.5"
                     [style.top.px]="nowOffset()"
                     aria-hidden="true"
                   ></div>
@@ -134,9 +136,14 @@ export class WeekView {
     return color ? `color-mix(in oklab, ${color} 18%, var(--background))` : 'var(--background)';
   }
 
-  private readonly timedItems = computed(() =>
-    this.calendar.visibleItems().filter((item) => !item.allDay),
-  );
+  /** Lessons always show here; a test at a lesson's time takes that lesson's place. */
+  private readonly items = computed(() => {
+    const items = this.calendar.itemsWithLessons();
+    const tests = items.filter((item) => item.sourceId === 'tests' && !item.allDay);
+    return items.filter((item) => item.sourceId !== 'lessons' || !tests.some((test) => test.start < item.end && test.end > item.start));
+  });
+
+  private readonly timedItems = computed(() => this.items().filter((item) => !item.allDay));
 
   protected readonly hours = computed(() => {
     let first = 7;
@@ -152,8 +159,11 @@ export class WeekView {
   protected readonly days = computed(() => {
     const today = startOfDay(new Date());
     const firstHour = this.hours()[0];
-    const items = this.calendar.visibleItems();
-    return daysBetween(this.calendar.range().start, 7).map((date) => {
+    const items = this.items();
+    const week = daysBetween(this.calendar.range().start, 7);
+    // The weekend only takes room when something timed happens on it.
+    const weekendBusy = week.slice(5).some((date) => items.some((item) => !item.allDay && overlapsDay(item, date)));
+    return (weekendBusy ? week : week.slice(0, 5)).map((date) => {
       const dayItems = items.filter((item) => overlapsDay(item, date));
       return {
         date,
@@ -168,6 +178,8 @@ export class WeekView {
       };
     });
   });
+
+  protected readonly columns = computed(() => `3.5rem repeat(${this.days().length}, minmax(0, 1fr))`);
 
   protected readonly hasAllDay = computed(() => this.days().some((day) => day.allDay.length));
 
