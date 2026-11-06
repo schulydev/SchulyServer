@@ -6,6 +6,9 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { Observable, catchError, finalize, firstValueFrom, from, map, of, shareReplay } from 'rxjs';
+import { clearSignedIn, markSignedIn } from '../core/signed-in-at';
+import { beginExternalSignIn } from '../core/external-sign-in';
+import { rememberReturnUrl } from '../core/return-url';
 import { AuthApi, SignInResponse, TokenResponse, isChallenge, isEmailVerification } from '../core/auth-api';
 
 export type AuthStatus = 'unknown' | 'signedIn' | 'signedOut';
@@ -31,7 +34,8 @@ export const AuthStore = signalStore(
   withMethods((store, api = inject(AuthApi), router = inject(Router), http = inject(HttpClient)) => {
     let refreshing: Observable<string | null> | null = null;
 
-    const accept = (tokens: TokenResponse) => {
+    const accept = (tokens: TokenResponse, signedIn = true) => {
+      if (signedIn) markSignedIn();
       saveSession(tokens);
       patchState(store, { accessToken: tokens.access_token, status: 'signedIn', challenge: null, emailChallenge: null });
     };
@@ -58,13 +62,14 @@ export const AuthStore = signalStore(
       swrCache.clear();
       void clearBrowserCaches();
       saveSession(null);
+      clearSignedIn();
       patchState(store, { accessToken: null, status: 'signedOut', challenge: null, emailChallenge: null });
     };
 
     const refresh = (): Observable<string | null> => {
       refreshing ??= exclusive(() => firstValueFrom(api.refresh())).pipe(
         map((tokens) => {
-          accept(tokens);
+          accept(tokens, false);
           return tokens.access_token;
         }),
         catchError(() => {
@@ -137,6 +142,13 @@ export const AuthStore = signalStore(
       signInAgain(): void {
         clear();
         void router.navigate(['/login'], { queryParams: { changed: 1 } });
+      },
+      /** Proves it's you for an account without a password: a fresh sign-in at a linked provider, which comes back to `returnPath`. */
+      async reauthenticate(provider: string, returnPath: string): Promise<void> {
+        await firstValueFrom(api.logout()).catch(() => undefined);
+        clear();
+        rememberReturnUrl(returnPath);
+        await beginExternalSignIn(provider, '/login');
       },
     };
   }),

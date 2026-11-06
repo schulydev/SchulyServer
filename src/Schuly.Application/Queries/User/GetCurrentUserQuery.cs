@@ -6,13 +6,14 @@ using Schuly.Application.Models;
 using Schuly.Infrastructure;
 using Schuly.Infrastructure.Services;
 using Schuly.Application.Authorization;
+using Toamaisutaa.Abstractions;
 
 namespace Schuly.Application.Queries.User
 {
     [AllowAuthenticated]
     public record GetCurrentUserQuery() : IQuery<Result<ApplicationUserDto>>;
 
-    public class GetCurrentUserQueryHandler(IUserService userService, SchulyDbContext dbContext, IAvatarUrlSigner avatarUrlSigner) : IQueryHandler<GetCurrentUserQuery, Result<ApplicationUserDto>>
+    public class GetCurrentUserQueryHandler(IUserService userService, SchulyDbContext dbContext, IAvatarUrlSigner avatarUrlSigner, IPasswordCredentialStore credentials) : IQueryHandler<GetCurrentUserQuery, Result<ApplicationUserDto>>
     {
         public async ValueTask<Result<ApplicationUserDto>> Handle(GetCurrentUserQuery query, CancellationToken cancellationToken)
         {
@@ -27,6 +28,9 @@ namespace Schuly.Application.Queries.User
 
             var dto = user.ToDto();
             dto.ProfilePictureUrl = avatarUrlSigner.ToPublicUserUrl(user.Id, user.ProfilePictureUrl);
+            var credential = Guid.TryParse(user.ExternalId, out var loginId) ? await credentials.FindByUserIdAsync(loginId, cancellationToken) : null;
+            dto.HasPassword = credential is not null;
+            dto.EmailConfirmed = credential?.EmailConfirmedAt is not null && string.Equals(credential.Email, user.Email, StringComparison.OrdinalIgnoreCase);
             return Result<ApplicationUserDto>.Success(dto);
         }
     }

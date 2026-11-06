@@ -78,9 +78,25 @@ namespace Schuly.Tests
             public PasswordVerificationResult Verify(string password, string hash) => password == hash ? PasswordVerificationResult.Succeeded : PasswordVerificationResult.Failed;
         }
 
-        private static AccountPasswordCheck Check(ServiceProvider provider, ToamaisutaaPasswordCredential? credential) => new(new OneCredential(credential), new PlainHasher(), Options.Create(new ToamaisutaaLocalLoginOptions()), new SecurityAuditLog(provider.GetRequiredService<IServiceScopeFactory>()));
+        /// <summary>Only the live-family lookup is reachable from the check; anything else it calls is a bug.</summary>
+        private sealed class OneSession(Guid familyId, DateTimeOffset startedAt) : IRefreshTokenStore
+        {
+            public Task<ToamaisutaaRefreshToken?> FindLiveByFamilyAsync(Guid familyId1, CancellationToken cancellationToken = default) => Task.FromResult(familyId1 == familyId ? new ToamaisutaaRefreshToken { FamilyId = familyId, FamilyStartedAt = startedAt } : null);
+            public Task<ToamaisutaaRefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task CreateAsync(ToamaisutaaRefreshToken token, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<bool> MarkRotatedAsync(Guid tokenId, DateTimeOffset rotatedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task RevokeFamilyAsync(Guid familyId1, string reason, DateTimeOffset revokedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task RevokeAllForUserAsync(Guid userId, string reason, DateTimeOffset revokedAt, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<IReadOnlyList<ToamaisutaaRefreshToken>> ListActiveAsync(Guid userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<bool> UpdateSecondFactorAsync(Guid familyId1, string authenticationMethods, string twoFactorSource, DateTimeOffset secondFactorAt, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public Task<int> DeleteExpiredAsync(DateTimeOffset expiredBefore, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        }
 
-        private static ClaimsPrincipal Subject(Guid id) => new(new ClaimsIdentity([new Claim("sub", id.ToString())], "test"));
+        private static readonly Guid Family = Guid.NewGuid();
+
+        private static AccountPasswordCheck Check(ServiceProvider provider, ToamaisutaaPasswordCredential? credential, DateTimeOffset? sessionStartedAt = null) => new(new OneCredential(credential), new PlainHasher(), new OneSession(Family, sessionStartedAt ?? DateTimeOffset.UtcNow.AddDays(-1)), Options.Create(new ToamaisutaaLocalLoginOptions()), Options.Create(new ToamaisutaaExternalLoginOptions()), new SecurityAuditLog(provider.GetRequiredService<IServiceScopeFactory>()), TimeProvider.System);
+
+        private static ClaimsPrincipal Subject(Guid id, params Claim[] extra) => new(new ClaimsIdentity([new Claim("sub", id.ToString()), new Claim(ToamaisutaaDefaults.SessionIdClaim, Family.ToString()), .. extra], "test"));
 
         private static ToamaisutaaPasswordCredential Credential(Guid userId, DateTimeOffset? lockedUntil = null) => new() { UserId = userId, PasswordHash = "right", LockedOutUntil = lockedUntil };
 
@@ -113,11 +129,43 @@ namespace Schuly.Tests
         }
 
         [Test]
-        public async Task Single_sign_on_account_has_no_password_to_ask_for()
+        public async Task Single_sign_on_account_passes_with_a_session_started_moments_ago()
         {
             using var provider = NewDb();
 
-            await Assert.That(await Check(provider, null).RefusalAsync(Subject(Guid.NewGuid()), null)).IsNull();
+            await Assert.That(await Check(provider, null, DateTimeOffset.UtcNow.AddMinutes(-1)).RefusalAsync(Subject(Guid.NewGuid()), null)).IsNull();
+        }
+
+        [Test]
+        public async Task Single_sign_on_account_passes_with_a_fresh_second_factor_on_an_old_session()
+        {
+            using var provider = NewDb();
+            var fresh = new Claim(ToamaisutaaDefaults.SecondFactorAtClaim, DateTimeOffset.UtcNow.AddMinutes(-1).ToUnixTimeSeconds().ToString());
+
+            await Assert.That(await Check(provider, null).RefusalAsync(Subject(Guid.NewGuid(), fresh), null)).IsNull();
+        }
+
+        [Test]
+        public async Task Single_sign_on_account_with_an_old_session_is_refused_and_recorded()
+        {
+            using var provider = NewDb();
+            var id = Guid.NewGuid();
+
+            await Assert.That(await Check(provider, null).RefusalAsync(Subject(id), null)).IsNotNull();
+
+            using var scope = provider.CreateScope();
+            var rows = await scope.ServiceProvider.GetRequiredService<SchulyDbContext>().SecurityAuditEntries.ToListAsync();
+            await Assert.That(rows.Count).IsEqualTo(1);
+            await Assert.That(rows[0].Kind).IsEqualTo(AccountPasswordCheck.RefusedKind);
+        }
+
+        [Test]
+        public async Task Single_sign_on_account_without_a_session_id_is_refused()
+        {
+            using var provider = NewDb();
+            var bare = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", Guid.NewGuid().ToString())], "test"));
+
+            await Assert.That(await Check(provider, null, DateTimeOffset.UtcNow.AddMinutes(-1)).RefusalAsync(bare, null)).IsNotNull();
         }
 
         [Test]

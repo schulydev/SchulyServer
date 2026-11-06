@@ -16,6 +16,8 @@ export interface ApplicationUserDto {
     email: string;
     displayName?: string | null;
     profilePictureUrl?: string | null;
+    hasPassword?: boolean;
+    emailConfirmed?: boolean;
     createdAt?: string;
     updatedAt?: string;
     schoolUsers?: Array<SchoolUserSummaryDto>;

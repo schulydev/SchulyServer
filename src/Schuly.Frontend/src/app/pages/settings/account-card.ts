@@ -1,161 +1,82 @@
 import { Component, inject, signal } from '@angular/core';
-import { email, form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideImageUp, lucideX } from '@ng-icons/lucide';
+import { lucidePencil } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
-import { HlmBadge } from '@spartan-ng/helm/badge';
-import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
-import { HlmFieldImports } from '@spartan-ng/helm/field';
-import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
-import { SecurityStore } from '../../stores/security.store';
 import { UserStore } from '../../stores/user.store';
 
+/** One profile line: the picture, changed from a small menu on it, then the name and sign-in email. */
 @Component({
   selector: 'app-account-card',
-  imports: [
-    FormRoot,
-    FormField,
-    NgIcon,
-    HlmAlertImports,
-    HlmAvatarImports,
-    HlmBadge,
-    HlmButton,
-    HlmCardImports,
-    HlmFieldImports,
-    HlmInput,
-    HlmSpinner,
-  ],
-  providers: [provideIcons({ lucideImageUp, lucideX })],
+  imports: [NgIcon, HlmAlertImports, HlmAvatarImports, HlmCardImports, HlmDropdownMenuImports, HlmSpinner],
+  providers: [provideIcons({ lucidePencil })],
   template: `
-    <section hlmCard>
-      <div hlmCardHeader>
-        <h3 hlmCardTitle>Account</h3>
-        <p hlmCardDescription>Your profile picture and sign-in email.</p>
-      </div>
-      <div hlmCardContent class="flex flex-col gap-6">
-        <div class="flex flex-wrap items-center gap-4">
-          <hlm-avatar class="size-16">
-            @if (user.avatar(); as src) {
-              <img hlmAvatarImage [src]="src" [alt]="user.name()" />
-            }
-            <span hlmAvatarFallback class="text-lg">{{ user.initials() }}</span>
-          </hlm-avatar>
-          <div class="grid flex-1 gap-0.5">
-            <span class="font-medium">{{ user.name() }}</span>
-            <span class="text-muted-foreground text-xs"
-              >{{ user.schoolCount() }} linked
-              {{ user.schoolCount() === 1 ? 'school' : 'schools' }}</span
-            >
-          </div>
-          <div class="flex gap-2">
-            <input
-              #file
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              class="hidden"
-              (change)="upload(file)"
-            />
-            <button
-              hlmBtn
-              variant="outline"
-              size="sm"
-              [disabled]="user.busy()"
-              (click)="file.click()"
-            >
-              @if (user.busy()) {
-                <hlm-spinner />
-              } @else {
-                <ng-icon name="lucideImageUp" />
+    <section hlmCard aria-label="Profile">
+      <div hlmCardContent class="flex flex-col gap-4">
+        <div class="flex items-center gap-4">
+          <input #file type="file" accept="image/png,image/jpeg,image/webp" class="hidden" tabindex="-1" aria-hidden="true" (change)="upload(file)" />
+          <button
+            type="button"
+            class="focus-visible:ring-ring/50 relative shrink-0 rounded-full outline-none focus-visible:ring-[3px]"
+            aria-label="Change profile picture"
+            [disabled]="user.busy()"
+            [hlmDropdownMenuTrigger]="picMenu"
+            align="start"
+          >
+            <hlm-avatar class="size-16">
+              @if (user.avatar(); as src) {
+                <img hlmAvatarImage [src]="src" alt="" />
               }
-              Change picture
-            </button>
-            @if (user.avatar()) {
-              <button
-                hlmBtn
-                variant="ghost"
-                size="sm"
-                [disabled]="user.busy()"
-                (click)="user.removeAvatar()"
-              >
-                <ng-icon name="lucideX" />
-                Remove
-              </button>
-            }
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">Email</span>
-            @if (user.email()) {
-              <span hlmBadge variant="outline">Confirmed</span>
-            } @else {
-              <span hlmBadge variant="secondary">Not confirmed</span>
-            }
-          </div>
-          @if (user.email()) {
-            <p class="text-muted-foreground text-sm">{{ user.email() }}</p>
-          } @else {
-            <p class="text-muted-foreground text-sm">
-              Confirm your email so you can reset your password if you forget it.
+              <span hlmAvatarFallback class="text-lg">{{ user.initials() }}</span>
+            </hlm-avatar>
+            <span class="bg-background hover:bg-muted absolute -right-0.5 -bottom-0.5 grid size-6 place-items-center rounded-full border shadow-xs" aria-hidden="true">
+              @if (user.busy()) {
+                <hlm-spinner class="size-3" />
+              } @else {
+                <ng-icon name="lucidePencil" class="text-xs" />
+              }
+            </span>
+          </button>
+          <div class="grid min-w-0 gap-0.5">
+            <h2 class="truncate text-lg font-semibold tracking-tight">{{ user.name() }}</h2>
+            <p class="text-muted-foreground truncate text-sm">
+              {{ user.email() }}
+              @if (user.email()) {
+                ·
+                @if (user.emailConfirmed()) {
+                  <span class="text-green-700 dark:text-green-400">Confirmed</span>
+                } @else {
+                  <span>Not confirmed</span>
+                }
+              }
             </p>
-            <form
-              class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-              [formRoot]="verification"
-            >
-              <div hlmField>
-                <label hlmFieldLabel for="verify-email">Email</label>
-                <input
-                  hlmInput
-                  id="verify-email"
-                  type="email"
-                  autocomplete="email"
-                  [formField]="verification.email"
-                />
-              </div>
-              <div hlmField>
-                <label hlmFieldLabel for="verify-password">Password</label>
-                <input
-                  hlmInput
-                  id="verify-password"
-                  type="password"
-                  autocomplete="current-password"
-                  [formField]="verification.password"
-                />
-              </div>
-              <button hlmBtn type="submit" [disabled]="security.busy() || verification().invalid()">
-                Send link
-              </button>
-            </form>
-          }
+          </div>
         </div>
 
         @if (picError()) {
-          <div hlmAlert variant="destructive">
+          <div hlmAlert variant="destructive" role="alert">
             <p hlmAlertDescription>{{ picError() }}</p>
           </div>
         }
       </div>
     </section>
+
+    <ng-template #picMenu>
+      <hlm-dropdown-menu class="min-w-44">
+        <button hlmDropdownMenuItem type="button" (click)="file.click()">Upload a picture…</button>
+        @if (user.avatar()) {
+          <button hlmDropdownMenuItem type="button" variant="destructive" (click)="user.removeAvatar()">Remove</button>
+        }
+      </hlm-dropdown-menu>
+    </ng-template>
   `,
 })
 export class AccountCard {
   protected readonly user = inject(UserStore);
-  protected readonly security = inject(SecurityStore);
   protected readonly picError = signal<string | null>(null);
-  private readonly verificationModel = signal({ email: '', password: '' });
-  protected readonly verification = form(
-    this.verificationModel,
-    (path) => {
-      required(path.email);
-      email(path.email);
-      required(path.password);
-    },
-    { submission: { action: () => this.resend() } },
-  );
 
   protected upload(input: HTMLInputElement): void {
     const file = input.files?.[0];
@@ -167,12 +88,5 @@ export class AccountCard {
     }
     this.picError.set(null);
     this.user.uploadAvatar(file);
-  }
-
-  private async resend(): Promise<undefined> {
-    const { email, password } = this.verificationModel();
-    await this.security.resendVerification(email.trim(), password);
-    this.verificationModel.update((model) => ({ ...model, password: '' }));
-    return undefined;
   }
 }

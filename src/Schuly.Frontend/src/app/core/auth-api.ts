@@ -58,6 +58,16 @@ export interface LinkedSignIn {
   last_sign_in_at?: string | null;
 }
 
+export interface SessionSummary {
+  id: string;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  isCurrent?: boolean;
+}
+
 export interface SignInProof {
   currentPassword?: string;
   code?: string;
@@ -135,8 +145,17 @@ export class AuthApi {
     return this.http.post<void>('/auth/password/reset', { token, newPassword });
   }
 
-  changePassword(currentPassword: string, newPassword: string): Observable<void> {
-    return this.http.post<void>('/auth/password', { currentPassword, newPassword });
+  /** Leave out `currentPassword` to set a first password, which the server allows only right after a sign-in. */
+  changePassword(currentPassword: string | null, newPassword: string): Observable<void> {
+    return this.http.post<void>('/auth/password', currentPassword === null ? { newPassword } : { currentPassword, newPassword });
+  }
+
+  sessions(): Observable<SessionSummary[]> {
+    return this.http.get<SessionSummary[]>('/auth/sessions');
+  }
+
+  revokeSession(id: string): Observable<void> {
+    return this.http.delete<void>(`/auth/sessions/${encodeURIComponent(id)}`);
   }
 
   requestEmailVerification(newEmail: string, currentPassword: string): Observable<void> {
@@ -151,16 +170,16 @@ export class AuthApi {
     return this.http.get<TwoFactorStatus>('/auth/2fa');
   }
 
-  beginTwoFactor(currentPassword: string): Observable<TwoFactorSetup> {
-    return this.http.post<TwoFactorSetup>('/auth/2fa/begin', { currentPassword });
+  beginTwoFactor(currentPassword: string | null): Observable<TwoFactorSetup> {
+    return this.http.post<TwoFactorSetup>('/auth/2fa/begin', currentPassword ? { currentPassword } : {});
   }
 
   confirmTwoFactor(code: string): Observable<{ recoveryCodes: string[] }> {
     return this.http.post<{ recoveryCodes: string[] }>('/auth/2fa/confirm', { code });
   }
 
-  disableTwoFactor(proof: string, currentPassword: string): Observable<void> {
-    return this.http.post<void>('/auth/2fa/disable', { proof, currentPassword });
+  disableTwoFactor(proof: string, currentPassword: string | null): Observable<void> {
+    return this.http.post<void>('/auth/2fa/disable', currentPassword ? { proof, currentPassword } : { proof });
   }
 
   trustedDevices(): Observable<TrustedDevice[]> {

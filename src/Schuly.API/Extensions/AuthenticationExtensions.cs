@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Schuly.Infrastructure;
 using Schuly.Infrastructure.Security;
 using Schuly.Infrastructure.Services;
@@ -38,6 +39,7 @@ namespace Schuly.API.Extensions
             services.AddToamaisutaaAuthenticationEventSink<SecurityAuditSink>();
             services.AddHostedService<SecurityAuditCleanupService>();
             services.AddScoped<AccountPasswordCheck>();
+            services.TryAddSingleton(TimeProvider.System);
 
             return services;
         }
