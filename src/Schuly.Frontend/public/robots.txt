@@ -1,5 +1,8 @@
 User-agent: *
-Allow: /login
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /mcp
+Disallow: /connect/
 
 Sitemap: https://schuly.dev/sitemap.xml
