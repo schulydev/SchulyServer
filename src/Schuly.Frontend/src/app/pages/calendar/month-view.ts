@@ -1,15 +1,26 @@
 import { Component, computed, inject } from '@angular/core';
-import { CalendarItem, daysBetween, overlapsDay, sameDay, startOfDay } from '../../core/calendar';
+import { CalendarItem, WeekLayout, addDays, daysBetween, overlapsDay, sameDay, startOfDay, weekLayout } from '../../core/calendar';
 import { CalendarStore } from '../../stores/calendar.store';
 import { tint } from './tint';
 import { AppDatePipe, formatWhen } from '../../core/date-format';
 
-interface MonthCell {
+/** A busy day never makes its week taller: three lanes show, the rest is behind "+N". */
+const MAX_LANES = 3;
+
+interface MonthDay {
   date: Date;
   inMonth: boolean;
   today: boolean;
   selected: boolean;
-  items: CalendarItem[];
+  holiday: boolean;
+  count: number;
+  colors: string[];
+}
+
+interface MonthWeek {
+  start: Date;
+  days: MonthDay[];
+  layout: WeekLayout;
 }
 
 @Component({
@@ -22,104 +33,121 @@ interface MonthCell {
           <div class="px-2 py-1.5">{{ name }}</div>
         }
       </div>
-      <div class="grid grid-cols-7">
-        @for (cell of cells(); track cell.date.getTime()) {
-          <div [class]="cellClass(cell)">
+      @for (week of weeks(); track week.start.getTime()) {
+        <div
+          class="grid h-16 grid-cols-7 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b last:border-b-0 sm:h-[8.5rem] sm:grid-rows-[auto_repeat(4,1.375rem)_minmax(0,1fr)]"
+        >
+          @for (day of week.days; track day.date.getTime(); let i = $index) {
             <button
               type="button"
-              [class]="dayClass(cell)"
-              [attr.aria-pressed]="cell.selected"
-              [attr.aria-label]="
-                (cell.date | appDate: 'full') +
-                ', ' +
-                cell.items.length +
-                (cell.items.length === 1 ? ' entry' : ' entries')
-              "
-              (click)="calendar.selectDay(cell.date)"
-              (dblclick)="calendar.openDay(cell.date)"
+              [class]="cellClass(day, i)"
+              [style.grid-column]="i + 1"
+              [style.background]="day.holiday && !day.selected ? holidayTint : null"
+              style="grid-row: 1 / -1"
+              [attr.aria-pressed]="day.selected"
+              [attr.aria-label]="(day.date | appDate: 'full') + ', ' + day.count + (day.count === 1 ? ' entry' : ' entries')"
+              (click)="calendar.selectDay(day.date)"
+              (dblclick)="calendar.openDay(day.date)"
+            ></button>
+            <span
+              class="pointer-events-none z-[1] px-1.5 pt-1.5 pb-0.5 text-xs tabular-nums"
+              [class.text-muted-foreground]="!day.inMonth"
+              [style.grid-column]="i + 1"
+              style="grid-row: 1"
+              aria-hidden="true"
             >
-              {{ cell.date.getDate() }}
-            </button>
-            <div class="flex flex-wrap gap-1 px-1 sm:hidden" aria-hidden="true">
-              @for (item of cell.items.slice(0, 4); track item.id) {
-                <span
-                  class="size-1.5 rounded-full"
-                  [style.background]="calendar.colors().get(item.sourceId)"
-                ></span>
+              <span [class]="day.today ? 'bg-primary text-primary-foreground inline-flex size-6 items-center justify-center rounded-full font-semibold' : 'inline-flex h-6 items-center px-1 font-medium'">{{
+                day.date.getDate()
+              }}</span>
+            </span>
+            <span class="pointer-events-none z-[1] flex gap-1 px-2 sm:hidden" [style.grid-column]="i + 1" style="grid-row: 2" aria-hidden="true">
+              @for (color of day.colors; track $index) {
+                <span class="size-1.5 rounded-full" [style.background]="color"></span>
               }
-            </div>
-            @for (item of cell.items.slice(0, 3); track item.id) {
+            </span>
+          }
+          @for (segment of week.layout.segments; track segment.item.id) {
+            <button
+              type="button"
+              [class]="chipClass(segment.cutStart, segment.cutEnd)"
+              [class.line-through]="segment.item.cancelled"
+              [style.grid-column]="segment.start + 1 + ' / ' + (segment.end + 2)"
+              [style.grid-row]="segment.lane + 2"
+              [style.background]="tint(calendar.colors().get(segment.item.sourceId), 18)"
+              [style.color]="calendar.colors().get(segment.item.sourceId)"
+              [attr.title]="segment.item.title"
+              (click)="calendar.select(segment.item.id)"
+            >
+              @if (!segment.item.allDay) {
+                <span class="me-1 font-normal tabular-nums opacity-80">{{ segment.item.start | appDate: 'time' }}</span>
+              }
+              {{ segment.item.title }}
+            </button>
+          }
+          @for (extra of week.layout.more; track $index; let i = $index) {
+            @if (extra) {
               <button
                 type="button"
-                class="hover:bg-accent hidden w-full truncate rounded-sm border-l-[3px] px-1.5 py-0.5 text-left text-xs sm:block"
-                [class.line-through]="item.cancelled"
-                [style.border-left-color]="calendar.colors().get(item.sourceId)"
-                [style.background]="tint(calendar.colors().get(item.sourceId))"
-                (click)="calendar.select(item.id)"
+                class="bg-muted text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-ring/50 z-[1] mx-1 my-px hidden rounded-md border text-center text-xs font-medium outline-none focus-visible:ring-[3px] sm:block"
+                [style.grid-column]="i + 1"
+                [style.grid-row]="2 + maxLanes"
+                [attr.aria-label]="extra + ' more on ' + (week.days[i].date | appDate: 'weekdayDayMonthLong')"
+                (click)="calendar.selectDay(week.days[i].date)"
               >
-                @if (!item.allDay && sameDay(item.start, cell.date)) {
-                  <span class="text-muted-foreground tabular-nums">{{
-                    item.start | appDate: 'time'
-                  }}</span>
-                }
-                {{ item.title }}
+                +{{ extra }}
               </button>
             }
-            @if (cell.items.length > 3) {
-              <button
-                type="button"
-                class="text-muted-foreground hover:text-foreground hidden px-1.5 text-left text-xs sm:block"
-                (click)="calendar.selectDay(cell.date)"
-              >
-                +{{ cell.items.length - 3 }} more
-              </button>
-            }
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
   `,
 })
 export class MonthView {
   protected readonly calendar = inject(CalendarStore);
   protected readonly tint = tint;
-  protected readonly sameDay = sameDay;
+  protected readonly maxLanes = MAX_LANES;
+  protected readonly holidayTint = tint('var(--cal-holiday)', 10);
 
-  protected readonly weekdays = computed(() => {
-    const monday = this.calendar.range().start;
-    return daysBetween(monday, 7).map((day) => formatWhen(day, 'weekday'));
-  });
+  protected readonly weekdays = computed(() => daysBetween(this.calendar.range().start, 7).map((day) => formatWhen(day, 'weekday')));
 
-  protected readonly cells = computed<MonthCell[]>(() => {
+  protected readonly weeks = computed<MonthWeek[]>(() => {
     const { start } = this.calendar.range();
     const month = this.calendar.anchor().getMonth();
     const today = startOfDay(new Date());
     const items = this.calendar.visibleItems();
-    return daysBetween(start, 42).map((date) => ({
-      date,
-      inMonth: date.getMonth() === month,
-      today: sameDay(date, today),
-      selected: sameDay(date, this.calendar.selectedDay()),
-      items: items
-        .filter((item) => overlapsDay(item, date))
-        .sort(
-          (a, b) => Number(b.allDay) - Number(a.allDay) || a.start.getTime() - b.start.getTime(),
-        ),
-    }));
+    const holidays = items.filter((item) => item.sourceId === 'holidays');
+    const weeks: MonthWeek[] = [];
+    for (let w = 0; w < 6; w++) {
+      const weekStart = addDays(start, w * 7);
+      // A last row that belongs entirely to the next month adds nothing.
+      if (w > 3 && weekStart.getMonth() !== month) break;
+      const days = daysBetween(weekStart, 7).map((date) => {
+        const onDay = items.filter((item: CalendarItem) => overlapsDay(item, date));
+        return {
+          date,
+          inMonth: date.getMonth() === month,
+          today: sameDay(date, today),
+          selected: sameDay(date, this.calendar.selectedDay()),
+          holiday: holidays.some((item) => overlapsDay(item, date)),
+          count: onDay.length,
+          colors: onDay.slice(0, 4).map((item) => this.calendar.colors().get(item.sourceId) ?? 'currentColor'),
+        };
+      });
+      weeks.push({ start: weekStart, days, layout: weekLayout(weekStart, items, MAX_LANES) });
+    }
+    return weeks;
   });
 
-  protected cellClass(cell: MonthCell): string {
-    const base =
-      'flex min-h-16 flex-col gap-0.5 border-r border-b p-1 sm:min-h-28 [&:nth-child(7n)]:border-r-0';
-    if (cell.selected) return `${base} bg-accent/50`;
-    return cell.inMonth ? base : `${base} bg-muted/30 text-muted-foreground`;
+  protected cellClass(day: MonthDay, column: number): string {
+    const base = 'hover:bg-accent/40 focus-visible:ring-ring/50 border-l text-left outline-none focus-visible:ring-[3px] focus-visible:ring-inset';
+    const edge = column === 0 ? ' border-l-0' : '';
+    if (day.selected) return `${base}${edge} bg-accent/70`;
+    return day.inMonth ? `${base}${edge}` : `${base}${edge} bg-muted/30`;
   }
 
-  protected dayClass(cell: MonthCell): string {
-    const base =
-      'focus-visible:ring-ring/50 inline-flex size-7 items-center justify-center self-start rounded-full text-xs tabular-nums outline-none focus-visible:ring-[3px]';
-    return cell.today
-      ? `${base} bg-primary text-primary-foreground font-semibold`
-      : `${base} hover:bg-accent`;
+  protected chipClass(cutStart: boolean, cutEnd: boolean): string {
+    const radius = `${cutStart ? 'rounded-l-none' : 'rounded-l-md'} ${cutEnd ? 'rounded-r-none' : 'rounded-r-md'}`;
+    return `focus-visible:ring-ring/50 z-[1] mx-1 my-px hidden truncate px-1.5 text-left text-xs leading-[1.25rem] font-medium outline-none hover:brightness-110 focus-visible:ring-[3px] sm:block ${radius}`;
   }
 }

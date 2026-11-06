@@ -147,3 +147,77 @@ export function placeTimedItems(items: CalendarItem[], day: Date, firstHour: num
   closeCluster();
   return placed;
 }
+
+/** One entry's piece within a week row of the month grid: columns 0-6, its lane, and whether it continues past the row's edges. */
+export interface WeekSegment {
+  item: CalendarItem;
+  start: number;
+  end: number;
+  lane: number;
+  cutStart: boolean;
+  cutEnd: boolean;
+}
+
+export interface WeekLayout {
+  segments: WeekSegment[];
+  /** Per day (0-6): how many entries fall in lanes past the cap, shown as "+N". */
+  more: number[];
+}
+
+/** The last day an item covers: all-day items end at midnight after their last day, timed items count only their start day. */
+export function lastDayOf(item: CalendarItem): Date {
+  return item.allDay ? addDays(startOfDay(item.end), item.end.getTime() === startOfDay(item.end).getTime() ? -1 : 0) : startOfDay(item.start);
+}
+
+const DAY_MS = 86_400_000;
+const dayIndex = (weekStart: Date, day: Date) => Math.round((startOfDay(day).getTime() - weekStart.getTime()) / DAY_MS);
+
+/**
+ * Lays out one week of the month grid. Multi-day entries go first so they keep their lane across the week, then all-day
+ * ones, then timed ones by start. Only `maxLanes` lanes show; anything below counts towards "+N" on every day it covers.
+ */
+export function weekLayout(weekStart: Date, items: CalendarItem[], maxLanes = 3): WeekLayout {
+  const start = startOfDay(weekStart);
+  const span = (item: CalendarItem) => dayIndex(start, lastDayOf(item)) - dayIndex(start, item.start);
+  const inWeek = items
+    .filter((item) => dayIndex(start, item.start) <= 6 && dayIndex(start, lastDayOf(item)) >= 0)
+    .sort((a, b) => Number(span(b) > 0) - Number(span(a) > 0) || Number(b.allDay) - Number(a.allDay) || a.start.getTime() - b.start.getTime() || span(b) - span(a));
+  const taken: { lane: number; start: number; end: number }[] = [];
+  const segments: WeekSegment[] = [];
+  const more = [0, 0, 0, 0, 0, 0, 0];
+  for (const item of inWeek) {
+    const from = dayIndex(start, item.start);
+    const to = dayIndex(start, lastDayOf(item));
+    const s = Math.max(0, from);
+    const e = Math.min(6, to);
+    let lane = 0;
+    while (taken.some((t) => t.lane === lane && !(e < t.start || s > t.end))) lane++;
+    taken.push({ lane, start: s, end: e });
+    if (lane >= maxLanes) {
+      for (let d = s; d <= e; d++) more[d]++;
+      continue;
+    }
+    segments.push({ item, start: s, end: e, lane, cutStart: from < 0, cutEnd: to > 6 });
+  }
+  return { segments, more };
+}
+
+/** Which entries a view shows. The month honours every filter; the week and the day panel always show lessons, since a day without them would be wrong. */
+export function filterItems(items: CalendarItem[], hidden: readonly string[], keepLessons = false): CalendarItem[] {
+  const off = new Set(hidden);
+  if (keepLessons) off.delete('lessons');
+  return items.filter((item) => !off.has(item.sourceId));
+}
+
+/** The line under the day panel's title: the lessons' count and span, the holiday, the weekend, or no school. */
+export function daySummary(day: Date, items: CalendarItem[], time: (date: Date) => string): string {
+  const today = items.filter((item) => overlapsDay(item, day));
+  const lessons = today.filter((item) => item.sourceId === 'lessons' && !item.allDay).sort((a, b) => a.start.getTime() - b.start.getTime());
+  if (lessons.length) {
+    const end = lessons.reduce((last, item) => (item.end > last ? item.end : last), lessons[0].end);
+    return `${lessons.length} ${lessons.length === 1 ? 'lesson' : 'lessons'}, ${time(lessons[0].start)} – ${time(end)}`;
+  }
+  const holiday = today.find((item) => item.sourceId === 'holidays');
+  if (holiday) return holiday.title;
+  return day.getDay() === 0 || day.getDay() === 6 ? 'Weekend' : 'No school today';
+}

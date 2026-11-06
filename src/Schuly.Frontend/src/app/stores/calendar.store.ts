@@ -19,12 +19,15 @@ import {
   addDays,
   addMonths,
   dateOnly,
+  filterItems,
   overlapsDay,
   parseDate,
   startOfDay,
   visibleRange,
 } from '../core/calendar';
+import { userIdFromToken } from '../core/browser-cache';
 import { AgendaStore } from './agenda.store';
+import { AuthStore } from './auth.store';
 import { GradesStore } from './grades.store';
 import { DataRefresh } from './data-refresh';
 import { LinkedAccountsStore } from './linked-accounts.store';
@@ -60,13 +63,16 @@ interface Feed {
 }
 
 const HIDDEN_KEY = 'schuly-calendar-hidden';
+/** Lessons repeat every week, so the month starts without them. */
+const DEFAULT_HIDDEN = ['lessons'];
+const hiddenKey = (userId: string | null) => (userId ? `${HIDDEN_KEY}:${userId}` : HIDDEN_KEY);
 const VIEW_KEY = 'schuly-calendar-view';
 
 const SCHULY_SOURCES: CalendarSource[] = [
-  { id: 'lessons', label: 'Lessons', detail: 'Schuly', color: 'var(--chart-2)', problem: null },
-  { id: 'tests', label: 'Tests & exams', detail: 'Schuly', color: 'var(--chart-5)', problem: null },
-  { id: 'events', label: 'Events', detail: 'Schuly', color: 'var(--chart-4)', problem: null },
-  { id: 'holidays', label: 'Holidays', detail: 'Schuly', color: 'var(--chart-3)', problem: null },
+  { id: 'tests', label: 'Tests', detail: 'Schuly', color: 'var(--cal-test)', problem: null },
+  { id: 'events', label: 'Events', detail: 'Schuly', color: 'var(--cal-event)', problem: null },
+  { id: 'holidays', label: 'Holidays', detail: 'Schuly', color: 'var(--cal-holiday)', problem: null },
+  { id: 'lessons', label: 'Lessons', detail: 'Schuly', color: 'var(--cal-lesson)', problem: null },
 ];
 
 const ACCOUNT_COLORS = [
@@ -92,6 +98,7 @@ interface CalendarState {
   selectedDay: Date;
   selectedId: string | null;
   hidden: string[];
+  hiddenKey: string;
   accounts: FeedAccount[];
   feedEvents: FeedEvent[];
   feedLoading: boolean;
@@ -167,17 +174,22 @@ function accountProblem(account: FeedAccount): string | null {
 }
 
 export const CalendarStore = signalStore(
-  withState<CalendarState>(() => ({
+  withState<CalendarState>(() => {
+    // The filter is kept per user, so a shared browser doesn't carry one person's choice to the next.
+    const key = hiddenKey(userIdFromToken(inject(AuthStore).accessToken()));
+    return {
     view: readStored<CalendarView>(VIEW_KEY, 'month'),
     anchor: startOfDay(new Date()),
     selectedDay: startOfDay(new Date()),
     selectedId: null,
-    hidden: readStored<string[]>(HIDDEN_KEY, []),
+    hidden: readStored<string[]>(key, DEFAULT_HIDDEN),
+    hiddenKey: key,
     accounts: [],
     feedEvents: [],
     feedLoading: false,
     feedAvailable: true,
-  })),
+    };
+  }),
   withComputed((state, agenda = inject(AgendaStore), grades = inject(GradesStore)) => {
     const range = computed(() => visibleRange(state.view(), state.anchor()));
 
@@ -221,13 +233,14 @@ export const CalendarStore = signalStore(
       ].sort((a, b) => a.start.getTime() - b.start.getTime());
     });
 
-    const visibleItems = computed(() => {
-      const hidden = new Set(state.hidden());
+    const inRange = computed(() => {
       const { start, end } = range();
-      return allItems().filter(
-        (item) => !hidden.has(item.sourceId) && item.start < end && item.end >= start,
-      );
+      return allItems().filter((item) => item.start < end && item.end >= start);
     });
+    const visibleItems = computed(() => filterItems(inRange(), state.hidden()));
+    // The week and the day panel always show lessons: a school day without them would read as a free day.
+    const itemsWithLessons = computed(() => filterItems(inRange(), state.hidden(), true));
+    const allWithLessons = computed(() => filterItems(allItems(), state.hidden(), true));
 
     const colors = computed(() => new Map(sources().map((source) => [source.id, source.color])));
 
@@ -235,12 +248,12 @@ export const CalendarStore = signalStore(
       range,
       sources,
       visibleItems,
+      itemsWithLessons,
       colors,
       loading: computed(() => agenda.loading() || grades.loading() || state.feedLoading()),
       selected: computed(() => allItems().find((item) => item.id === state.selectedId()) ?? null),
-      selectedDayItems: computed(() =>
-        visibleItems().filter((item) => overlapsDay(item, state.selectedDay())),
-      ),
+      selectedDayItems: computed(() => allWithLessons().filter((item) => overlapsDay(item, state.selectedDay()))),
+      selectedDayAll: computed(() => allItems().filter((item) => overlapsDay(item, state.selectedDay()))),
       problems: computed(() => sources().filter((source) => source.problem)),
     };
   }),
@@ -281,7 +294,7 @@ export const CalendarStore = signalStore(
           ? state.hidden().filter((h) => h !== id)
           : [...state.hidden(), id];
         patchState(state, { hidden });
-        store(HIDDEN_KEY, hidden);
+        store(state.hiddenKey(), hidden);
       },
       loadFeeds: rxMethod<{ start: Date; end: Date; paths: string[] }>(
         pipe(
