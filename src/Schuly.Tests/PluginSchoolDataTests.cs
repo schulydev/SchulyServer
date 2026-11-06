@@ -159,7 +159,7 @@ namespace Schuly.Tests
             using var check = TestDb.NewContext(db);
             var row = await check.Absences.SingleAsync();
             await Assert.That(row.ExternalId).IsEqualTo("a");
-            await Assert.That(row.IsExcused).IsEqualTo(true);
+            await Assert.That(row.IsExcused).IsTrue();
         }
 
         [Test]
