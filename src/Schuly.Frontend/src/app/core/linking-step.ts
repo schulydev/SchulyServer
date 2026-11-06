@@ -126,3 +126,45 @@ export function countdownAnnouncement(seconds: number): string {
   if (seconds <= 60) return 'About 1 minute left.';
   return `About ${Math.ceil(seconds / 60)} minutes left.`;
 }
+
+const FALLBACK_TITLES: Partial<Record<LinkStepDto['kind'], string>> = {
+  otp: 'Enter your code',
+  pushCode: 'Approve the sign-in',
+  deviceCode: 'Enter this code to sign in',
+  select: 'Choose an option',
+  done: 'Account linked',
+  error: 'Sign-in failed',
+};
+
+/** The step's own title, else a plain one for its kind. */
+export function stepTitle(step: LinkStepDto): string {
+  return step.title || FALLBACK_TITLES[step.kind] || 'Sign in';
+}
+
+export interface SearchOption {
+  value: string;
+  name: string;
+  /** A short tag after the last " · " of the label, such as a canton. */
+  tag: string | null;
+  /** The value without its scheme, shown under the name when the value is an address. */
+  address: string | null;
+}
+
+/** Splits "Kantonsschule Baden · AG" into the name and its tag, and shows an https value as its address. */
+export function searchOption(option: { value: string; label: string }): SearchOption {
+  const cut = option.label.lastIndexOf(' · ');
+  const tail = cut > 0 ? option.label.slice(cut + 3).trim() : '';
+  const tag = tail && tail.length <= 4 ? tail : null;
+  return { value: option.value, name: tag ? option.label.slice(0, cut).trim() : option.label, tag, address: isHttps(option.value) ? option.value.replace(/^https:\/\//, '') : null };
+}
+
+/** The options whose name, tag or address contain every word of the query, ignoring case and accents. */
+export function filterSearchOptions(options: SearchOption[], query: string): SearchOption[] {
+  const fold = (text: string) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return options;
+  return options.filter((option) => {
+    const text = fold(`${option.name} ${option.tag ?? ''} ${option.address ?? option.value}`);
+    return words.every((word) => text.includes(word));
+  });
+}

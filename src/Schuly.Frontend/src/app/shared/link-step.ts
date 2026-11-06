@@ -2,7 +2,7 @@ import { PasswordField } from './password-field';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, linkedSignal, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCircleCheck, lucideCopy, lucideExternalLink, lucideSmartphone, lucideTriangleAlert } from '@ng-icons/lucide';
+import { lucideArrowLeft, lucideCircleCheck, lucideCopy, lucideExternalLink, lucideSmartphone, lucideTriangleAlert } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -11,7 +11,8 @@ import { HlmInput } from '@spartan-ng/helm/input';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { LinkFieldDto, LinkOptionDto, LinkStepDto } from '../core/linking-api';
 import { linkText } from '../core/link-messages';
-import { clock, countdownAnnouncement, formHints, initialValues, isHttps, secondsLeft, submitValues } from '../core/linking-step';
+import { clock, countdownAnnouncement, formHints, initialValues, isHttps, secondsLeft, stepTitle, submitValues } from '../core/linking-step';
+import { LinkSearchField } from './link-search-field';
 
 export interface LinkSubmit {
   values: Record<string, string>;
@@ -25,16 +26,18 @@ export interface LinkSubmit {
  */
 @Component({
   selector: 'app-link-step',
-  imports: [PasswordField, NgIcon, NgTemplateOutlet, HlmAlertImports, HlmButton, HlmFieldImports, HlmInput, HlmSpinner],
-  providers: [provideIcons({ lucideCircleCheck, lucideCopy, lucideExternalLink, lucideSmartphone, lucideTriangleAlert })],
+  imports: [PasswordField, LinkSearchField, NgIcon, NgTemplateOutlet, HlmAlertImports, HlmButton, HlmFieldImports, HlmInput, HlmSpinner],
+  providers: [provideIcons({ lucideArrowLeft, lucideCircleCheck, lucideCopy, lucideExternalLink, lucideSmartphone, lucideTriangleAlert })],
   host: { class: 'flex flex-col gap-4' },
   template: `
-    <div class="flex flex-col gap-1.5">
-      <h3 #heading tabindex="-1" class="text-lg leading-none font-semibold outline-none" [id]="headingId()">{{ step().title || fallbackTitle() }}</h3>
-      @if (step().description) {
-        <p class="text-muted-foreground text-sm" [id]="descriptionId()">{{ step().description }}</p>
-      }
-    </div>
+    @if (heading()) {
+      <div class="flex flex-col gap-1.5">
+        <h3 #heading tabindex="-1" class="text-lg leading-none font-semibold outline-none" [id]="headingId()">{{ title() }}</h3>
+        @if (step().description) {
+          <p class="text-muted-foreground text-sm" [id]="descriptionId()">{{ step().description }}</p>
+        }
+      </div>
+    }
 
     <p class="sr-only" role="status" aria-live="polite">{{ announcement() }}</p>
 
@@ -53,7 +56,7 @@ export interface LinkSubmit {
 
     @switch (step().kind) {
       @case ('form') {
-        <form class="flex flex-col gap-4" novalidate [attr.aria-describedby]="step().description ? descriptionId() : null" (submit)="submitForm($event)">
+        <form class="flex flex-col gap-4" novalidate [attr.aria-describedby]="heading() && step().description ? descriptionId() : null" (submit)="submitForm($event)">
           @if (summary()) {
             <p class="text-destructive text-sm" role="alert">{{ summary() }}</p>
           }
@@ -81,6 +84,18 @@ export interface LinkSubmit {
                     <option [value]="option.value" [selected]="option.value === values()[field.key]">{{ option.label }}</option>
                   }
                 </select>
+              } @else if (field.type === 'select') {
+                <app-link-search-field
+                  [inputId]="fieldId(field)"
+                  [label]="field.label"
+                  [options]="field.options ?? []"
+                  [placeholder]="field.placeholder ?? null"
+                  [autofocus]="$first"
+                  [invalid]="!!hints()[field.key]"
+                  [describedBy]="describedBy(field)"
+                  [value]="values()[field.key] ?? ''"
+                  (valueChange)="setValue(field.key, $event)"
+                />
               } @else if (field.type === 'password') {
                 <app-password-field
                   [inputId]="fieldId(field)"
@@ -100,7 +115,6 @@ export interface LinkSubmit {
                   [type]="inputType(field)"
                   [attr.inputmode]="field.type === 'url' ? 'url' : null"
                   [attr.autocomplete]="autocomplete(field)"
-                  [attr.list]="field.type === 'select' ? listId(field) : null"
                   [attr.placeholder]="field.placeholder || null"
                   [attr.maxlength]="field.maxLength || null"
                   [attr.aria-invalid]="hints()[field.key] ? 'true' : null"
@@ -111,13 +125,6 @@ export interface LinkSubmit {
                   [value]="values()[field.key] ?? ''"
                   (input)="setValue(field.key, $any($event.target).value)"
                 />
-                @if (field.type === 'select') {
-                  <datalist [id]="listId(field)">
-                    @for (option of field.options ?? []; track option.value) {
-                      <option [value]="option.value">{{ option.label }}</option>
-                    }
-                  </datalist>
-                }
               }
               @if (field.help || field.type === 'totpSecret') {
                 <p hlmFieldDescription [id]="helpId(field)">{{ field.help || 'The secret key your authenticator app shows when you set it up, not a 6-digit code.' }}</p>
@@ -127,14 +134,15 @@ export interface LinkSubmit {
               }
             </div>
           }
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
+            <ng-container [ngTemplateOutlet]="actions" />
             <button hlmBtn type="submit" [disabled]="busy()">
               @if (busy()) {
                 <hlm-spinner aria-hidden="true" />
               }
               {{ step().submitLabel || 'Continue' }}
             </button>
-            <ng-container [ngTemplateOutlet]="actions" />
           </div>
         </form>
       }
@@ -163,14 +171,15 @@ export interface LinkSubmit {
               <hlm-field-error forceShow [id]="otpId + '-error'">{{ otpError() }}</hlm-field-error>
             }
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
+            <ng-container [ngTemplateOutlet]="actions" />
             <button hlmBtn type="submit" [disabled]="busy()">
               @if (busy()) {
                 <hlm-spinner aria-hidden="true" />
               }
               {{ step().submitLabel || 'Verify' }}
             </button>
-            <ng-container [ngTemplateOutlet]="actions" />
           </div>
         </form>
       }
@@ -188,7 +197,8 @@ export interface LinkSubmit {
               <span>This request expired.</span>
             }
           </p>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex w-full flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
             <ng-container [ngTemplateOutlet]="actions" />
           </div>
         </div>
@@ -219,7 +229,8 @@ export interface LinkSubmit {
               <span>This code expired.</span>
             }
           </p>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex w-full flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
             <ng-container [ngTemplateOutlet]="actions" />
           </div>
         </div>
@@ -231,13 +242,15 @@ export interface LinkSubmit {
             <ng-icon name="lucideSmartphone" hlmAlertIcon />
             <p hlmAlertDescription>This sign-in needs the Schuly mobile app. Open Schuly on your phone to link it there.</p>
           </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2"><ng-container [ngTemplateOutlet]="backButton" /></div>
         } @else if (redirectUrl(); as url) {
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
+            <ng-container [ngTemplateOutlet]="actions" />
             <button hlmBtn type="button" data-autofocus (click)="goTo(url)">
               <ng-icon name="lucideExternalLink" aria-hidden="true" />
               {{ step().submitLabel || 'Continue to sign in' }}
             </button>
-            <ng-container [ngTemplateOutlet]="actions" />
           </div>
         } @else {
           <p class="text-destructive text-sm" role="alert">The sign-in address is not a secure link, so it was not opened.</p>
@@ -246,7 +259,7 @@ export interface LinkSubmit {
 
       @case ('select') {
         <form class="flex flex-col gap-4" novalidate (submit)="submitSelect($event)">
-          <fieldset class="flex flex-col gap-2" [attr.aria-labelledby]="headingId()">
+          <fieldset class="flex flex-col gap-2" [attr.aria-labelledby]="heading() ? headingId() : null" [attr.aria-label]="heading() ? null : title()">
             @for (option of step().options ?? []; track option.value) {
               <label class="hover:bg-muted/50 has-[:checked]:border-primary flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50">
                 <input
@@ -270,14 +283,15 @@ export interface LinkSubmit {
           @if (selectError()) {
             <p class="text-destructive text-sm" role="alert">{{ selectError() }}</p>
           }
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <ng-container [ngTemplateOutlet]="backButton" />
+            <ng-container [ngTemplateOutlet]="actions" />
             <button hlmBtn type="submit" [disabled]="busy()">
               @if (busy()) {
                 <hlm-spinner aria-hidden="true" />
               }
               {{ step().submitLabel || 'Continue' }}
             </button>
-            <ng-container [ngTemplateOutlet]="actions" />
           </div>
         </form>
       }
@@ -290,11 +304,23 @@ export interface LinkSubmit {
       }
 
       @case ('error') {
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <ng-container [ngTemplateOutlet]="backButton" />
           <button hlmBtn type="button" data-autofocus (click)="restart.emit()">Try again</button>
         </div>
       }
     }
+
+    <ng-template #backButton>
+      @if (backLabel(); as label) {
+        <button hlmBtn type="button" variant="ghost" class="text-muted-foreground -ml-3 mr-auto" (click)="back.emit()">
+          <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+          {{ label }}
+        </button>
+      } @else {
+        <span class="mr-auto"></span>
+      }
+    </ng-template>
 
     <ng-template #actions>
       @for (action of step().actions ?? []; track action.id) {
@@ -309,11 +335,16 @@ export class LinkStepView {
   readonly busy = input(false);
   /** A problem with the last request (not part of the step itself). */
   readonly error = input<string | null>(null);
+  /** Show the step's title and description; off when the dialog shows them as its own title. */
+  readonly heading = input(true);
+  /** The label of the footer's back button; none without it. */
+  readonly backLabel = input<string | null>(null);
 
   readonly submitted = output<LinkSubmit>();
   readonly linkProvider = output<string>();
   readonly restart = output<void>();
   readonly poll = output<void>();
+  readonly back = output<void>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
@@ -361,24 +392,7 @@ export class LinkStepView {
     const url = this.step().redirect?.url;
     return isHttps(url) ? url! : null;
   });
-  protected readonly fallbackTitle = computed(() => {
-    switch (this.step().kind) {
-      case 'otp':
-        return 'Enter your code';
-      case 'pushCode':
-        return 'Approve the sign-in';
-      case 'deviceCode':
-        return 'Enter this code to sign in';
-      case 'select':
-        return 'Choose an option';
-      case 'done':
-        return 'Account linked';
-      case 'error':
-        return 'Sign-in failed';
-      default:
-        return 'Sign in';
-    }
-  });
+  protected readonly title = computed(() => stepTitle(this.step()));
 
   /** Seconds between polls for the current code step, or 0. A computed, so a poll that changes nothing does not restart the timer. */
   private readonly pollSeconds = computed(() => {
@@ -415,15 +429,12 @@ export class LinkStepView {
 
   private focusStep(): void {
     const root = this.host.nativeElement;
-    const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root.querySelector<HTMLElement>('h3');
+    const target = root.querySelector<HTMLElement>('[data-autofocus]') ?? root.querySelector<HTMLElement>('h3, input, button');
     target?.focus({ preventScroll: false });
   }
 
   protected fieldId(field: LinkFieldDto): string {
     return `link-${this.uid}-${field.key}`;
-  }
-  protected listId(field: LinkFieldDto): string {
-    return `${this.fieldId(field)}-list`;
   }
   protected helpId(field: LinkFieldDto): string {
     return `${this.fieldId(field)}-help`;
