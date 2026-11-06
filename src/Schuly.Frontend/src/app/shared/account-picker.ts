@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, inject, input } from '@angular/core';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { CapabilityKind, LinkedAccountsStore } from '../stores/linked-accounts.store';
@@ -5,11 +6,11 @@ import { CapabilityKind, LinkedAccountsStore } from '../stores/linked-accounts.s
 /** Chooses between the linked accounts that offer a capability, when there is more than one. */
 @Component({
   selector: 'app-account-picker',
-  imports: [HlmSelectImports],
+  imports: [TranslatePipe, HlmSelectImports],
   template: `
     @if (list().length > 1) {
       <div class="flex items-center gap-2">
-        <label [for]="'account-' + kind()" class="text-muted-foreground text-sm">Account</label>
+        <label [for]="'account-' + kind()" class="text-muted-foreground text-sm">{{ 'common.account' | translate }}</label>
         <hlm-select [value]="accounts.selectedId(kind())" [itemToString]="label" (valueChange)="choose($event)">
           <hlm-select-trigger [buttonId]="'account-' + kind()">
             <hlm-select-value />

@@ -1,8 +1,11 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageSelect } from '../../shared/language-select';
 import { Component, inject, input } from '@angular/core';
 import { ThemeStore } from '../../stores/theme.store';
 
 @Component({
   selector: 'app-auth-layout',
+  imports: [LanguageSelect, TranslatePipe],
   host: { class: 'bg-sidebar text-foreground flex min-h-svh' },
   template: `
     <div
@@ -42,7 +45,7 @@ import { ThemeStore } from '../../stores/theme.store';
             <!-- The screenshot is 16:10, so 160cqh is the widest it can be without cropping top and bottom. -->
             <img
               [src]="theme.dark() ? 'screens/overview-dark.png' : 'screens/overview-light.png'"
-              alt="The Schuly web app showing the overview with grades, upcoming tests and absences"
+              [alt]="'auth.layout.screenshot' | translate"
               class="absolute top-1/2 left-0 w-[min(64rem,160cqh)] max-w-none -translate-y-1/2 rounded-l-xl border border-r-0 shadow-sm"
             />
           </div>
@@ -52,7 +55,7 @@ import { ThemeStore } from '../../stores/theme.store';
       <footer
         class="text-muted-foreground flex flex-col gap-3 py-6 text-sm sm:flex-row sm:items-center sm:justify-between"
       >
-        <nav aria-label="Legal">
+        <nav [attr.aria-label]="'auth.layout.legal' | translate">
           <ul class="flex flex-wrap gap-x-4 gap-y-1">
             @for (link of legal; track link.href) {
               <li>
@@ -61,13 +64,16 @@ import { ThemeStore } from '../../stores/theme.store';
                   [href]="link.href"
                   target="_blank"
                   rel="noopener"
-                  >{{ link.label }}</a
+                  >{{ link.label | translate }}</a
                 >
               </li>
             }
           </ul>
         </nav>
-        <p>© {{ year }} Schuly</p>
+        <div class="flex items-center gap-4">
+          <app-language-select />
+          <p>© {{ year }} Schuly</p>
+        </div>
       </footer>
     </div>
   `,
@@ -79,9 +85,9 @@ export class AuthLayout {
   protected readonly theme = inject(ThemeStore);
   protected readonly year = new Date().getFullYear();
   protected readonly legal = [
-    { label: 'Privacy', href: 'https://schuly.dev/privacy' },
-    { label: 'Terms', href: 'https://schuly.dev/terms' },
-    { label: 'Imprint', href: 'https://schuly.dev/impressum' },
-    { label: 'Contact', href: 'mailto:hello@schuly.dev' },
+    { label: 'auth.layout.privacy', href: 'https://schuly.dev/privacy' },
+    { label: 'auth.layout.terms', href: 'https://schuly.dev/terms' },
+    { label: 'auth.layout.imprint', href: 'https://schuly.dev/impressum' },
+    { label: 'auth.layout.contact', href: 'mailto:hello@schuly.dev' },
   ];
 }

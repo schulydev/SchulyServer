@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import type { BrandName } from '../shared/brand-icon';
 
 export interface McpSnippet {
@@ -44,15 +45,15 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideTerminal',
       brand: 'claude',
       steps: [
-        'Run this command in your terminal.',
-        'Start Claude Code and run /mcp.',
-        'Choose Schuly, then Authenticate, and finish the sign-in in your browser.',
+        t('mcp.guide.runTerminal'),
+        t('mcp.guide.claudeCode2'),
+        t('mcp.guide.claudeCode3'),
       ],
-      snippet: { title: 'Terminal', code: `claude mcp add --transport http schuly ${url}` },
+      snippet: { title: t('mcp.guide.terminal'), code: `claude mcp add --transport http schuly ${url}` },
       key: {
-        intro: 'Add the key as a header when you register the server.',
+        intro: t('mcp.guide.keyHeader'),
         snippet: {
-          title: 'Terminal',
+          title: t('mcp.guide.terminal'),
           code: `claude mcp add --transport http schuly ${url} --header "Authorization: Bearer ${MCP_KEY_PLACEHOLDER}"`,
         },
       },
@@ -63,17 +64,17 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideMonitor',
       brand: 'claude',
       steps: [
-        'Open Settings (Customize) and go to Connectors.',
-        'Choose Add custom connector.',
-        `Enter the name Schuly and the URL ${url}, then choose Add.`,
-        'Choose Connect and sign in to Schuly in your browser.',
+        t('mcp.guide.desktop1'),
+        t('mcp.guide.desktop2'),
+        t('mcp.guide.desktop3', { url }),
+        t('mcp.guide.desktop4'),
       ],
-      snippet: { title: 'Connector URL', code: url },
-      note: "This also applies to claude.ai. The connector is reached from Anthropic's cloud, so Schuly must be available at a public URL.",
+      snippet: { title: t('mcp.guide.connectorUrl'), code: url },
+      note: t('mcp.guide.desktopNote'),
       key: {
         intro:
-          "If your plan offers custom headers, open the connector's advanced settings and add this request header.",
-        snippet: { title: 'Request header', code: `Authorization: Bearer ${MCP_KEY_PLACEHOLDER}` },
+          t('mcp.guide.headersHint'),
+        snippet: { title: t('mcp.guide.requestHeader'), code: `Authorization: Bearer ${MCP_KEY_PLACEHOLDER}` },
       },
     },
     {
@@ -82,15 +83,15 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideMessageSquare',
       brand: 'chatgpt',
       steps: [
-        'Open Settings, then Apps & Connectors, then Advanced settings, and turn on Developer mode.',
-        'Choose Create (or open chatgpt.com/plugins, choose +, then Add custom MCP server).',
-        `Enter the name Schuly and the URL ${url}.`,
-        'Set authentication to OAuth, create it, and sign in to Schuly in your browser.',
+        t('mcp.guide.chatgpt1'),
+        t('mcp.guide.chatgpt2'),
+        t('mcp.guide.chatgpt3', { url }),
+        t('mcp.guide.chatgpt4'),
       ],
-      snippet: { title: 'Server URL', code: url },
-      note: 'ChatGPT connects from the cloud, so it needs the public URL of Schuly.',
+      snippet: { title: t('mcp.serverUrl'), code: url },
+      note: t('mcp.guide.chatgptNote'),
       key: {
-        intro: 'ChatGPT only supports OAuth sign-in, so API keys do not work there.',
+        intro: t('mcp.guide.chatgptKey'),
         snippet: null,
       },
     },
@@ -100,14 +101,14 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideCode',
       brand: 'cursor',
       steps: [
-        'Use the install button, or add this to ~/.cursor/mcp.json.',
-        'Open Cursor Settings, then MCP.',
-        'Next to Schuly, click Needs login and finish the sign-in in your browser.',
+        t('mcp.guide.cursor1'),
+        t('mcp.guide.cursor2'),
+        t('mcp.guide.cursor3'),
       ],
       snippet: { title: '~/.cursor/mcp.json', code: json({ mcpServers: { schuly: { url } } }) },
-      installLink: { label: 'Install in Cursor', href: cursorInstallLink(url) },
+      installLink: { label: t('mcp.guide.installCursor'), href: cursorInstallLink(url) },
       key: {
-        intro: 'Add a headers entry and put the key in the SCHULY_MCP_KEY environment variable.',
+        intro: t('mcp.guide.envKey'),
         snippet: {
           title: '~/.cursor/mcp.json',
           code: json({ mcpServers: { schuly: { url, headers: { Authorization: bearerEnv } } } }),
@@ -120,18 +121,18 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideCode',
       brand: 'vscode',
       steps: [
-        'Use the install button, or add this to .vscode/mcp.json.',
-        'Start the Schuly server from the file or the MCP view.',
-        'Choose Allow when asked to sign in, and finish the sign-in in your browser.',
+        t('mcp.guide.vscode1'),
+        t('mcp.guide.vscode2'),
+        t('mcp.guide.vscode3'),
       ],
       snippet: {
         title: '.vscode/mcp.json',
         code: json({ servers: { schuly: { type: 'http', url } } }),
       },
-      note: 'VS Code (GitHub Copilot) uses the key "servers", not "mcpServers".',
-      installLink: { label: 'Install in VS Code', href: vscodeInstallLink(url) },
+      note: t('mcp.guide.vscodeNote'),
+      installLink: { label: t('mcp.guide.installVscode'), href: vscodeInstallLink(url) },
       key: {
-        intro: 'VS Code asks for the key once and keeps it out of the file.',
+        intro: t('mcp.guide.vscodeKey'),
         snippet: {
           title: '.vscode/mcp.json',
           code: json({
@@ -139,7 +140,7 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
               {
                 type: 'promptString',
                 id: 'schuly_key',
-                description: 'Schuly MCP API key',
+                description: t('mcp.guide.keyDescription'),
                 password: true,
               },
             ],
@@ -160,17 +161,17 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideCode',
       brand: 'windsurf',
       steps: [
-        'Open ~/.codeium/windsurf/mcp_config.json (or the MCP panel, then Configure).',
-        'Add this server.',
-        'Click Refresh in the MCP panel and finish the sign-in in your browser.',
+        t('mcp.guide.windsurf1'),
+        t('mcp.guide.windsurf2'),
+        t('mcp.guide.windsurf3'),
       ],
       snippet: {
         title: '~/.codeium/windsurf/mcp_config.json',
         code: json({ mcpServers: { schuly: { serverUrl: url } } }),
       },
-      note: 'Windsurf uses "serverUrl" for remote servers.',
+      note: t('mcp.guide.windsurfNote'),
       key: {
-        intro: 'Add a headers entry and put the key in the SCHULY_MCP_KEY environment variable.',
+        intro: t('mcp.guide.envKey'),
         snippet: {
           title: '~/.codeium/windsurf/mcp_config.json',
           code: json({
@@ -185,16 +186,16 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideTerminal',
       brand: 'gemini',
       steps: [
-        'Run this command, or add the server to ~/.gemini/settings.json.',
-        'Start Gemini CLI and run /mcp auth schuly.',
-        'Finish the sign-in in your browser.',
+        t('mcp.guide.gemini1'),
+        t('mcp.guide.gemini2'),
+        t('mcp.guide.finishBrowser'),
       ],
-      snippet: { title: 'Terminal', code: `gemini mcp add --transport http schuly ${url}` },
+      snippet: { title: t('mcp.guide.terminal'), code: `gemini mcp add --transport http schuly ${url}` },
       note: `In ~/.gemini/settings.json use "httpUrl", not "url": { "mcpServers": { "schuly": { "httpUrl": "${url}" } } }`,
       key: {
-        intro: 'Pass the key as a header when you register the server.',
+        intro: t('mcp.guide.passHeader'),
         snippet: {
-          title: 'Terminal',
+          title: t('mcp.guide.terminal'),
           code: `gemini mcp add --transport http --header "Authorization: Bearer ${MCP_KEY_PLACEHOLDER}" schuly ${url}`,
         },
       },
@@ -205,16 +206,16 @@ export function mcpClientGuides(url: string): McpClientGuide[] {
       icon: 'lucideTerminal',
       brand: 'codex',
       steps: [
-        'Run these commands, or add the server to ~/.codex/config.toml.',
-        'Finish the sign-in in your browser when codex mcp login opens it.',
+        t('mcp.guide.codex1'),
+        t('mcp.guide.codex2'),
       ],
       snippet: {
-        title: 'Terminal',
+        title: t('mcp.guide.terminal'),
         code: `codex mcp add schuly --url ${url}\ncodex mcp login schuly`,
       },
       note: `Or in ~/.codex/config.toml: [mcp_servers.schuly] with url = "${url}".`,
       key: {
-        intro: 'Read the key from an environment variable.',
+        intro: t('mcp.guide.envRead'),
         snippet: {
           title: '~/.codex/config.toml',
           code: `[mcp_servers.schuly]\nurl = "${url}"\nbearer_token_env_var = "SCHULY_MCP_KEY"\n\n# then, in your shell:\nexport SCHULY_MCP_KEY=${MCP_KEY_PLACEHOLDER.replace('YOUR_KEY', '...')}`,

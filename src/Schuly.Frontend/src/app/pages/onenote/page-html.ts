@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n';
 import { OneNoteResource } from '../../stores/onenote.model';
 
 const REMOVED =
@@ -53,7 +54,7 @@ export function preparePageHtml(html: string, images: ReadonlyMap<string, string
     } else {
       const missing = doc.createElement('span');
       missing.className = 'on-missing';
-      missing.textContent = img.getAttribute('alt')?.trim() || 'Image unavailable';
+      missing.textContent = img.getAttribute('alt')?.trim() || t('notes.imageUnavailable');
       img.replaceWith(missing);
     }
   }

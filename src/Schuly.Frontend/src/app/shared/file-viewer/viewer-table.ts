@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, computed, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowDown, lucideArrowUp, lucideArrowUpDown } from '@ng-icons/lucide';
@@ -11,12 +13,12 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
 /** Read-only sortable table for CSV/TSV files and spreadsheets. The first row is the header. */
 @Component({
   selector: 'app-viewer-table',
-  imports: [NgIcon],
+  imports: [TranslatePipe, NgIcon],
   providers: [provideIcons({ lucideArrowDown, lucideArrowUp, lucideArrowUpDown })],
   template: `
     @if (sheets().length > 1) {
       <div class="bg-background flex items-center gap-2 border-b px-4 py-2 text-sm">
-        <label for="viewer-sheet" class="text-muted-foreground">Sheet</label>
+        <label for="viewer-sheet" class="text-muted-foreground">{{ 'shared.viewer.sheet' | translate }}</label>
         <select
           id="viewer-sheet"
           class="border-input bg-background text-foreground focus-visible:ring-ring/50 h-8 rounded-md border px-2 focus-visible:ring-[3px] focus-visible:outline-none"
@@ -65,7 +67,7 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
         <p class="text-muted-foreground bg-background border-t px-4 py-2 text-xs" role="status">{{ n }}</p>
       }
     } @else {
-      <p class="text-muted-foreground m-auto text-sm">This file has no rows.</p>
+      <p class="text-muted-foreground m-auto text-sm">{{ 'shared.viewer.noRows' | translate }}</p>
     }
   `,
 })
@@ -90,8 +92,8 @@ export class ViewerTable {
   protected readonly shown = computed(() => this.sorted().slice(0, MAX_RENDERED_ROWS));
   protected readonly note = computed(() => {
     const total = this.body().length;
-    if (total > MAX_RENDERED_ROWS) return `Showing the first ${MAX_RENDERED_ROWS} of ${total}${this.sheet()?.truncated ? '+' : ''} rows. Download the file to see all of it.`;
-    return this.sheet()?.truncated ? 'Only the first rows of this file are shown. Download the file to see all of it.' : null;
+    if (total > MAX_RENDERED_ROWS) return t('shared.viewer.firstRows', { shown: MAX_RENDERED_ROWS, total: `${total}${this.sheet()?.truncated ? '+' : ''}` });
+    return this.sheet()?.truncated ? t('shared.viewer.someRows') : null;
   });
 
   protected pick(i: number): void {

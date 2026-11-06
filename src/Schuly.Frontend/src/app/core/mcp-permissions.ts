@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 export type McpArea =
   | 'Grades'
   | 'Exams'
@@ -32,48 +33,48 @@ export interface McpAreaGroup {
 
 export const MCP_GROUPS: McpAreaGroup[] = [
   {
-    label: 'Schuly',
+    label: 'mcp.group.schuly',
     areas: [
-      { area: 'Grades', label: 'Grades', description: 'Your grades and averages.', canWrite: false },
-      { area: 'Exams', label: 'Exams', description: 'Upcoming and past exams.', canWrite: false },
+      { area: 'Grades', label: 'mcp.area.grades', description: 'mcp.area.gradesHint', canWrite: false },
+      { area: 'Exams', label: 'mcp.area.exams', description: 'mcp.area.examsHint', canWrite: false },
       {
         area: 'Calendar',
-        label: 'Calendar & agenda',
-        description: 'Your school agenda, and the calendars of the linked accounts you allow below.',
+        label: 'mcp.area.calendar',
+        description: 'mcp.area.calendarHint',
         canWrite: false,
       },
       {
         area: 'Absences',
-        label: 'Absences',
-        description: 'Read absences. Write also reports and withdraws absences with your school.',
+        label: 'mcp.area.absences',
+        description: 'mcp.area.absencesHint',
         canWrite: true,
       },
-      { area: 'Documents', label: 'Documents', description: 'Documents from your school.', canWrite: false },
+      { area: 'Documents', label: 'mcp.area.documents', description: 'mcp.area.documentsHint', canWrite: false },
       {
         area: 'SchoolAccounts',
-        label: 'School accounts',
-        description: 'Which schools and classes are connected.',
+        label: 'mcp.area.schoolAccounts',
+        description: 'mcp.area.schoolAccountsHint',
         canWrite: false,
       },
     ],
   },
   {
-    label: 'Linked accounts',
+    label: 'mcp.group.linked',
     areas: [
       {
         area: 'Mail',
-        label: 'Mail',
-        description: 'Read mail. Write also sends, replies, forwards, moves, flags and marks as read.',
+        label: 'mcp.area.mail',
+        description: 'mcp.area.mailHint',
         canWrite: true,
       },
       {
         area: 'Teams',
-        label: 'Teams',
-        description: 'Read chats. Write also sends chat messages.',
+        label: 'mcp.area.teams',
+        description: 'mcp.area.teamsHint',
         canWrite: true,
       },
-      { area: 'Drive', label: 'Drive', description: 'Browse your OneDrive files.', canWrite: false },
-      { area: 'OneNote', label: 'OneNote', description: 'Read and edit your OneNote notebooks.', canWrite: true },
+      { area: 'Drive', label: 'mcp.area.drive', description: 'mcp.area.driveHint', canWrite: false },
+      { area: 'OneNote', label: 'mcp.area.onenote', description: 'mcp.area.onenoteHint', canWrite: true },
     ],
   },
 ];
@@ -81,9 +82,9 @@ export const MCP_GROUPS: McpAreaGroup[] = [
 export const MCP_AREAS: McpAreaInfo[] = MCP_GROUPS.flatMap((group) => group.areas);
 
 export const MCP_LEVEL_LABELS: Record<McpAccessLevel, string> = {
-  Off: 'Off',
-  Read: 'Read',
-  ReadWrite: 'Read & write',
+  Off: 'mcp.level.off',
+  Read: 'mcp.level.read',
+  ReadWrite: 'mcp.level.readWrite',
 };
 
 export const levelOf = (permissions: McpPermissionSet, area: McpArea): McpAccessLevel =>
@@ -141,10 +142,10 @@ export function summarize(permissions: McpPermissionSet): string[] {
   for (const info of MCP_AREAS) {
     const level = levelOf(permissions, info.area);
     if (level === 'Off') continue;
-    chips.push(`${info.label}: ${level === 'ReadWrite' ? 'read & write' : 'read'}`);
+    chips.push(t(level === 'ReadWrite' ? 'mcp.chip.readWrite' : 'mcp.chip.read', { area: t(info.label) }));
   }
-  if (!chips.length) return ['No access'];
-  if (permissions.allowDestructive && hasWrite(permissions)) chips.push('Deleting allowed');
+  if (!chips.length) return [t('mcp.chip.none')];
+  if (permissions.allowDestructive && hasWrite(permissions)) chips.push(t('mcp.chip.delete'));
   return chips;
 }
 

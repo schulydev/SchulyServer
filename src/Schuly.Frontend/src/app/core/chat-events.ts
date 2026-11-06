@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 type Json = Record<string, unknown>;
 
 const obj = (v: unknown): Json | null => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Json) : null);
@@ -11,7 +12,7 @@ export function durationText(iso: string): string {
   return [h && `${h} h`, min && `${min} min`, sec && !h && !min && `${sec} s`].filter(Boolean).join(' ');
 }
 
-const list = (names: string[]): string => (names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+const list = (names: string[]): string => (names.length <= 1 ? (names[0] ?? '') : t('chat.event.list', { first: names.slice(0, -1).join(', '), last: names[names.length - 1] }));
 
 /**
  * A short sentence for a system message ("Alice added Bob", "Chat name changed to X"), or null when the event says nothing
@@ -25,42 +26,42 @@ export function describeEvent(detail: Json | null | undefined, nameOf: (id: stri
   const who = (identity: unknown): string => {
     const user = obj(obj(identity)?.['user']) ?? obj(identity);
     const id = str(user?.['id']);
-    if (id && meId && id === meId) return 'You';
+    if (id && meId && id === meId) return t('chat.you');
     return str(user?.['displayName']) || (id ? nameOf(id) : null) || '';
   };
   const initiator = who(d['initiator']);
   const rawMembers = Array.isArray(d['members']) ? (d['members'] as unknown[]) : [];
   const members = rawMembers.map(who).filter(Boolean);
-  const target = members.length ? list(members) : rawMembers.length ? (rawMembers.length === 1 ? 'a member' : `${rawMembers.length} members`) : '';
+  const target = members.length ? list(members) : rawMembers.length ? t('chat.event.members', { count: rawMembers.length }) : '';
 
   switch (type) {
     case 'membersAddedEventMessageDetail':
       if (!target) return null;
-      return initiator ? `${initiator} added ${target}` : `${target} ${members.length > 1 ? 'were' : 'was'} added`;
+      return initiator ? t('chat.event.added', { who: initiator, target }) : t(members.length > 1 ? 'chat.event.wereAdded' : 'chat.event.wasAdded', { target });
     case 'membersDeletedEventMessageDetail':
       if (!target) return null;
-      return initiator ? `${initiator} removed ${target}` : `${target} ${members.length > 1 ? 'were' : 'was'} removed`;
+      return initiator ? t('chat.event.removed', { who: initiator, target }) : t(members.length > 1 ? 'chat.event.wereRemoved' : 'chat.event.wasRemoved', { target });
     case 'membersJoinedEventMessageDetail':
-      return target ? `${target} joined` : null;
+      return target ? t('chat.event.joined', { target }) : null;
     case 'membersLeftEventMessageDetail':
-      return target ? `${target} left` : null;
+      return target ? t('chat.event.left', { target }) : null;
     case 'chatRenamedEventMessageDetail': {
       const name = str(d['chatDisplayName']);
-      if (!name) return initiator ? `${initiator} removed the chat name` : 'Chat name removed';
-      return initiator ? `${initiator} changed the chat name to ${name}` : `Chat name changed to ${name}`;
+      if (!name) return initiator ? t('chat.event.nameRemovedBy', { who: initiator }) : t('chat.event.nameRemoved');
+      return initiator ? t('chat.event.renamedBy', { who: initiator, name }) : t('chat.event.renamed', { name });
     }
     case 'teamsAppInstalledEventMessageDetail':
     case 'teamsAppRemovedEventMessageDetail': {
       const app = str(d['teamsAppDisplayName']);
       if (!app) return null;
-      return `${app} was ${type.includes('Installed') ? 'added to' : 'removed from'} the chat`;
+      return t(type.includes('Installed') ? 'chat.event.appAdded' : 'chat.event.appRemoved', { app });
     }
     case 'callEndedEventMessageDetail': {
       const time = durationText(str(d['callDuration']));
-      return time ? `Call ended, ${time}` : 'Call ended';
+      return time ? t('chat.event.callEndedAfter', { time }) : t('chat.event.callEnded');
     }
     case 'callStartedEventMessageDetail':
-      return initiator ? `${initiator} started a call` : 'Call started';
+      return initiator ? t('chat.event.callStartedBy', { who: initiator }) : t('chat.event.callStarted');
     default:
       return null;
   }

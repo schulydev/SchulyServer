@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronDown, lucideChevronRight, lucideClock, lucideHardDrive, lucideHash, lucideShare2, lucideUsers } from '@ng-icons/lucide';
@@ -16,21 +18,21 @@ const ITEM =
  */
 @Component({
   selector: 'app-drive-locations',
-  imports: [HlmSelectImports, NgIcon],
+  imports: [TranslatePipe, HlmSelectImports, NgIcon],
   providers: [provideIcons({ lucideChevronDown, lucideChevronRight, lucideClock, lucideHardDrive, lucideHash, lucideShare2, lucideUsers })],
   host: { class: 'block' },
   template: `
     <div class="flex flex-wrap items-center gap-2 lg:hidden">
-      <label for="drive-location" class="sr-only">Location</label>
+      <label for="drive-location" class="sr-only">{{ 'files.location' | translate }}</label>
       <hlm-select [value]="placeKey()" [itemToString]="placeLabel" (valueChange)="choosePlace($event)">
         <hlm-select-trigger buttonId="drive-location" class="min-w-44">
           <hlm-select-value />
         </hlm-select-trigger>
         <hlm-select-content *hlmSelectPortal>
           <hlm-select-group>
-            <hlm-select-item value="mine">My files</hlm-select-item>
-            <hlm-select-item value="shared">Shared with me</hlm-select-item>
-            <hlm-select-item value="recent">Recent</hlm-select-item>
+            <hlm-select-item value="mine">{{ 'files.mine' | translate }}</hlm-select-item>
+            <hlm-select-item value="shared">{{ 'files.shared' | translate }}</hlm-select-item>
+            <hlm-select-item value="recent">{{ 'files.recent' | translate }}</hlm-select-item>
             @if (nav.location().kind === 'folder') {
               <hlm-select-item value="folder">{{ nav.rootLabel() }}</hlm-select-item>
             }
@@ -41,14 +43,14 @@ const ITEM =
         </hlm-select-content>
       </hlm-select>
       @if (currentTeam(); as team) {
-        <label for="drive-channel" class="sr-only">Channel of {{ team.displayName }}</label>
+        <label for="drive-channel" class="sr-only">{{ 'files.channelOf' | translate: { team: team.displayName } }}</label>
         <hlm-select [value]="channelKey()" [itemToString]="channelLabel" (valueChange)="chooseChannel(team, $event)">
           <hlm-select-trigger buttonId="drive-channel" class="min-w-44">
             <hlm-select-value />
           </hlm-select-trigger>
           <hlm-select-content *hlmSelectPortal>
             <hlm-select-group>
-              <hlm-select-item value="all">All files</hlm-select-item>
+              <hlm-select-item value="all">{{ 'files.allFiles' | translate }}</hlm-select-item>
               @for (channel of channelsOf(team.id); track channel.id) {
                 <hlm-select-item [value]="'channel:' + channel.id">{{ channel.displayName }}</hlm-select-item>
               }
@@ -58,24 +60,24 @@ const ITEM =
       }
     </div>
 
-    <nav aria-label="Drive locations" class="hidden lg:block">
+    <nav [attr.aria-label]="'files.locations' | translate" class="hidden lg:block">
       <ul class="flex flex-col gap-0.5">
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'mine' })" (click)="nav.goTo({ kind: 'mine' })">
             <ng-icon name="lucideHardDrive" size="16" class="shrink-0" aria-hidden="true" />
-            My files
+            {{ 'files.mine' | translate }}
           </button>
         </li>
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'shared' })" (click)="nav.goTo({ kind: 'shared' })">
             <ng-icon name="lucideShare2" size="16" class="shrink-0" aria-hidden="true" />
-            Shared with me
+            {{ 'files.shared' | translate }}
           </button>
         </li>
         <li>
           <button type="button" [class]="item" [attr.aria-current]="isCurrent({ kind: 'recent' })" (click)="nav.goTo({ kind: 'recent' })">
             <ng-icon name="lucideClock" size="16" class="shrink-0" aria-hidden="true" />
-            Recent
+            {{ 'files.recent' | translate }}
           </button>
         </li>
         @if (nav.location().kind === 'folder') {
@@ -89,12 +91,12 @@ const ITEM =
       </ul>
 
       @if (teams.teams().length || teams.state() === 'loading' || teams.state() === 'failed') {
-        <h2 class="text-muted-foreground mt-4 mb-1 px-2 text-xs font-medium">Teams</h2>
+        <h2 class="text-muted-foreground mt-4 mb-1 px-2 text-xs font-medium">{{ 'files.teams' | translate }}</h2>
       }
       @if (teams.state() === 'failed') {
         <p class="text-muted-foreground px-2 text-xs">
-          Teams could not be loaded.
-          <button type="button" class="underline" (click)="teams.reload()">Try again</button>
+          {{ 'files.teamsFailed' | translate }}
+          <button type="button" class="underline" (click)="teams.reload()">{{ 'common.retry' | translate }}</button>
         </p>
       }
       <ul class="flex flex-col gap-0.5">
@@ -112,13 +114,13 @@ const ITEM =
             </button>
             @if (isOpen(team.id)) {
               @let list = teams.channels()[team.id];
-              <ul class="ml-4 flex flex-col gap-0.5 border-l pl-1" [attr.aria-label]="'Channels of ' + team.displayName">
+              <ul class="ml-4 flex flex-col gap-0.5 border-l pl-1" [attr.aria-label]="'files.channelsOf' | translate: { team: team.displayName }">
                 @if (!list || list.state === 'loading') {
-                  <li class="text-muted-foreground px-2 py-1 text-xs" role="status">Loading channels</li>
+                  <li class="text-muted-foreground px-2 py-1 text-xs" role="status">{{ 'files.loadingChannels' | translate }}</li>
                 } @else if (list.state === 'failed') {
                   <li class="text-muted-foreground px-2 py-1 text-xs">
-                    Channels could not be loaded.
-                    <button type="button" class="underline" (click)="teams.loadChannels(team.id)">Try again</button>
+                    {{ 'files.channelsFailed' | translate }}
+                    <button type="button" class="underline" (click)="teams.loadChannels(team.id)">{{ 'common.retry' | translate }}</button>
                   </li>
                 }
                 @for (channel of list?.items ?? []; track channel.id) {
@@ -160,9 +162,9 @@ export class DriveLocations {
   });
 
   protected readonly placeLabel = (key: string): string => {
-    if (key === 'mine') return 'My files';
-    if (key === 'shared') return 'Shared with me';
-    if (key === 'recent') return 'Recent';
+    if (key === 'mine') return t('files.mine');
+    if (key === 'shared') return t('files.shared');
+    if (key === 'recent') return t('files.recent');
     if (key === 'folder') return this.nav.rootLabel();
     const team = this.teams.teams().find((t) => `team:${t.id}` === key);
     const location = this.nav.location();
@@ -170,7 +172,7 @@ export class DriveLocations {
   };
 
   protected readonly channelLabel = (key: string): string => {
-    if (key === 'all') return 'All files';
+    if (key === 'all') return t('files.allFiles');
     const location = this.nav.location();
     if (location.kind === 'team') {
       const channel = this.channelsOf(location.teamId).find((c) => `channel:${c.id}` === key);

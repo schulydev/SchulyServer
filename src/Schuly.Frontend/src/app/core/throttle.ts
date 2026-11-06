@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const MIN_WAIT_MS = 5_000;
@@ -7,7 +8,7 @@ const DEFAULT_WAIT_MS = 30_000;
 /** A request that was not sent, or was refused, because Microsoft asked to wait. */
 export class ThrottledError extends Error {
   constructor(readonly waitMs: number) {
-    super('Microsoft is limiting requests.');
+    super(t('files.limited'));
   }
 }
 

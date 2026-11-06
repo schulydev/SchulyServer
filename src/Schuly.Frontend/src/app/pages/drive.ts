@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChildren } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -42,6 +44,7 @@ type DriveLayout = 'schuly' | 'explorer';
 @Component({
   selector: 'app-drive',
   imports: [
+    TranslatePipe,
     HlmBreadcrumbImports,
     HlmButton,
     HlmSkeletonImports,
@@ -90,7 +93,7 @@ type DriveLayout = 'schuly' | 'explorer';
         <div class="flex min-w-0 flex-col gap-4">
           @if (!store.problem()) {
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <nav hlmBreadcrumb aria-label="Folder path" class="w-full min-w-0 sm:w-auto sm:flex-1">
+              <nav hlmBreadcrumb [attr.aria-label]="'files.path' | translate" class="w-full min-w-0 sm:w-auto sm:flex-1">
                 <ol hlmBreadcrumbList>
                   <li hlmBreadcrumbItem>
                     @if (nav.trail().length) {
@@ -113,28 +116,28 @@ type DriveLayout = 'schuly' | 'explorer';
               </nav>
               @if (layout.value() === 'schuly') {
                 <div class="flex items-center gap-2">
-                  <div class="flex items-center gap-1" role="toolbar" aria-label="File actions">
+                  <div class="flex items-center gap-1" role="toolbar" [attr.aria-label]="'files.actions' | translate">
                     <button hlmBtn variant="ghost" size="sm" [disabled]="!current()" (click)="open()">
                       <ng-icon [name]="current()?.isFolder ? 'lucideFolder' : 'lucideSquareArrowOutUpRight'" aria-hidden="true" />
-                      {{ current()?.isFolder ? 'Open folder' : 'Open online' }}
+                      {{ (current()?.isFolder ? 'files.openFolder' : 'chat.openOnline') | translate }}
                       @if (current() && !current()?.isFolder) {
-                        <span class="sr-only">(opens in a new tab)</span>
+                        <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
                       }
                     </button>
                     @if (current(); as file) {
                       @if (file.openable) {
                         <button hlmBtn variant="ghost" size="sm" type="button" (click)="view()">
                           <ng-icon name="lucideEye" aria-hidden="true" />
-                          View
+                          {{ 'files.view' | translate }}
                         </button>
                         <button hlmBtn variant="ghost" size="sm" type="button" (click)="content.save(file)">
                           <ng-icon name="lucideDownload" aria-hidden="true" />
-                          Download
+                          {{ 'common.download' | translate }}
                         </button>
                       }
                     }
                   </div>
-                  <app-search-field [(value)]="search.query" label="Search all files" placeholder="Search all files" />
+                  <app-search-field [(value)]="search.query" [label]="'files.searchAll' | translate" [placeholder]="'files.searchAll' | translate" />
                 </div>
               }
               <hlm-toggle-group
@@ -144,10 +147,10 @@ type DriveLayout = 'schuly' | 'explorer';
                 [nullable]="false"
                 [value]="layout.value()"
                 (valueChange)="setLayout($event)"
-                aria-label="Drive view"
+                [attr.aria-label]="'files.driveView' | translate"
               >
                 <button hlmToggleGroupItem value="schuly" class="px-3">Schuly</button>
-                <button hlmToggleGroupItem value="explorer" class="px-3">Explorer</button>
+                <button hlmToggleGroupItem value="explorer" class="px-3">{{ 'files.explorer' | translate }}</button>
               </hlm-toggle-group>
             </div>
           }
@@ -165,7 +168,7 @@ type DriveLayout = 'schuly' | 'explorer';
           } @else if (filtered().length) {
             <div
               role="listbox"
-              aria-label="Files and folders"
+              [attr.aria-label]="'files.listLabel' | translate"
               class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-4"
               [attr.aria-busy]="store.loadingMore()"
               (keydown)="onKeydown($event)"
@@ -198,15 +201,15 @@ type DriveLayout = 'schuly' | 'explorer';
             </div>
             <p class="text-muted-foreground border-t pt-3 text-sm" aria-live="polite">{{ summary() }}</p>
           } @else if (store.entries().length) {
-            <app-empty-state icon="lucideHardDrive" title="No matching files here" description="Files from everywhere are listed below." />
+            <app-empty-state icon="lucideHardDrive" [title]="'files.noMatchHere' | translate" [description]="'files.everywhereBelow' | translate" />
           } @else {
-            <app-empty-state icon="lucideHardDrive" title="This folder is empty" [description]="nav.emptyText()" />
+            <app-empty-state icon="lucideHardDrive" [title]="'files.emptyFolder' | translate" [description]="nav.emptyText()" />
           }
 
           <app-drive-search-results (open)="openFound($event)" />
 
           <app-load-more
-            label="Load more files"
+            [label]="'files.loadMore' | translate"
             [hasMore]="store.hasMore()"
             [loading]="store.loadingMore()"
             [failed]="store.moreFailed()"
@@ -264,11 +267,11 @@ export class Drive {
   });
 
   protected meta(entry: DriveEntry): string {
-    if (entry.sharedBy) return `Shared by ${entry.sharedBy}`;
+    if (entry.sharedBy) return t('files.sharedBy', { name: entry.sharedBy });
     if (entry.isFolder) {
-      return entry.childCount === null ? 'Folder' : `${entry.childCount} ${entry.childCount === 1 ? 'item' : 'items'} · Folder`;
+      return entry.childCount === null ? t('files.folder') : `${t('files.items', { count: entry.childCount })} · ${t('files.folder')}`;
     }
-    return `${formatSize(entry.size)} · ${entry.extension ? entry.extension.toUpperCase() : 'File'}`;
+    return `${formatSize(entry.size)} · ${entry.extension ? entry.extension.toUpperCase() : t('files.type.file')}`;
   }
 
   /** Shows a file in the viewer; Office formats also get the server-side PDF rendering. */

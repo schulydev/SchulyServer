@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCircleAlert, lucideRotateCw } from '@ng-icons/lucide';
@@ -32,12 +33,12 @@ const MARKDOWN =
 
 @Component({
   selector: 'app-helply-message',
-  imports: [AttachmentCards, HlmAlertImports, HlmButton, NgIcon, PkAssistantTurn, PkMarkdown, PkUserTurn, ReplyChain],
+  imports: [TranslatePipe, AttachmentCards, HlmAlertImports, HlmButton, NgIcon, PkAssistantTurn, PkMarkdown, PkUserTurn, ReplyChain],
   providers: [provideIcons({ lucideCircleAlert, lucideRotateCw })],
   host: { class: 'flex min-w-0' },
   template: `
     @if (isUser()) {
-      <article aria-label="You" class="flex w-full min-w-0 justify-end">
+      <article [attr.aria-label]="'chat.you' | translate" class="flex w-full min-w-0 justify-end">
         <pk-user-turn class="w-full min-w-0">
           <app-attachment-cards pkUserTurnTop [attachments]="message().attachments" (open)="openFile.emit($event)" (download)="downloadFile.emit($event)" />
           @if (message().text) {<span>{{ message().text }}</span>}
@@ -56,7 +57,7 @@ const MARKDOWN =
             } @else if (thinking()) {
               <!-- The page's live region already says that Helply is typing. -->
               <p class="text-sm" aria-hidden="true">
-                <span class="shimmer text-muted-foreground motion-reduce:shimmer-none [--shimmer-color:var(--foreground)]">Thinking...</span>
+                <span class="shimmer text-muted-foreground motion-reduce:shimmer-none [--shimmer-color:var(--foreground)]">{{ 'helply.thinking' | translate }}</span>
               </p>
             }
             @if (message().attachments.length) {
@@ -73,7 +74,7 @@ const MARKDOWN =
           @if (canRetry()) {
             <button pkAssistantTurnActions hlmBtn type="button" variant="ghost" size="sm" (click)="retry.emit()">
               <ng-icon name="lucideRotateCw" aria-hidden="true" />
-              Retry
+              {{ 'chat.retry' | translate }}
             </button>
           }
         </pk-assistant-turn>

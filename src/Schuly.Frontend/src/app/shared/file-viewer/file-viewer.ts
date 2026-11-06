@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, DestroyRef, ViewEncapsulation, computed, effect, inject, input, linkedSignal, output, signal, untracked } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -47,7 +49,7 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
 @Component({
   selector: 'app-file-viewer',
   encapsulation: ViewEncapsulation.None,
-  imports: [HlmButton, HlmDialogImports, HlmSpinner, NgIcon, ViewerTable, ViewerText],
+  imports: [TranslatePipe, HlmButton, HlmDialogImports, HlmSpinner, NgIcon, ViewerTable, ViewerText],
   providers: [provideIcons({ lucideChevronLeft, lucideChevronRight, lucideDownload, lucideExternalLink, lucideFileX, lucideX })],
   template: `
     <hlm-dialog [state]="current() ? 'open' : 'closed'" (closed)="closed.emit()">
@@ -60,31 +62,31 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
         <header class="flex min-h-14 flex-wrap items-center gap-2 border-b px-4 py-2">
           @if (position(); as p) {
             <div class="flex items-center gap-1">
-              <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Previous file" [disabled]="p.index === 0" (click)="go(-1)">
+              <button hlmBtn variant="ghost" size="icon-sm" type="button" [attr.aria-label]="'shared.viewer.previous' | translate" [disabled]="p.index === 0" (click)="go(-1)">
                 <ng-icon name="lucideChevronLeft" class="text-base" aria-hidden="true" />
               </button>
-              <span class="text-muted-foreground text-xs tabular-nums" aria-live="polite">{{ p.index + 1 }} of {{ p.total }}</span>
-              <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Next file" [disabled]="p.index === p.total - 1" (click)="go(1)">
+              <span class="text-muted-foreground text-xs tabular-nums" aria-live="polite">{{ 'shared.viewer.position' | translate: { index: p.index + 1, total: p.total } }}</span>
+              <button hlmBtn variant="ghost" size="icon-sm" type="button" [attr.aria-label]="'shared.viewer.next' | translate" [disabled]="p.index === p.total - 1" (click)="go(1)">
                 <ng-icon name="lucideChevronRight" class="text-base" aria-hidden="true" />
               </button>
             </div>
           }
           <h2 hlmDialogTitle class="w-0 min-w-0 flex-1 truncate text-base font-semibold">{{ current()?.name }}</h2>
-          <p hlmDialogDescription class="sr-only">File preview</p>
+          <p hlmDialogDescription class="sr-only">{{ 'shared.viewer.preview' | translate }}</p>
           <button hlmBtn variant="ghost" size="sm" type="button" [disabled]="phase() !== null || downloading()" (click)="download()">
             <ng-icon name="lucideDownload" class="text-base" aria-hidden="true" />
-            <span class="max-sm:sr-only">Download</span>
+            <span class="max-sm:sr-only">{{ 'common.download' | translate }}</span>
           </button>
           @if (openUrl(); as url) {
             <button hlmBtn variant="ghost" size="sm" type="button" (click)="openInTab(url)">
               <ng-icon name="lucideExternalLink" class="text-base" aria-hidden="true" />
-              <span class="max-sm:sr-only">Open in new tab</span>
-              <span class="sr-only">(opens in a new tab)</span>
+              <span class="max-sm:sr-only">{{ 'common.openNewTab' | translate }}</span>
+              <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
             </button>
           }
           <button hlmBtn variant="ghost" size="sm" type="button" (click)="closed.emit()">
             <ng-icon name="lucideX" class="text-base" aria-hidden="true" />
-            <span class="max-sm:sr-only">Close</span>
+            <span class="max-sm:sr-only">{{ 'common.close' | translate }}</span>
           </button>
         </header>
 
@@ -96,7 +98,7 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
                 Converting {{ current()?.name }} to PDF…
               } @else if (phase === 'waiting') {
                 <span>
-                  Microsoft is limiting requests right now. Trying again by itself<span aria-hidden="true"> in {{ waitSeconds() }} s</span>.
+                  {{ 'shared.viewer.retrying' | translate }}<span aria-hidden="true"> {{ 'shared.viewer.retryIn' | translate: { seconds: waitSeconds() } }}</span>.
                 </span>
               } @else {
                 Loading {{ current()?.name }}
@@ -106,12 +108,12 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
             <div class="m-auto flex flex-col items-center gap-3 p-6 text-center" role="alert">
               <p class="text-muted-foreground text-sm">
                 @if (failedThrottled()) {
-                  Microsoft is still limiting requests. Try again in a moment.
+                  {{ 'shared.viewer.throttled' | translate }}
                 } @else {
-                  Could not load this file.
+                  {{ 'shared.viewer.failed' | translate }}
                 }
               </p>
-              <button hlmBtn variant="outline" size="sm" type="button" (click)="retry()">Try again</button>
+              <button hlmBtn variant="outline" size="sm" type="button" (click)="retry()">{{ 'common.retry' | translate }}</button>
             </div>
           } @else {
             @switch (shownKind()) {
@@ -142,18 +144,18 @@ async function isPdfBlob(blob: Blob): Promise<boolean> {
                 <app-viewer-table [sheets]="sheetsOf()" [label]="current()?.name ?? 'file'" />
               }
               @case ('markdown') {
-                <div class="bg-background min-h-0 flex-1 overflow-auto" tabindex="0" [attr.aria-label]="'Contents of ' + current()?.name">
+                <div class="bg-background min-h-0 flex-1 overflow-auto" tabindex="0" [attr.aria-label]="'shared.viewer.contents' | translate: { name: current()?.name }">
                   <article class="markdown mx-auto max-w-3xl p-6 text-sm leading-7" [innerHTML]="html()"></article>
                 </div>
               }
               @default {
                 <div class="m-auto flex flex-col items-center gap-3 p-6 text-center">
                   <ng-icon name="lucideFileX" class="text-muted-foreground text-3xl" aria-hidden="true" />
-                  <p class="font-medium">Preview not available</p>
-                  <p class="text-muted-foreground text-sm">This file type cannot be shown here.</p>
+                  <p class="font-medium">{{ 'shared.viewer.unavailable' | translate }}</p>
+                  <p class="text-muted-foreground text-sm">{{ 'shared.viewer.unsupported' | translate }}</p>
                   <button hlmBtn type="button" [disabled]="downloading()" (click)="download()">
                     <ng-icon name="lucideDownload" aria-hidden="true" />
-                    Download
+                    {{ 'common.download' | translate }}
                   </button>
                 </div>
               }
@@ -554,7 +556,7 @@ export class FileViewer {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
-      if (throttleWait(error) !== null) toast.error('Microsoft is limiting requests. Try the download again in a minute.');
+      if (throttleWait(error) !== null) toast.error(t('files.throttled'));
       else if (this.current() === file) this.failed.set(true);
     } finally {
       this.downloading.set(false);

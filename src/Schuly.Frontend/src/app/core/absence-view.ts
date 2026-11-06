@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { AbsenceDto, SemesterReportDto } from '../api';
 import { AbsenceStep, absenceSteps, approvalState, rejectedLabel, waitingLabel } from './absence-steps';
 import { uiLocale } from './date-format';
@@ -24,6 +25,8 @@ export interface AbsenceRow<R extends ReportInput = ReportInput> {
   note: string | null;
   state: AbsenceState;
   status: string;
+  /** "by 09.11." while an excuse is due, else null. */
+  due: string | null;
   steps: AbsenceStep[];
   trainerComment: string | null;
   lessons: number | null;
@@ -103,18 +106,20 @@ function buildRow<R extends ReportInput>(absence: AbsenceDto | null, report: R |
 
   let state: AbsenceState;
   let status: string;
+  let due: string | null = null;
   if (excused) {
-    [state, status] = ['excused', 'Excused'];
+    [state, status] = ['excused', t('absences.status.excused')];
   } else if (rejected) {
     [state, status] = ['rejected', rejected];
   } else if (waiting) {
     [state, status] = ['waiting', waiting];
   } else if (future) {
-    [state, status] = ['upcoming', 'Upcoming'];
+    [state, status] = ['upcoming', t('absences.status.upcoming')];
   } else if (absence?.isExcused === false && !isDelay && deadline && deadline >= context.today) {
-    [state, status] = ['needs-excuse', `Needs an excuse by ${shortDate(deadline)}${expected ? ' (expected)' : ''}`];
+    due = t(expected ? 'absences.status.dueExpected' : 'absences.status.due', { date: shortDate(deadline) });
+    [state, status] = ['needs-excuse', t('absences.status.needsExcuse', { due })];
   } else if (absence?.isExcused === false) {
-    [state, status] = ['unexcused', 'Not excused'];
+    [state, status] = ['unexcused', t('absences.status.notExcused')];
   } else {
     [state, status] = ['unknown', ''];
   }
@@ -130,10 +135,11 @@ function buildRow<R extends ReportInput>(absence: AbsenceDto | null, report: R |
     from,
     until,
     time: absence ? (timeOf(absence) ?? (report?.hourFrom && report.hourTo ? `${report.hourFrom} – ${report.hourTo}` : null)) : report?.hourFrom && report.hourTo ? `${report.hourFrom} – ${report.hourTo}` : null,
-    reason: absence?.reason || report?.reason || 'Absent',
+    reason: absence?.reason || report?.reason || t('absences.absent'),
     note: absence?.comment || report?.comment || null,
     state,
     status,
+    due,
     steps,
     trainerComment: absence?.trainerComment || null,
     lessons: absence?.lessons ?? null,
@@ -178,7 +184,7 @@ export function absenceSemesters(rows: { from: string }[], reports: SemesterRepo
   const parsed = [...keys].map((key) => key.split('-').map(Number));
   const firstYear = Math.min(...parsed.map(([year]) => year));
   return parsed
-    .map(([year, half]) => ({ key: `${year}-${half}`, year, half, label: `Semester ${(year - firstYear) * 2 + half} · ${year}/${String(year + 1).slice(2)}` }))
+    .map(([year, half]) => ({ key: `${year}-${half}`, year, half, label: `${t('common.semester', { number: (year - firstYear) * 2 + half })} · ${year}/${String(year + 1).slice(2)}` }))
     .sort((a, b) => b.year - a.year || b.half - a.half);
 }
 
@@ -211,8 +217,6 @@ export interface AbsenceAnswer {
   hint: string;
 }
 
-const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
-
 /** The first thing the page says: does this student have to do anything? */
 export function absenceAnswer(rows: AbsenceRow[]): AbsenceAnswer {
   const of = (state: AbsenceState) => rows.filter((r) => r.state === state);
@@ -224,27 +228,27 @@ export function absenceAnswer(rows: AbsenceRow[]): AbsenceAnswer {
   const atBbb = rows.some((r) => r.bbb);
 
   if (needs.length) {
-    return { text: count(needs.length, 'absence needs an excuse', 'absences need an excuse'), tone: 'bad', hint: needs.some((r) => r.bbb) ? 'Within 14 days after the absence. CHF 10 per lesson if it stays unexcused.' : 'Excuse it the way your school asks.' };
+    return { text: t('absences.answer.needs', { count: needs.length }), tone: 'bad', hint: t(needs.some((r) => r.bbb) ? 'absences.answer.needsHintBbb' : 'absences.answer.needsHint') };
   }
   if (rejected.length) {
-    return { text: count(rejected.length, 'absence was rejected', 'absences were rejected'), tone: 'bad', hint: 'Check with whoever rejected it, or with your school.' };
+    return { text: t('absences.answer.rejected', { count: rejected.length }), tone: 'bad', hint: t('absences.answer.rejectedHint') };
   }
   if (unexcused.length) {
-    return { text: unexcused.length === 1 ? "1 absence isn't excused" : `${unexcused.length} absences aren't excused`, tone: 'bad', hint: atBbb ? 'Unexcused absences cost CHF 10 per lesson and go on the Zeugnis.' : "Your school's rules decide what happens next." };
+    return { text: t('absences.answer.unexcused', { count: unexcused.length }), tone: 'bad', hint: t(atBbb ? 'absences.answer.unexcusedHintBbb' : 'absences.answer.unexcusedHint') };
   }
   if (waiting.length) {
     const byStatus = new Map<string, number>();
     for (const row of waiting) byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
-    return { text: 'Nothing to do right now', tone: 'none', hint: `${[...byStatus].map(([status, n]) => `${n} ${status.charAt(0).toLowerCase()}${status.slice(1)}`).join(', ')}.` };
+    return { text: t('absences.answer.nothingToDo'), tone: 'none', hint: `${[...byStatus].map(([status, n]) => `${n} ${status.charAt(0).toLowerCase()}${status.slice(1)}`).join(', ')}.` };
   }
   if (upcoming.length) {
-    return { text: 'Nothing to do right now', tone: 'none', hint: atBbb ? 'Planned absences go into Schulnetz at least 7 days before.' : `${count(upcoming.length, 'absence', 'absences')} coming up.` };
+    return { text: t('absences.answer.nothingToDo'), tone: 'none', hint: atBbb ? t('absences.answer.plannedBbb') : t('absences.answer.upcoming', { count: upcoming.length }) };
   }
   if (rows.some((r) => r.state === 'excused') && rows.every((r) => r.state === 'excused' || r.isDelay)) {
-    return { text: 'All excused', tone: 'none', hint: 'Every absence this semester is excused.' };
+    return { text: t('absences.answer.allExcused'), tone: 'none', hint: t('absences.answer.allExcusedHint') };
   }
-  if (!rows.length) return { text: 'No absences this semester', tone: 'none', hint: 'Absences and delays recorded by your school show up here.' };
-  return { text: 'Nothing marked as open', tone: 'none', hint: "Your school doesn't say whether all of these are excused." };
+  if (!rows.length) return { text: t('absences.answer.none'), tone: 'none', hint: t('absences.answer.noneHint') };
+  return { text: t('absences.answer.nothingOpen'), tone: 'none', hint: t('absences.answer.nothingOpenHint') };
 }
 
 export interface AbsenceMonth<R extends ReportInput = ReportInput> {

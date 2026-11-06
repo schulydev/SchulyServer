@@ -1,8 +1,9 @@
+import { t } from '../core/i18n';
 import { Component, computed, input } from '@angular/core';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { AgendaEntryType } from '../api';
 
-const labels: Record<AgendaEntryType, string> = { Event: 'Event', Lesson: 'Lesson', Test: 'Test', Holiday: 'Holiday' };
+const labels: Record<AgendaEntryType, string> = { Event: 'overview.event', Lesson: 'shared.lesson', Test: 'overview.test', Holiday: 'overview.holiday' };
 
 @Component({
   selector: 'app-agenda-type-badge',
@@ -11,6 +12,6 @@ const labels: Record<AgendaEntryType, string> = { Event: 'Event', Lesson: 'Lesso
 })
 export class AgendaTypeBadge {
   readonly type = input.required<AgendaEntryType>();
-  protected readonly label = computed(() => labels[this.type()]);
+  protected readonly label = computed(() => t(labels[this.type()]));
   protected readonly variant = computed(() => (this.type() === 'Test' ? 'default' : this.type() === 'Holiday' ? 'secondary' : 'outline'));
 }

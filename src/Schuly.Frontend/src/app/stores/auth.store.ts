@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { swrCache } from '../core/swr-cache';
 import { clearBrowserCaches } from '../core/browser-cache';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -164,8 +165,8 @@ export function authErrorMessage(error: unknown, fallback: string): string {
       if (Array.isArray(body.errors) && body.errors.length) return body.errors.join(' ');
       if (typeof body.error_description === 'string') return body.error_description;
     }
-    if (error.status === 429) return 'Too many attempts. Wait a minute and try again.';
-    if (error.status === 0) return 'Schuly is not reachable right now.';
+    if (error.status === 429) return t('auth.tooMany');
+    if (error.status === 0) return t('auth.unreachable');
   }
   return fallback;
 }

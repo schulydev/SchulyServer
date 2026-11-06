@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -21,7 +23,7 @@ import { McpPermissionEditor } from '../shared/mcp-permission-editor';
 
 @Component({
   selector: 'app-connect-authorize',
-  imports: [HlmAlertImports, HlmButton, HlmCardImports, HlmCheckbox, HlmSpinner, NgIcon, McpPermissionEditor],
+  imports: [TranslatePipe, HlmAlertImports, HlmButton, HlmCardImports, HlmCheckbox, HlmSpinner, NgIcon, McpPermissionEditor],
   providers: [provideIcons({ lucideTriangleAlert })],
   host: { class: 'bg-sidebar text-foreground flex min-h-svh items-start justify-center p-4 sm:items-center' },
   template: `
@@ -35,31 +37,31 @@ import { McpPermissionEditor } from '../shared/mcp-permission-editor';
         @if (loading()) {
           <div hlmCardContent class="flex items-center justify-center gap-2 py-8 text-sm" role="status">
             <hlm-spinner aria-hidden="true" />
-            Checking the request...
+            {{ 'mcp.authorize.checking' | translate }}
           </div>
         } @else if (request(); as req) {
           @if (req.valid) {
             <div hlmCardHeader>
-              <h1 hlmCardTitle class="text-xl">{{ req.clientName }} wants to access your Schuly account</h1>
+              <h1 hlmCardTitle class="text-xl">{{ 'mcp.authorize.title' | translate: { name: req.clientName } }}</h1>
               <p hlmCardDescription>
-                After you decide you return to
+                {{ 'mcp.authorize.return' | translate }}
                 <strong class="text-foreground font-mono">{{ req.redirectHost }}</strong>.
                 @if (req.clientUri) {
-                  <span class="block break-all">App website: {{ req.clientUri }}</span>
+                  <span class="block break-all">{{ 'mcp.authorize.website' | translate: { uri: req.clientUri } }}</span>
                 }
               </p>
             </div>
             <div hlmCardContent class="flex flex-col gap-4">
               <div hlmAlert>
                 <ng-icon name="lucideTriangleAlert" hlmAlertIcon aria-hidden="true" />
-                <p hlmAlertDescription>Only approve apps you trust. They can see the data you allow below.</p>
+                <p hlmAlertDescription>{{ 'mcp.authorize.trust' | translate }}</p>
               </div>
 
               <app-mcp-permission-editor [(value)]="permissions" />
 
               <label class="flex items-start gap-2 text-sm" for="ai-app-opt-in">
                 <hlm-checkbox class="mt-0.5" inputId="ai-app-opt-in" [checked]="optIn()" (checkedChange)="optIn.set($event)" />
-                {{ optInText }}
+                {{ optInText | translate }}
               </label>
 
               <div aria-live="polite" role="status">
@@ -72,32 +74,32 @@ import { McpPermissionEditor } from '../shared/mcp-permission-editor';
 
               <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button hlmBtn variant="outline" type="button" [disabled]="submitting()" (click)="decide(false)">
-                  Deny
+                  {{ 'helply.approval.deny' | translate }}
                 </button>
                 <button hlmBtn type="button" [disabled]="submitting() || !optIn()" [attr.aria-busy]="submitting()" (click)="decide(true)">
                   @if (submitting()) {
                     <hlm-spinner aria-hidden="true" />
                   }
-                  Allow
+                  {{ 'mcp.authorize.allow' | translate }}
                 </button>
               </div>
               <p class="text-muted-foreground text-center text-xs">
-                You can change or revoke this later on the MCP page.
+                {{ 'mcp.authorize.later' | translate }}
               </p>
             </div>
           } @else {
             <div hlmCardHeader>
-              <h1 hlmCardTitle class="text-xl">This request can't be approved</h1>
+              <h1 hlmCardTitle class="text-xl">{{ 'mcp.authorize.invalidTitle' | translate }}</h1>
             </div>
             <div hlmCardContent>
               <div hlmAlert variant="destructive" role="alert">
-                <p hlmAlertDescription>{{ req.errorDescription || req.error || 'The request is not valid.' }}</p>
+                <p hlmAlertDescription>{{ req.errorDescription || req.error || ('mcp.authorize.invalid' | translate) }}</p>
               </div>
             </div>
           }
         } @else {
           <div hlmCardHeader>
-            <h1 hlmCardTitle class="text-xl">This request can't be approved</h1>
+            <h1 hlmCardTitle class="text-xl">{{ 'mcp.authorize.invalidTitle' | translate }}</h1>
           </div>
           <div hlmCardContent>
             <div hlmAlert variant="destructive" role="alert">
@@ -134,7 +136,7 @@ export class ConnectAuthorize implements OnInit {
       this.request.set(result);
       if (result.valid) this.permissions.set(result.requested);
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'We could not check this request. Try again from your app.'));
+      this.error.set(mcpErrorMessage(error, t('mcp.authorize.checkFailed')));
     } finally {
       this.loading.set(false);
     }
@@ -155,7 +157,7 @@ export class ConnectAuthorize implements OnInit {
       );
       window.location.assign(redirectUrl);
     } catch (error) {
-      this.error.set(mcpErrorMessage(error, 'Something went wrong. Try again.'));
+      this.error.set(mcpErrorMessage(error, t('common.error')));
       this.submitting.set(false);
     }
   }

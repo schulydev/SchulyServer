@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, effect, inject, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
@@ -25,7 +26,7 @@ import { AppSidebar } from './app-sidebar';
 
 @Component({
   selector: 'app-layout',
-  imports: [HlmSidebarImports, HlmButton, HlmSeparator, NgIcon, RouterOutlet, AppSidebar],
+  imports: [HlmSidebarImports, HlmButton, HlmSeparator, NgIcon, RouterOutlet, AppSidebar, TranslatePipe],
   providers: [provideIcons({ lucideMoon, lucideSun }), UserStore, ClassesStore, GradesStore, SemesterReportsStore, MySchoolsStore, AgendaStore, AbsencesStore, DocumentsStore, SecurityStore, DataRefresh, LinkedAccountsStore, { provide: PDF_CONVERTER, useClass: DrivePdfConverter }],
   styles: `
     [hlmSidebarWrapper] {
@@ -43,9 +44,9 @@ import { AppSidebar } from './app-sidebar';
           <div class="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
             <button hlmSidebarTrigger class="-ml-1"></button>
             <hlm-separator orientation="vertical" class="mx-2 data-vertical:h-4 data-vertical:self-center" />
-            <h1 class="text-base font-medium">{{ title() }}</h1>
+            <h1 class="text-base font-medium">{{ title() | translate }}</h1>
             <div class="ml-auto flex items-center gap-2">
-              <button hlmBtn variant="ghost" size="icon-sm" (click)="theme.toggle()" [attr.aria-label]="theme.dark() ? 'Switch to light theme' : 'Switch to dark theme'">
+              <button hlmBtn variant="ghost" size="icon-sm" (click)="theme.toggle()" [attr.aria-label]="(theme.dark() ? 'common.theme.light' : 'common.theme.dark') | translate">
                 <ng-icon [name]="theme.dark() ? 'lucideSun' : 'lucideMoon'" />
               </button>
             </div>

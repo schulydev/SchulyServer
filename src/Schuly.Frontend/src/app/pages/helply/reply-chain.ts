@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -27,10 +29,10 @@ import { ToolStatus } from '../../core/helply-types';
 import { ChainStep, ReplyTimeline, chainSummary } from './helply-timeline';
 
 const STATUS_TEXT: Record<ToolStatus, string> = {
-  running: 'In progress',
-  done: 'Done',
-  failed: "Didn't work",
-  denied: 'Not allowed',
+  running: 'helply.status.running',
+  done: 'helply.status.done',
+  failed: 'helply.status.failed',
+  denied: 'helply.status.denied',
 };
 
 /**
@@ -40,7 +42,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
  */
 @Component({
   selector: 'app-reply-chain',
-  imports: [NgIcon, NgTemplateOutlet, PkChainOfThoughtImports, PkCodeBlockImports, PkMarkdown],
+  imports: [TranslatePipe, NgIcon, NgTemplateOutlet, PkChainOfThoughtImports, PkCodeBlockImports, PkMarkdown],
   providers: [
     provideIcons({
       lucideBan,
@@ -76,7 +78,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
         <span class="min-w-0 truncate">{{ summary() }}</span>
         @if (failures()) {
           <ng-icon name="lucideCircleAlert" class="text-destructive shrink-0" aria-hidden="true" />
-          <span class="sr-only">, {{ failures() }} {{ failures() === 1 ? 'step' : 'steps' }} didn't work</span>
+          <span class="sr-only">, {{ 'helply.run.failed' | translate: { count: failures() } }}</span>
         }
         <ng-icon
           name="lucideChevronDown"
@@ -97,7 +99,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
       [attr.inert]="shown() ? null : ''"
     >
       <div class="min-h-0 overflow-hidden">
-        <pk-chain-of-thought role="list" aria-label="What Helply did" class="block" [class.pt-3]="collapsible()">
+        <pk-chain-of-thought role="list" [attr.aria-label]="'helply.did' | translate" class="block" [class.pt-3]="collapsible()">
           @for (entry of timeline().chain; track entry.key) {
             <pk-chain-of-thought-step role="listitem" [last]="$last">
               @if (entry.kind === 'text') {
@@ -122,7 +124,7 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
                   <pk-chain-of-thought-item class="flex min-w-0 flex-col gap-2">
                     <pk-code-block class="min-w-0">
                       <pk-code-block-group class="text-muted-foreground border-b px-3 py-1.5 text-xs">
-                        <span>Command</span>
+                        <span>{{ 'helply.command' | translate }}</span>
                       </pk-code-block-group>
                       <pk-code-block-code
                         class="[&_pre]:break-all [&_pre]:whitespace-pre-wrap"
@@ -134,13 +136,13 @@ const STATUS_TEXT: Record<ToolStatus, string> = {
                       <pre
                         tabindex="0"
                         role="region"
-                        aria-label="Output"
+                        [attr.aria-label]="'helply.output' | translate"
                         class="bg-muted text-foreground focus-visible:ring-ring/50 max-h-72 overflow-auto rounded-lg p-3 font-mono text-xs break-all whitespace-pre-wrap outline-none focus-visible:ring-3"
                       >{{ entry.code.output || '(no output)' }}</pre>
                     }
                     @if (entry.code.exitCode !== null) {
                       <p class="text-xs" [class]="entry.code.exitCode === 0 ? 'text-muted-foreground' : 'text-destructive font-medium'">
-                        exit code {{ entry.code.exitCode }}
+                        {{ 'helply.exitCode' | translate: { code: entry.code.exitCode } }}
                       </p>
                     }
                   </pk-chain-of-thought-item>
@@ -206,6 +208,6 @@ export class ReplyChain {
   );
 
   protected statusText(status: ToolStatus): string {
-    return STATUS_TEXT[status];
+    return t(STATUS_TEXT[status]);
   }
 }

@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { DOCUMENT } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -13,21 +14,21 @@ import { McpKeysCard } from './mcp/mcp-keys-card';
 
 @Component({
   selector: 'app-mcp',
-  imports: [HlmButton, HlmCardImports, HlmCollapsibleImports, NgIcon, CopyBlock, McpClientsCard, McpConnectionsCard, McpKeysCard],
+  imports: [TranslatePipe, HlmButton, HlmCardImports, HlmCollapsibleImports, NgIcon, CopyBlock, McpClientsCard, McpConnectionsCard, McpKeysCard],
   providers: [provideIcons({ lucideChevronDown })],
   template: `
     <div class="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 lg:p-6">
       <p class="text-muted-foreground text-sm">
-        Connect AI assistants like Claude, ChatGPT and Cursor to your Schuly data.
+        {{ 'mcp.intro' | translate }}
       </p>
 
       <section hlmCard>
         <div hlmCardHeader>
-          <h2 hlmCardTitle>Server URL</h2>
-          <p hlmCardDescription>Add this address to your AI app as a remote MCP server.</p>
+          <h2 hlmCardTitle>{{ 'mcp.serverUrl' | translate }}</h2>
+          <p hlmCardDescription>{{ 'mcp.serverUrlHint' | translate }}</p>
         </div>
         <div hlmCardContent>
-          <app-copy-block [text]="url" label="Server URL" [single]="true" />
+          <app-copy-block [text]="url" [label]="'mcp.serverUrl' | translate" [single]="true" />
         </div>
       </section>
 
@@ -40,7 +41,7 @@ import { McpKeysCard } from './mcp/mcp-keys-card';
           <div hlmCardHeader>
             <h2 hlmCardTitle>
               <button hlmCollapsibleTrigger hlmBtn variant="ghost" class="-ml-2.5 text-base font-semibold">
-                Troubleshooting
+                {{ 'mcp.troubleshooting' | translate }}
                 <ng-icon name="lucideChevronDown" aria-hidden="true" />
               </button>
             </h2>
@@ -49,21 +50,19 @@ import { McpKeysCard } from './mcp/mcp-keys-card';
             <div hlmCardContent>
               <ul class="flex list-disc flex-col gap-2 ps-5 text-sm">
                 <li>
-                  To start over, clear the stored sign-in and connect again. In Claude Code run /mcp and choose Clear
-                  authentication.
+                  {{ 'mcp.trouble.reset' | translate }}
                 </li>
-                <li>After you edit a config file, restart or refresh the client so it reads the change.</li>
+                <li>{{ 'mcp.trouble.restart' | translate }}</li>
                 <li>
-                  A 401 error or "Needs login" means the browser sign-in is not finished yet. Complete it, then try
-                  again.
+                  {{ 'mcp.trouble.login' | translate }}
                 </li>
                 <li>
-                  Use the exact key name your client expects: type http, servers or mcpServers, serverUrl or httpUrl.
+                  {{ 'mcp.trouble.keyName' | translate }}
                 </li>
-                <li>Cloud clients such as ChatGPT and claude.ai can only reach a public URL, not localhost.</li>
-                <li>Revoked or expired API keys stop working immediately.</li>
+                <li>{{ 'mcp.trouble.cloud' | translate }}</li>
+                <li>{{ 'mcp.trouble.revoked' | translate }}</li>
                 <li>
-                  If a tool is missing, the permissions of that connection do not allow it. Edit its permissions above.
+                  {{ 'mcp.trouble.missingTool' | translate }}
                 </li>
               </ul>
             </div>

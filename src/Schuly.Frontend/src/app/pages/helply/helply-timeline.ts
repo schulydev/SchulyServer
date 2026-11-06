@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n';
 import { ToolActivity, ToolCode, ToolStatus } from '../../core/helply-types';
 
 /** A stretch of text Helply wrote between tool calls ("Let me check your mail."). */
@@ -62,7 +63,7 @@ export function runDetail(details: (string | null | undefined)[]): string | null
   const parts = details.flatMap((d) => (d ? d.split(' · ') : []));
   const paged = parts.some((p) => PAGE.test(p));
   const others = [...new Set(parts.filter((p) => !PAGE.test(p)))];
-  return [`${details.length} ${paged ? 'pages' : 'times'}`, ...others].join(' · ');
+  return [t(paged ? 'helply.run.pages' : 'helply.run.times', { count: details.length }), ...others].join(' · ');
 }
 
 /**
@@ -107,7 +108,7 @@ export function buildTimeline(text: string, tools: readonly ToolActivity[]): Rep
 /** A finished chain in one line: "Read your mail list · 4 steps", or the two kinds of step it took. */
 export function chainSummary(timeline: ReplyTimeline): string {
   const labels = [...new Set(timeline.chain.flatMap((e) => (e.kind === 'step' ? [e.label] : [])))];
-  if (!labels.length) return 'Worked it out';
+  if (!labels.length) return t('helply.run.worked');
   const shown = labels.slice(0, 2).join(' · ');
-  return timeline.steps > 1 ? `${shown} · ${timeline.steps} steps` : shown;
+  return timeline.steps > 1 ? `${shown} · ${t('helply.run.steps', { count: timeline.steps })}` : shown;
 }

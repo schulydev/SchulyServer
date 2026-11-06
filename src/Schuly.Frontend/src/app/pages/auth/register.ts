@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, inject, signal } from '@angular/core';
 import { email, form, FormField, FormRoot, minLength, required } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
@@ -25,11 +27,12 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
     HlmSpinner,
     AuthLayout,
     ConfirmEmail,
+    TranslatePipe,
   ],
   template: `
     <app-auth-layout
-      [title]="confirming() ? 'Confirm your email' : 'Create your account.'"
-      [subtitle]="confirming() ? hint() : 'Free, and your school data stays yours.'"
+      [title]="(confirming() ? 'auth.confirmEmail' : 'auth.register.title') | translate"
+      [subtitle]="confirming() ? hint() : ('auth.register.subtitle' | translate)"
     >
       @if (confirming()) {
         <app-confirm-email (signedIn)="finish()" (twoFactor)="toSignIn()" (cancelled)="toSignIn()" />
@@ -38,7 +41,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
         <div hlmCardContent>
           <form [formRoot]="account" class="flex flex-col gap-4">
             <div hlmField>
-              <label hlmFieldLabel for="username">Username</label>
+              <label hlmFieldLabel for="username">{{ 'auth.username' | translate }}</label>
               <input
                 hlmInput
                 id="username"
@@ -49,7 +52,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
               />
             </div>
             <div hlmField>
-              <label hlmFieldLabel for="email">Email</label>
+              <label hlmFieldLabel for="email">{{ 'auth.email' | translate }}</label>
               <input
                 hlmInput
                 id="email"
@@ -58,10 +61,10 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
                 placeholder="you@example.com"
                 [formField]="account.email"
               />
-              <p hlmFieldDescription>We send a code to confirm it.</p>
+              <p hlmFieldDescription>{{ 'auth.register.emailHint' | translate }}</p>
             </div>
             <div hlmField>
-              <label hlmFieldLabel for="new-password">Password</label>
+              <label hlmFieldLabel for="new-password">{{ 'auth.password' | translate }}</label>
               <input
                 hlmInput
                 id="new-password"
@@ -69,7 +72,7 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
                 autocomplete="new-password"
                 [formField]="account.password"
               />
-              <p hlmFieldDescription>At least 8 characters.</p>
+              <p hlmFieldDescription>{{ 'auth.minLength' | translate }}</p>
             </div>
             @if (error()) {
               <hlm-field-error>{{ error() }}</hlm-field-error>
@@ -78,33 +81,33 @@ import { ConfirmEmail, confirmEmailHint } from './confirm-email';
               @if (account().submitting()) {
                 <hlm-spinner />
               }
-              Create account
+              {{ 'nav.register' | translate }}
             </button>
-            <p class="text-muted-foreground text-sm">{{ notice }}</p>
+            <p class="text-muted-foreground text-sm">{{ notice | translate }}</p>
             <p class="text-muted-foreground text-center text-sm">
-              By creating an account you agree to our
+              {{ 'auth.register.agree' | translate }}
               <a
                 class="text-foreground underline underline-offset-4"
                 href="https://schuly.dev/terms"
                 target="_blank"
                 rel="noopener"
-                >Terms</a
+                >{{ 'auth.layout.terms' | translate }}</a
               >.<br />
-              See our
+              {{ 'auth.register.see' | translate }}
               <a
                 class="text-foreground underline underline-offset-4"
                 href="https://schuly.dev/privacy"
                 target="_blank"
                 rel="noopener"
-                >Privacy Policy</a
+                >{{ 'auth.register.policy' | translate }}</a
               >.
             </p>
           </form>
         </div>
       </section>
       <p class="text-muted-foreground text-center text-sm">
-        Already have an account?
-        <a routerLink="/login" class="text-foreground font-medium underline-offset-4 hover:underline">Sign in</a>
+        {{ 'auth.register.already' | translate }}
+        <a routerLink="/login" class="text-foreground font-medium underline-offset-4 hover:underline">{{ 'nav.signIn' | translate }}</a>
       </p>
       }
     </app-auth-layout>
@@ -150,7 +153,7 @@ export class Register {
       if (result === 'email') this.confirming.set(true);
       else await this.router.navigateByUrl(takeReturnUrl());
     } catch (error) {
-      this.error.set(authErrorMessage(error, 'That username or email is already taken.'));
+      this.error.set(authErrorMessage(error, t('auth.register.taken')));
     }
     return undefined;
   }

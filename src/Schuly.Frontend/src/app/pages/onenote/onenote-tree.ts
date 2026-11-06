@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -17,12 +19,12 @@ interface Branch {
 /** Notebooks, section groups and sections as an ARIA tree with a roving tabindex. */
 @Component({
   selector: 'app-onenote-tree',
-  imports: [EmptyState, HlmSkeletonImports, AccountProblem, NgIcon, NgTemplateOutlet],
+  imports: [TranslatePipe, EmptyState, HlmSkeletonImports, AccountProblem, NgIcon, NgTemplateOutlet],
   providers: [provideIcons({ lucideBookmark, lucideChevronDown, lucideChevronRight, lucideFolder, lucideLock, lucideNotebook })],
   host: { class: 'block' },
   template: `
     @if (store.waiting() || store.notebooksLoading()) {
-      <div class="flex flex-col gap-2 p-3" role="status" aria-label="Loading notebooks">
+      <div class="flex flex-col gap-2 p-3" role="status" [attr.aria-label]="'notes.loadingNotebooks' | translate">
         @for (i of [1, 2, 3, 4]; track i) {
           <hlm-skeleton class="h-8 w-full" />
         }
@@ -30,7 +32,7 @@ interface Branch {
     } @else if (store.notebooksProblem(); as problem) {
       <div class="p-3"><app-account-problem [problem]="problemKind(problem)" /></div>
     } @else if (store.notebooks().length) {
-      <ul role="tree" aria-label="Notebooks" class="flex flex-col gap-0.5 p-2">
+      <ul role="tree" [attr.aria-label]="'notes.notebooks' | translate" class="flex flex-col gap-0.5 p-2">
         @for (notebook of store.notebooks(); track notebook.id) {
           <li role="none">
             <div
@@ -52,14 +54,14 @@ interface Branch {
               <ng-icon [name]="expanded().has(notebook.id) ? 'lucideChevronDown' : 'lucideChevronRight'" class="shrink-0" aria-hidden="true" />
               <ng-icon name="lucideNotebook" class="shrink-0" aria-hidden="true" />
               <span class="min-w-0 flex-1">
-                <span class="block truncate">{{ notebook.displayName || 'Untitled notebook' }}</span>
+                <span class="block truncate">{{ notebook.displayName || ('notes.untitledNotebook' | translate) }}</span>
                 @if (teamOf(notebook); as team) {
                   <span class="text-muted-foreground block truncate text-xs font-normal">{{ team }}</span>
                 }
               </span>
               @if (!notebook.writable) {
                 <ng-icon name="lucideLock" class="text-muted-foreground shrink-0 text-xs" aria-hidden="true" />
-                <span class="sr-only">Read only</span>
+                <span class="sr-only">{{ 'notes.readOnly' | translate }}</span>
               }
             </div>
             @if (expanded().has(notebook.id)) {
@@ -67,18 +69,18 @@ interface Branch {
               @if (tree?.nodes?.length) {
                 <ng-container *ngTemplateOutlet="branch; context: { $implicit: { nodes: tree!.nodes, notebookId: notebook.id, level: 2 } }" />
               } @else if (tree?.loading || !tree) {
-                <p class="text-muted-foreground py-1 ps-9 text-xs" role="status">Loading sections</p>
+                <p class="text-muted-foreground py-1 ps-9 text-xs" role="status">{{ 'notes.loadingSections' | translate }}</p>
               } @else if (tree?.problem; as problem) {
                 <p class="text-destructive py-1 ps-9 text-xs" role="status">{{ problemText(problem) }}</p>
               } @else {
-                <p class="text-muted-foreground py-1 ps-9 text-xs" role="status">No sections</p>
+                <p class="text-muted-foreground py-1 ps-9 text-xs" role="status">{{ 'notes.noSections' | translate }}</p>
               }
             }
           </li>
         }
       </ul>
     } @else {
-      <app-empty-state icon="lucideNotebook" title="No notebooks" description="Your OneNote notebooks appear here." />
+      <app-empty-state icon="lucideNotebook" [title]="'notes.noNotebooks' | translate" [description]="'notes.noNotebooksHint' | translate" />
     }
 
     <ng-template #branch let-b>
@@ -107,7 +109,7 @@ interface Branch {
                 <span class="w-4 shrink-0" aria-hidden="true"></span>
                 <ng-icon name="lucideBookmark" class="shrink-0" aria-hidden="true" />
               }
-              <span class="min-w-0 flex-1 truncate">{{ node.displayName || 'Untitled' }}</span>
+              <span class="min-w-0 flex-1 truncate">{{ node.displayName || ('mail.untitled' | translate) }}</span>
             </div>
             @if (node.kind === 'group' && expanded().has(node.id) && node.children.length) {
               <ng-container *ngTemplateOutlet="branch; context: { $implicit: { nodes: node.children, notebookId: b.notebookId, level: b.level + 1 } }" />
@@ -159,7 +161,7 @@ export class OneNoteTree {
   }
 
   protected teamOf(notebook: OneNoteNotebook): string | null {
-    return notebook.source?.kind === 'team' ? notebook.source.name || 'Team notebook' : null;
+    return notebook.source?.kind === 'team' ? notebook.source.name || t('notes.teamNotebook') : null;
   }
 
   protected problemKind(problem: OneNoteProblem): 'expired' | 'missing' | 'failed' {
@@ -167,7 +169,7 @@ export class OneNoteTree {
   }
 
   protected problemText(problem: OneNoteProblem): string {
-    return problem === 'expired' ? 'Sign-in expired.' : problem === 'missing' ? 'Notebook not found.' : 'Could not load sections.';
+    return problem === 'expired' ? t('notes.signInExpired') : problem === 'missing' ? t('notes.notebookMissing') : t('notes.sectionsFailed');
   }
 
   private expand(id: string, notebook: boolean): void {

@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, ElementRef, afterNextRender, computed, inject, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideChevronDown, lucideChevronRight, lucideShieldQuestion, lucideTriangleAlert, lucideX } from '@ng-icons/lucide';
@@ -9,7 +10,7 @@ let nextId = 0;
 /** Asks the user to approve or deny a write action Helply wants to take. Takes focus when it appears. */
 @Component({
   selector: 'app-approval-card',
-  imports: [HlmButton, NgIcon],
+  imports: [TranslatePipe, HlmButton, NgIcon],
   providers: [provideIcons({ lucideCheck, lucideChevronDown, lucideChevronRight, lucideShieldQuestion, lucideTriangleAlert, lucideX })],
   host: {
     role: 'group',
@@ -31,7 +32,7 @@ let nextId = 0;
         <p class="font-medium" [class.text-destructive]="danger()">
           {{ approval().toolLabel }}
           @if (approval().destructive) {
-            <span class="font-normal"> (cannot be undone)</span>
+            <span class="font-normal"> {{ 'helply.approval.irreversible' | translate }}</span>
           }
         </p>
         <p class="text-foreground/90 break-words">{{ approval().summary }}</p>
@@ -41,7 +42,7 @@ let nextId = 0;
       <div class="border-destructive/50 bg-destructive/10 text-foreground flex gap-2 rounded-lg border p-3 text-xs" role="note">
         <ng-icon name="lucideTriangleAlert" aria-hidden="true" class="text-destructive mt-0.5 shrink-0 text-base" />
         <div class="min-w-0">
-          <p class="text-destructive font-medium">High risk</p>
+          <p class="text-destructive font-medium">{{ 'helply.approval.highRisk' | translate }}</p>
           <ul class="list-disc pl-4">
             @for (reason of approval().riskReasons; track $index) {
               <li class="break-words">{{ reason }}</li>
@@ -68,7 +69,7 @@ let nextId = 0;
           (click)="expanded.set(!expanded())"
         >
           <ng-icon [name]="expanded() ? 'lucideChevronDown' : 'lucideChevronRight'" aria-hidden="true" />
-          {{ expanded() ? 'Hide' : 'Show' }} everything that will be sent
+          {{ (expanded() ? 'helply.approval.hideAll' : 'helply.approval.showAll') | translate }}
         </button>
         @if (expanded()) {
           <dl [id]="panelId" class="bg-muted/50 mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 rounded-lg p-3 text-xs">
@@ -94,21 +95,21 @@ let nextId = 0;
             (click)="decide.emit(true)"
           >
             <ng-icon name="lucideCheck" aria-hidden="true" />
-            Approve
+            {{ 'helply.approval.approve' | translate }}
           </button>
         } @else {
           <button hlmBtn type="button" size="sm" [disabled]="busy()" (click)="decide.emit(true)">
             <ng-icon name="lucideCheck" aria-hidden="true" />
-            Approve
+            {{ 'helply.approval.approve' | translate }}
           </button>
         }
         <button hlmBtn type="button" variant="outline" size="sm" [disabled]="busy()" (click)="decide.emit(false)">
           <ng-icon name="lucideX" aria-hidden="true" />
-          Deny
+          {{ 'helply.approval.deny' | translate }}
         </button>
       </div>
     } @else {
-      <p class="text-muted-foreground text-xs">{{ decision() ? 'Approved' : 'Denied' }}. Waiting for your other answers.</p>
+      <p class="text-muted-foreground text-xs">{{ (decision() ? 'helply.approval.approved' : 'helply.approval.denied') | translate }}</p>
     }
   `,
 })

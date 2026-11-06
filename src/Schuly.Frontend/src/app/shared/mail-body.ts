@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, inject, input, linkedSignal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -45,22 +47,22 @@ export function prepareMailBody(source: string, isHtml: boolean, inline: Record<
 
 /**
  * Renders a message body in a sandboxed iframe: no scripts, no same-origin access, and a CSP that allows nothing but inline styles and,
- * once the reader chooses, remote images. Remote images are blocked behind a "Show images" bar because they tell the sender you read the mail.
+ * once the reader chooses, remote images. Remote images are blocked behind a t('mail.showImages') bar because they tell the sender you read the mail.
  */
 @Component({
   selector: 'app-mail-body',
-  imports: [HlmButton, NgIcon],
+  imports: [TranslatePipe, HlmButton, NgIcon],
   providers: [provideIcons({ lucideImage })],
   template: `
     @if (prepared().remote && !showImages()) {
       <div class="bg-muted/60 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border px-3 py-2 text-sm">
         <ng-icon name="lucideImage" aria-hidden="true" />
-        <span class="min-w-0 flex-1">Images in this message are blocked.</span>
-        <button hlmBtn type="button" size="sm" variant="outline" (click)="showImages.set(true)">Show images</button>
+        <span class="min-w-0 flex-1">{{ 'mail.imagesBlocked' | translate }}</span>
+        <button hlmBtn type="button" size="sm" variant="outline" (click)="showImages.set(true)">{{ 'mail.showImages' | translate }}</button>
       </div>
     }
     <iframe
-      title="Message content"
+      [title]="'mail.content' | translate"
       sandbox="allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer"
       class="min-h-0 w-full flex-1 rounded-md border bg-white"

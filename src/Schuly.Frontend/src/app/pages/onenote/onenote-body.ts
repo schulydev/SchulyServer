@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
@@ -13,10 +15,10 @@ const CONCURRENCY = 4;
  */
 @Component({
   selector: 'app-onenote-body',
-  imports: [HlmSkeletonImports],
+  imports: [TranslatePipe, HlmSkeletonImports],
   template: `
     @if (loading()) {
-      <div class="flex flex-col gap-2 p-4" role="status" aria-label="Loading page content">
+      <div class="flex flex-col gap-2 p-4" role="status" [attr.aria-label]="'notes.loadingContent' | translate">
         <hlm-skeleton class="h-5 w-2/3" />
         <hlm-skeleton class="h-4 w-full" />
         <hlm-skeleton class="h-4 w-11/12" />
@@ -42,7 +44,7 @@ export class OneNoteBody {
   readonly width = input(0);
   readonly height = input(0);
   readonly resources = input<readonly OneNoteResource[]>([]);
-  readonly title = input('Page content');
+  readonly title = input(t('notes.content'));
 
   protected readonly loading = signal(true);
   private readonly images = signal<Record<string, string>>({});

@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HelplyApi, HelplyHttpError } from '../../core/helply-api';
 import {
@@ -32,13 +33,13 @@ export interface DraftFile {
 export function uploadErrorMessage(error: unknown, name: string): string {
   const e = error as { status?: number; error?: { detail?: unknown } };
   if ((e.status === 400 || e.status === 413) && typeof e.error?.detail === 'string' && e.error.detail) return e.error.detail;
-  if (e.status === 413) return `${name} is too large.`;
-  if (e.status === 429) return 'You are attaching files too quickly. Try again in a moment.';
-  if (e.status === 404) return 'This conversation no longer exists.';
-  return `${name} couldn't be uploaded.`;
+  if (e.status === 413) return t('helply.upload.tooLarge', { name });
+  if (e.status === 429) return t('helply.upload.tooFast');
+  if (e.status === 404) return t('helply.gone');
+  return t('helply.upload.failed', { name });
 }
 
-const RATE_LIMITED = "You're sending messages too quickly. Try again in a moment.";
+const RATE_LIMITED = 'helply.tooFast';
 
 /** Page-level state for Helply. Provided by the page so it resets when you leave. */
 @Injectable()
@@ -74,7 +75,7 @@ export class HelplyStore {
   readonly uploaded = computed(() => this.drafts().filter((d) => d.status === 'done').length);
   /** Starter questions for an empty chat, matching what Helply may use. */
   readonly suggestions = computed(() => starterPrompts(this.settings()));
-  readonly activeTitle = computed(() => this.conversations().find((c) => c.id === this.activeId())?.title ?? 'New chat');
+  readonly activeTitle = computed(() => this.conversations().find((c) => c.id === this.activeId())?.title ?? t('helply.newChat'));
 
   async init(): Promise<void> {
     this.availability.set('loading');
@@ -118,12 +119,12 @@ export class HelplyStore {
         title: conversation.title,
         awaitingApproval: (conversation.pendingApprovals ?? []).length > 0,
       });
-      if ((conversation.pendingApprovals ?? []).length) this.announcement.set('Helply needs your approval');
+      if ((conversation.pendingApprovals ?? []).length) this.announcement.set(t('helply.needsApproval'));
     } catch (error) {
       if (this.activeId() !== id) return;
       if (this.isDisabled(error)) return;
       this.notice.set(
-        (error as { status?: number }).status === 404 ? 'That conversation no longer exists.' : "Couldn't open that conversation.",
+        (error as { status?: number }).status === 404 ? t('helply.goneOther') : t('helply.openFailed'),
       );
       this.activeId.set(null);
       await this.refreshList();
@@ -243,7 +244,7 @@ export class HelplyStore {
       this.conversations.update((list) => list.map((c) => (c.id === id ? updated : c)));
       return true;
     } catch (error) {
-      if (!this.isDisabled(error)) this.notice.set("Couldn't rename that conversation.");
+      if (!this.isDisabled(error)) this.notice.set(t('helply.renameFailed'));
       return false;
     }
   }
@@ -253,9 +254,9 @@ export class HelplyStore {
       await this.api.deleteConversation(id);
       this.conversations.update((list) => list.filter((c) => c.id !== id));
       if (this.activeId() === id) this.newChat();
-      this.announcement.set('Conversation deleted');
+      this.announcement.set(t('helply.deleted'));
     } catch (error) {
-      if (!this.isDisabled(error)) this.notice.set("Couldn't delete that conversation.");
+      if (!this.isDisabled(error)) this.notice.set(t('helply.deleteFailed'));
     }
   }
 
@@ -264,9 +265,9 @@ export class HelplyStore {
       await this.api.deleteAllConversations();
       this.conversations.set([]);
       this.newChat();
-      this.announcement.set('All conversations deleted');
+      this.announcement.set(t('helply.allDeleted'));
     } catch (error) {
-      if (!this.isDisabled(error)) this.notice.set("Couldn't delete your conversations.");
+      if (!this.isDisabled(error)) this.notice.set(t('helply.allDeleteFailed'));
     }
   }
 
@@ -333,7 +334,7 @@ export class HelplyStore {
     const controller = new AbortController();
     this.abort = controller;
     this.streaming.set(true);
-    this.announcement.set('Helply is typing');
+    this.announcement.set(t('helply.typing'));
     return controller;
   }
 
@@ -348,7 +349,7 @@ export class HelplyStore {
     for await (const event of events) {
       if (this.abort !== controller) return;
       this.chat.update((s) => applyStreamEvent(s, event, new Date().toISOString()));
-      if (event.type === 'approval_required') this.announcement.set('Helply needs your approval');
+      if (event.type === 'approval_required') this.announcement.set(t('helply.needsApproval'));
       if (event.type === 'error') {
         finished = true;
         this.announcement.set(event.message);
@@ -366,7 +367,7 @@ export class HelplyStore {
   }
 
   private onDone(event: Extract<StreamEvent, { type: 'done' }>): void {
-    this.announcement.set(event.awaitingApproval ? 'Helply needs your approval' : 'Helply answered');
+    this.announcement.set(event.awaitingApproval ? t('helply.needsApproval') : t('helply.answered'));
     const id = this.activeId();
     if (!id) return;
     const now = new Date().toISOString();
@@ -381,7 +382,7 @@ export class HelplyStore {
     if (this.abort !== controller) return;
     if (controller.signal.aborted) {
       this.chat.update(stopStreaming);
-      this.announcement.set('Stopped');
+      this.announcement.set(t('helply.stopped'));
       return;
     }
     let message = GENERIC_ERROR;
@@ -391,15 +392,15 @@ export class HelplyStore {
         this.availability.set('off');
         return;
       }
-      if (error.status === 429) message = RATE_LIMITED;
+      if (error.status === 429) message = t(RATE_LIMITED);
       else if (error.status === 409) {
-        message = 'Helply is still working on the previous message. Try again in a moment.';
+        message = t('helply.busy');
         retryable = false;
       } else if (error.status === 400) {
-        message = "That message couldn't be sent. Check its length and try again.";
+        message = t('helply.sendFailed');
         retryable = false;
       } else if (error.status === 404) {
-        message = 'This conversation no longer exists.';
+        message = t('helply.gone');
         retryable = false;
         void this.refreshList();
       }

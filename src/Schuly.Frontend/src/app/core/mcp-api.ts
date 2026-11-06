@@ -4,8 +4,8 @@ import { Observable } from 'rxjs';
 import { McpPermissionSet } from './mcp-permissions';
 
 /** The separate opt-in for connecting an AI app. The server refuses a new connection without it. */
-export const AI_APP_OPT_IN =
-  'I want to share this data with this AI app. It gets what I allow, under its own terms and possibly outside Switzerland. Absence reasons can reveal health information.';
+/** A translation key: the consent sentence for sharing data with an AI app. */
+export const AI_APP_OPT_IN = 'mcp.optIn';
 
 export interface McpAuthorizationParameters {
   responseType: string;

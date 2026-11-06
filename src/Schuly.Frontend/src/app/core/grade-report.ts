@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 /**
  * Turns exam grades and semester reports into what the Grades page shows, the way a Zeugnis counts.
  *
@@ -232,7 +233,7 @@ export function buildGradeGroups(grades: ExamGrade[], reports: SemesterReport[],
         half,
         number,
         year: yearLabel(yearStart),
-        label: `Semester ${number} · ${yearLabel(yearStart)}`,
+        label: `${t('common.semester', { number })} · ${yearLabel(yearStart)}`,
         report,
         expected,
         average: report ? (report.gradeAverage ?? null) : expected ? semesterAverage(counted) : null,
@@ -245,7 +246,7 @@ export function buildGradeGroups(grades: ExamGrade[], reports: SemesterReport[],
     const latest = [...list].sort((a, b) => semesterKey(b.schoolYearStart, b.semesterHalf).localeCompare(semesterKey(a.schoolYearStart, a.semesterHalf)))[0];
     result.push({
       key,
-      label: key === OTHER_GROUP ? 'Other subjects' : (latest?.className ?? ''),
+      label: key === OTHER_GROUP ? t('grades.otherSubjects') : (latest?.className ?? ''),
       bbbRules,
       semesters,
       undated: entries.filter((e) => e.semester === null).map((e) => e.row),
@@ -295,8 +296,8 @@ export function promotionOutlook(grades: number[]): PromotionOutlook | null {
   if (average == null) return null;
   const below = grades.filter((g) => g < 4).length;
   const points = negativeDeviation(grades);
-  const risk = below > 2 ? `${below} subjects below 4, the limit is 2` : points > 2 ? `${points.toFixed(1)} points below 4, the limit is 2` : Number(oneDecimal(average)) < 4 ? 'the average is below 4' : '';
-  return { atRisk: !!risk, text: risk ? `Promotion at risk: ${risk}` : 'On track for promotion' };
+  const risk = below > 2 ? t('grades.risk.subjects', { count: below }) : points > 2 ? t('grades.risk.points', { points: points.toFixed(1) }) : Number(oneDecimal(average)) < 4 ? t('grades.risk.average') : '';
+  return { atRisk: !!risk, text: risk ? t('grades.risk.atRisk', { risk }) : t('grades.risk.onTrack') };
 }
 
 export const countedGrades = (semester: SemesterResult): number[] => semester.subjects.flatMap((s) => (s.counted && s.grade != null ? [s.grade] : []));
@@ -311,8 +312,9 @@ export interface GradeHeadline {
   hint: string;
 }
 
-const belowText = (count: number) => (count ? `${count} ${count === 1 ? 'subject' : 'subjects'} below 4 so far` : 'No subject below 4 so far');
-const NO_AVERAGE_HINT = "Your school's reports have no overall average, so Schuly doesn't show one.";
+const belowText = (count: number) => t('grades.belowSoFar', { count });
+const belowNow = (count: number) => t('grades.below', { count });
+const noAverageHint = () => t('grades.hint.noAverage');
 
 /** The top of the page for one semester, or for all of them when `semester` is null. */
 export function gradeHeadline(group: GradeGroup, semester: SemesterResult | null, below: number, classSuffix = ''): GradeHeadline {
@@ -320,29 +322,29 @@ export function gradeHeadline(group: GradeGroup, semester: SemesterResult | null
   const none: GradeHeadline = { label: '', value: null, state: '', tone: '', hint: '' };
   if (!semester) {
     const value = gradeCase === 'bbb' || gradeCase === 'reports-average' ? allSemestersAverage(group) : null;
-    return { ...none, label: `All semesters${classSuffix}`, value, hint: value != null ? 'Average of the semester averages.' : '' };
+    return { ...none, label: `${t('grades.allSemesters')}${classSuffix}`, value, hint: value != null ? t('grades.hint.averageOfAverages') : '' };
   }
   const label = `${semester.label}${classSuffix}`;
   const promotion = promotionText(semester.report?.promotionDecision);
-  const fromReport = { state: promotion ? `Promotion: ${promotion}` : '', tone: '' as const };
+  const fromReport = { state: promotion ? t('grades.promotion', { promotion }) : '', tone: '' as const };
 
   if (semester.expected) {
     const outlook = hasPromotionDecisions(group) ? promotionOutlook(countedGrades(semester)) : null;
-    const basis = `Expected, based on ${semester.gradeCount} ${semester.gradeCount === 1 ? 'grade' : 'grades'} so far.`;
-    return { label, value: semester.average, state: outlook?.text ?? '', tone: outlook ? (outlook.atRisk ? 'bad' : 'good') : '', hint: outlook ? `${basis} Your school decides.` : basis };
+    const basis = t('grades.hint.expected', { count: semester.gradeCount });
+    return { label, value: semester.average, state: outlook?.text ?? '', tone: outlook ? (outlook.atRisk ? 'bad' : 'good') : '', hint: outlook ? `${basis} ${t('grades.hint.schoolDecides')}` : basis };
   }
   if (semester.report && (gradeCase === 'bbb' || gradeCase === 'reports-average')) {
-    return { ...none, ...fromReport, label, value: semester.report.gradeAverage ?? null, hint: 'From your Zeugnis.' };
+    return { ...none, ...fromReport, label, value: semester.report.gradeAverage ?? null, hint: t('grades.hint.fromZeugnis') };
   }
   if (semester.report) {
-    return promotion ? { ...none, ...fromReport, label, hint: `From your Zeugnis. ${NO_AVERAGE_HINT}` } : { ...none, label, state: belowText(below).replace(' so far', ''), tone: below ? 'bad' : '', hint: NO_AVERAGE_HINT };
+    return promotion ? { ...none, ...fromReport, label, hint: `${t('grades.hint.fromZeugnis')} ${noAverageHint()}` } : { ...none, label, state: belowNow(below), tone: below ? 'bad' : '', hint: noAverageHint() };
   }
   if (gradeCase === 'reports-average') {
     const last = [...group.semesters].reverse().find((s) => s.key < semester.key && s.report?.gradeAverage != null);
-    const pending = `This semester's average appears when the Zeugnis is out. ${belowText(below)}.`;
-    return last ? { ...none, label: `Last Zeugnis, ${last.label}${classSuffix}`, value: last.report?.gradeAverage ?? null, hint: pending } : { ...none, label, hint: pending };
+    const pending = t('grades.hint.pending', { below: belowText(below) });
+    return last ? { ...none, label: `${t('grades.lastZeugnis', { label: last.label })}${classSuffix}`, value: last.report?.gradeAverage ?? null, hint: pending } : { ...none, label, hint: pending };
   }
-  const hint = group.key === OTHER_GROUP ? "Schuly couldn't match these subjects to a class." : gradeCase === 'reports-no-average' ? NO_AVERAGE_HINT : group.semesters.length > 1 ? 'Schuly has no Zeugnis for you yet.' : 'Your first Zeugnis comes at the end of this semester.';
+  const hint = group.key === OTHER_GROUP ? t('grades.hint.noClass') : gradeCase === 'reports-no-average' ? noAverageHint() : group.semesters.length > 1 ? t('grades.hint.noZeugnisYet') : t('grades.hint.firstZeugnis');
   return { ...none, label, state: belowText(below), tone: below ? 'bad' : '', hint };
 }
 

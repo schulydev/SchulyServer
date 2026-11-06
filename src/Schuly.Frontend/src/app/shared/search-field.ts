@@ -1,3 +1,4 @@
+import { t } from '../core/i18n';
 import { Component, input, model } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSearch } from '@ng-icons/lucide';
@@ -27,5 +28,5 @@ import { HlmInputGroupImports } from '@spartan-ng/helm/input-group';
 export class SearchField {
   readonly value = model('');
   readonly label = input.required<string>();
-  readonly placeholder = input('Search');
+  readonly placeholder = input(t('common.search'));
 }

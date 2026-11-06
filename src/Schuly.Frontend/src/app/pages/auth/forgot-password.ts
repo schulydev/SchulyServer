@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, inject, signal } from '@angular/core';
 import { email, form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { RouterLink } from '@angular/router';
@@ -25,26 +27,26 @@ import { AuthLayout } from './auth-layout';
     HlmInput,
     HlmSpinner,
     AuthLayout,
+    TranslatePipe,
   ],
   template: `
     <app-auth-layout
-      title="Forgot your password?"
-      subtitle="We email you a link to choose a new one."
+      [title]="'auth.forgot.title' | translate"
+      [subtitle]="'auth.forgot.subtitle' | translate"
     >
       <section hlmCard>
         <div hlmCardContent>
           @if (sent()) {
             <div hlmAlert>
-              <h4 hlmAlertTitle>Check your inbox</h4>
+              <h4 hlmAlertTitle>{{ 'auth.forgot.checkInbox' | translate }}</h4>
               <p hlmAlertDescription>
-                If an account with a confirmed address exists for {{ model().email }}, a reset link
-                is on its way. It works for one hour.
+                {{ 'auth.forgot.sent' | translate: { email: model().email } }}
               </p>
             </div>
           } @else {
             <form [formRoot]="request" class="flex flex-col gap-4">
               <div hlmField>
-                <label hlmFieldLabel for="email">Email</label>
+                <label hlmFieldLabel for="email">{{ 'auth.email' | translate }}</label>
                 <input
                   hlmInput
                   id="email"
@@ -61,13 +63,13 @@ import { AuthLayout } from './auth-layout';
                 @if (request().submitting()) {
                   <hlm-spinner />
                 }
-                Send reset link
+                {{ 'auth.forgot.send' | translate }}
               </button>
             </form>
           }
         </div>
       </section>
-      <a hlmBtn variant="link" routerLink="/login">Back to sign in</a>
+      <a hlmBtn variant="link" routerLink="/login">{{ 'auth.backToSignIn' | translate }}</a>
     </app-auth-layout>
   `,
 })
@@ -91,7 +93,7 @@ export class ForgotPassword {
       await firstValueFrom(this.api.forgotPassword(this.model().email.trim()));
       this.sent.set(true);
     } catch (error) {
-      this.error.set(authErrorMessage(error, 'That did not work. Try again in a moment.'));
+      this.error.set(authErrorMessage(error, t('auth.didNotWork')));
     }
     return undefined;
   }

@@ -1,16 +1,10 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { appLocale, t } from './i18n';
 
 export const FALLBACK_LOCALE = 'de-CH';
 
-/** The browser's locale when it has one, else de-CH. */
-export function uiLocale(): string {
-  const language = typeof navigator === 'undefined' ? '' : (navigator.languages?.[0] ?? navigator.language ?? '');
-  try {
-    return language ? Intl.getCanonicalLocales(language)[0] : FALLBACK_LOCALE;
-  } catch {
-    return FALLBACK_LOCALE;
-  }
-}
+/** The active app language's Swiss locale (de-CH, fr-CH, ...); tracks language switches. */
+export const uiLocale = appLocale;
 
 /** Every format is 24-hour; "h23" also keeps midnight at 00:xx rather than 24:xx. */
 const TIME = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } as const;
@@ -76,27 +70,27 @@ export function formatWhen(value: string | number | Date | null | undefined, pre
 
 const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
-/** "Heute"/"Gestern" in German locales, "Today"/"Yesterday" otherwise; null for any other day. */
-export function relativeDayLabel(value: string | number | Date | null | undefined, now: Date = new Date(), locale: string = uiLocale()): string | null {
+/** "Today"/"Yesterday" in the app language; null for any other day. */
+export function relativeDayLabel(value: string | number | Date | null | undefined, now: Date = new Date()): string | null {
   if (value === null || value === undefined || value === '') return null;
   const at = new Date(value);
   if (Number.isNaN(at.getTime())) return null;
   const days = Math.round((dayStart(now) - dayStart(at)) / 86_400_000);
-  const german = locale.toLowerCase().startsWith('de');
-  if (days === 0) return german ? 'Heute' : 'Today';
-  if (days === 1) return german ? 'Gestern' : 'Yesterday';
+  if (days === 0) return t('common.today');
+  if (days === 1) return t('common.yesterday');
   return null;
 }
 
 /** "Heute, 14:03", "Gestern, 09:12", else the full date (31.10.2026). */
 export function formatModified(value: string | null | undefined, now: Date = new Date(), locale: string = uiLocale()): string {
-  const label = relativeDayLabel(value, now, locale);
+  const label = relativeDayLabel(value, now);
   if (label) return `${label}, ${formatWhen(value, 'time', locale)}`;
   return formatWhen(value, 'date', locale);
 }
 
 /** `{{ value | appDate: 'weekdayDate' }}`: the shared formatter in templates. */
-@Pipe({ name: 'appDate' })
+// Impure so a language switch redraws dates; the formatters are cached, so this stays cheap.
+@Pipe({ name: 'appDate', pure: false })
 export class AppDatePipe implements PipeTransform {
   transform(value: string | number | Date | null | undefined, preset: DatePreset): string {
     return formatWhen(value, preset);

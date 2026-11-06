@@ -28,20 +28,18 @@ describe('formatWhen', () => {
 
 describe('relativeDayLabel', () => {
   const now = new Date(2026, 9, 29, 15, 0);
-  it('names today and yesterday in the UI language', () => {
-    expect(relativeDayLabel(new Date(2026, 9, 29, 1, 0), now, 'de-CH')).toBe('Heute');
-    expect(relativeDayLabel(new Date(2026, 9, 28, 23, 0), now, 'de-CH')).toBe('Gestern');
-    expect(relativeDayLabel(new Date(2026, 9, 29, 1, 0), now, 'en-GB')).toBe('Today');
-    expect(relativeDayLabel(new Date(2026, 9, 28, 23, 0), now, 'en-US')).toBe('Yesterday');
-    expect(relativeDayLabel(new Date(2026, 9, 20), now, 'de-CH')).toBeNull();
+  it('names today and yesterday in the app language', () => {
+    expect(relativeDayLabel(new Date(2026, 9, 29, 1, 0), now)).toBe('Today');
+    expect(relativeDayLabel(new Date(2026, 9, 28, 23, 0), now)).toBe('Yesterday');
+    expect(relativeDayLabel(new Date(2026, 9, 20), now)).toBeNull();
   });
 });
 
 describe('formatModified', () => {
   const now = new Date(2026, 9, 29, 15, 0);
-  it('reads Heute/Gestern with the time, else the date', () => {
-    expect(formatModified(new Date(2026, 9, 29, 9, 5).toISOString(), now, 'de-CH')).toBe('Heute, 09:05');
-    expect(formatModified(new Date(2026, 9, 28, 23, 59).toISOString(), now, 'de-CH')).toBe('Gestern, 23:59');
+  it('reads today/yesterday in the app language with the time, else the date', () => {
+    expect(formatModified(new Date(2026, 9, 29, 9, 5).toISOString(), now, 'de-CH')).toBe('Today, 09:05');
+    expect(formatModified(new Date(2026, 9, 28, 23, 59).toISOString(), now, 'de-CH')).toBe('Yesterday, 23:59');
     expect(formatModified(new Date(2026, 9, 29, 18, 21).toISOString(), now, 'en-US')).toBe('Today, 18:21');
     expect(formatModified(new Date(2026, 0, 2, 12, 0).toISOString(), now, 'de-CH')).toBe('02.01.2026');
     expect(formatModified(null, now)).toBe('');

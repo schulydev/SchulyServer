@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePanelLeft, lucidePlus, lucideRefreshCw, lucideSettings } from '@ng-icons/lucide';
@@ -33,6 +35,7 @@ function readListWidth(): number {
 @Component({
   selector: 'app-helply',
   imports: [
+    TranslatePipe,
     Composer,
     ConversationList,
     HelplyAiNotice,
@@ -59,7 +62,7 @@ function readListWidth(): number {
         <aside
           id="helply-conversations"
           class="bg-sidebar flex shrink-0 flex-col"
-          aria-label="Helply conversations"
+          [attr.aria-label]="'helply.conversations' | translate"
           [style.width.px]="listWidth()"
         >
         <app-conversation-list
@@ -73,7 +76,7 @@ function readListWidth(): number {
         />
         </aside>
         <app-split-handle
-          label="Resize conversation list"
+          [label]="'helply.resizeList' | translate"
           [width]="listWidth()"
           [min]="listMin"
           [max]="listMax"
@@ -83,7 +86,7 @@ function readListWidth(): number {
       }
     }
 
-    <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden" aria-label="Helply chat">
+    <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden" [attr.aria-label]="'helply.chat' | translate">
       <div class="flex items-center gap-2 border-b px-4 py-2">
         @if (store.availability() === 'on') {
           <button
@@ -95,18 +98,18 @@ function readListWidth(): number {
             (click)="navOpen.set(!navOpen())"
           >
             <ng-icon name="lucidePanelLeft" aria-hidden="true" />
-            <span class="max-sm:sr-only">Conversations</span>
+            <span class="max-sm:sr-only">{{ 'helply.conversationsShort' | translate }}</span>
           </button>
         }
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium">{{ store.activeTitle() }}</h2>
         @if (store.availability() === 'on') {
           <button hlmBtn type="button" variant="outline" size="sm" class="lg:hidden" (click)="newChat()">
             <ng-icon name="lucidePlus" aria-hidden="true" />
-            <span class="sr-only">New chat</span>
+            <span class="sr-only">{{ 'helply.newChat' | translate }}</span>
           </button>
           <button hlmBtn type="button" variant="outline" size="sm" (click)="settingsOpen.set(true)">
             <ng-icon name="lucideSettings" aria-hidden="true" />
-            <span class="max-sm:sr-only">Helply settings</span>
+            <span class="max-sm:sr-only">{{ 'helply.settings' | translate }}</span>
           </button>
         }
       </div>
@@ -119,25 +122,24 @@ function readListWidth(): number {
 
       @switch (store.availability()) {
         @case ('loading') {
-          <div class="flex flex-1 items-center justify-center"><hlm-spinner aria-label="Loading Helply" /></div>
+          <div class="flex flex-1 items-center justify-center"><hlm-spinner [attr.aria-label]="'helply.loading' | translate" /></div>
         }
         @case ('off') {
           <div class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
             <img src="helply-avatar.svg" alt="" width="64" height="64" class="size-16 opacity-70" />
-            <h2 class="text-xl font-semibold">Helply is turned off</h2>
+            <h2 class="text-xl font-semibold">{{ 'helply.off.title' | translate }}</h2>
             <p class="text-muted-foreground max-w-md text-sm">
-              Helply isn't available on this Schuly server right now. Everything else in Schuly keeps working as usual.
-              Check back later, or ask whoever runs this server to turn it on.
+              {{ 'helply.off.description' | translate }}
             </p>
           </div>
         }
         @case ('error') {
           <div class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-            <h2 class="text-xl font-semibold">Helply couldn't load</h2>
-            <p class="text-muted-foreground max-w-md text-sm">Something went wrong while opening Helply.</p>
+            <h2 class="text-xl font-semibold">{{ 'helply.error.title' | translate }}</h2>
+            <p class="text-muted-foreground max-w-md text-sm">{{ 'helply.error.description' | translate }}</p>
             <button hlmBtn type="button" variant="outline" (click)="store.init()">
               <ng-icon name="lucideRefreshCw" aria-hidden="true" />
-              Try again
+              {{ 'common.retry' | translate }}
             </button>
           </div>
         }
@@ -172,8 +174,8 @@ function readListWidth(): number {
     <hlm-sheet side="left" [state]="!wide() && navOpen() ? 'open' : 'closed'" (closed)="closeSheet()">
       <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-80 max-w-[90vw] gap-0 p-0">
         <hlm-sheet-header class="border-b">
-          <h2 hlmSheetTitle>Conversations</h2>
-          <p hlmSheetDescription class="sr-only">Pick a conversation or start a new chat.</p>
+          <h2 hlmSheetTitle>{{ 'helply.conversationsShort' | translate }}</h2>
+          <p hlmSheetDescription class="sr-only">{{ 'helply.pick' | translate }}</p>
         </hlm-sheet-header>
         <app-conversation-list
           [conversations]="store.conversations()"
@@ -286,7 +288,7 @@ export class Helply implements OnInit {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch {
-      this.store.notice.set("Couldn't download that file.");
+      this.store.notice.set(t('helply.downloadFailed'));
     }
   }
 

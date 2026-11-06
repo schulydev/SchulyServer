@@ -4,11 +4,10 @@ import { CanActivateFn, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthStore } from '../stores/auth.store';
 
-/** The same words as the mobile app's sign-up screen (Schuly/lib/l10n/app_en.arb, privacySignUpNotice). Change them together. */
-export const PRIVACY_NOTICE =
-  'Your Schuly account stores the school data you sync on the Schuly server: grades, timetable, agenda, and absences including their reasons. Absence reasons can reveal health information. You can export or delete your data in Settings at any time.';
+/** Translation keys. The same words as the mobile app's sign-up screen (Schuly/lib/l10n/app_*.arb, privacySignUpNotice). Change them together. */
+export const PRIVACY_NOTICE = 'auth.privacy.notice';
 
-export const SWISS_SCHOOL_CONFIRMATION = 'I attend a school in Switzerland.';
+export const SWISS_SCHOOL_CONFIRMATION = 'auth.privacy.swiss';
 
 export const PRIVACY_POLICY_URL = 'https://schuly.dev/privacy';
 

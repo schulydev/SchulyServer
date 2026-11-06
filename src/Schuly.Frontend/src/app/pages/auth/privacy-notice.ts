@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -12,23 +14,23 @@ import { AuthLayout } from './auth-layout';
 
 @Component({
   selector: 'app-privacy-notice',
-  imports: [HlmButton, HlmCardImports, HlmCheckbox, HlmFieldImports, HlmSpinner, AuthLayout],
+  imports: [HlmButton, HlmCardImports, HlmCheckbox, HlmFieldImports, HlmSpinner, AuthLayout, TranslatePipe],
   template: `
-    <app-auth-layout title="Before you continue." subtitle="Please read how Schuly handles your data.">
+    <app-auth-layout [title]="'auth.privacy.title' | translate" [subtitle]="'auth.privacy.subtitle' | translate">
       <section hlmCard>
         <div hlmCardContent class="flex flex-col gap-4">
-          <p class="text-sm">{{ notice }}</p>
+          <p class="text-sm">{{ notice | translate }}</p>
           <a
             class="text-foreground text-sm underline underline-offset-4"
             [href]="status()?.policyUrl ?? 'https://schuly.dev/privacy'"
             target="_blank"
             rel="noopener"
-            >Read the Privacy Policy</a
+            >{{ 'auth.privacy.read' | translate }}</a
           >
           @if (status()?.swissSchoolConfirmationRequired) {
             <label class="flex items-center gap-2 text-sm" for="swiss-school">
               <hlm-checkbox inputId="swiss-school" [checked]="swissConfirmed()" (checkedChange)="swissConfirmed.set($event)" />
-              {{ confirmation }}
+              {{ confirmation | translate }}
             </label>
           }
           @if (error()) {
@@ -38,9 +40,9 @@ import { AuthLayout } from './auth-layout';
             @if (busy()) {
               <hlm-spinner />
             }
-            Continue
+            {{ 'auth.continue' | translate }}
           </button>
-          <button hlmBtn variant="ghost" type="button" (click)="auth.signOut()">Sign out</button>
+          <button hlmBtn variant="ghost" type="button" (click)="auth.signOut()">{{ 'auth.signOut' | translate }}</button>
         </div>
       </section>
     </app-auth-layout>
@@ -67,7 +69,7 @@ export class PrivacyNotice implements OnInit {
     try {
       this.status.set(await this.api.status());
     } catch {
-      this.error.set('We could not load this. Reload the page to try again.');
+      this.error.set(t('auth.privacy.loadFailed'));
     }
   }
 
@@ -80,7 +82,7 @@ export class PrivacyNotice implements OnInit {
       await this.api.accept(status.policyVersion, this.swissConfirmed());
       await this.router.navigateByUrl(takeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')));
     } catch {
-      this.error.set('That did not work. Reload the page and try again.');
+      this.error.set(t('auth.reloadFailed'));
       this.busy.set(false);
     }
   }

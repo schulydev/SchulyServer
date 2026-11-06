@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, computed, inject, signal } from '@angular/core';
 import { provideIcons } from '@ng-icons/core';
 import { lucideUserX } from '@ng-icons/lucide';
@@ -18,12 +20,12 @@ import { AbsenceRowItem } from './absence-row';
 
 @Component({
   selector: 'app-absences',
-  imports: [SyncingNotice, HlmAlertImports, HlmSelectImports, HlmSkeletonImports, HlmToggleGroupImports, EmptyState, AbsenceReportDialog, AbsenceRowItem],
+  imports: [SyncingNotice, HlmAlertImports, HlmSelectImports, HlmSkeletonImports, HlmToggleGroupImports, EmptyState, AbsenceReportDialog, AbsenceRowItem, TranslatePipe],
   providers: [provideIcons({ lucideUserX }), AbsenceReportsStore],
   template: `
     <div class="flex flex-col gap-5 p-4 md:gap-6 lg:p-6">
       <app-syncing-notice />
-      <h1 class="sr-only">Absences</h1>
+      <h1 class="sr-only">{{ 'nav.absences' | translate }}</h1>
 
       @if (absences.loading() && !allRows().length) {
         <div class="flex flex-col gap-2">
@@ -37,9 +39,9 @@ import { AbsenceRowItem } from './absence-row';
             <app-absence-report-dialog />
           }
         </div>
-        <app-empty-state icon="lucideUserX" title="No absences" description="Absences and delays recorded by your school show up here." />
+        <app-empty-state icon="lucideUserX" [title]="'absences.empty.title' | translate" [description]="'absences.answer.noneHint' | translate" />
       } @else {
-        <section class="flex flex-wrap items-end justify-between gap-x-10 gap-y-5 border-b pb-6" aria-label="Summary">
+        <section class="flex flex-wrap items-end justify-between gap-x-10 gap-y-5 border-b pb-6" [attr.aria-label]="'absences.summary' | translate">
           <div class="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
             <p class="text-muted-foreground text-[13px]">{{ semesterLabel(semesterKey()) }}</p>
             <h2 class="text-3xl leading-tight font-semibold tracking-tight text-balance" [class.text-destructive]="answer().tone === 'bad'">{{ answer().text }}</h2>
@@ -47,7 +49,7 @@ import { AbsenceRowItem } from './absence-row';
           </div>
           <div class="flex flex-col items-start gap-5 sm:items-end">
             <div class="flex flex-wrap items-center gap-2">
-              <label class="sr-only" for="absences-semester">Semester</label>
+              <label class="sr-only" for="absences-semester">{{ 'absences.semester' | translate }}</label>
               <hlm-select class="w-56" [value]="semesterKey()" [itemToString]="semesterLabel" (valueChange)="selected.set($event ?? null)">
                 <hlm-select-trigger buttonId="absences-semester" class="w-full">
                   <hlm-select-value />
@@ -67,24 +69,24 @@ import { AbsenceRowItem } from './absence-row';
             <dl class="flex gap-7">
               <div>
                 <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ days() }}</dd>
-                <dt class="text-muted-foreground text-[13px]">Days missed</dt>
+                <dt class="text-muted-foreground text-[13px]">{{ 'absences.daysMissed' | translate }}</dt>
               </div>
               <div>
                 <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ delays() }}</dd>
-                <dt class="text-muted-foreground text-[13px]">Delays</dt>
+                <dt class="text-muted-foreground text-[13px]">{{ 'absences.delays' | translate }}</dt>
               </div>
               <div>
                 <dd class="text-2xl font-semibold tracking-tight tabular-nums">{{ lessons() ?? '–' }}</dd>
-                <dt class="text-muted-foreground text-[13px]">Lessons</dt>
+                <dt class="text-muted-foreground text-[13px]">{{ 'absences.lessons' | translate }}</dt>
               </div>
             </dl>
           </div>
         </section>
 
-        <hlm-toggle-group type="single" variant="outline" size="sm" [nullable]="false" [value]="absences.filter()" (valueChange)="setFilter($event)" aria-label="Filter absences" class="self-start">
-          <button hlmToggleGroupItem value="all" class="px-3">All</button>
-          <button hlmToggleGroupItem value="Absence" class="px-3">Absences</button>
-          <button hlmToggleGroupItem value="Delay" class="px-3">Delays</button>
+        <hlm-toggle-group type="single" variant="outline" size="sm" [nullable]="false" [value]="absences.filter()" (valueChange)="setFilter($event)" [attr.aria-label]="'absences.filter.label' | translate" class="self-start">
+          <button hlmToggleGroupItem value="all" class="px-3">{{ 'absences.filter.all' | translate }}</button>
+          <button hlmToggleGroupItem value="Absence" class="px-3">{{ 'absences.filter.absences' | translate }}</button>
+          <button hlmToggleGroupItem value="Delay" class="px-3">{{ 'absences.delays' | translate }}</button>
         </hlm-toggle-group>
 
         @if (error()) {
@@ -102,7 +104,7 @@ import { AbsenceRowItem } from './absence-row';
               }
             </div>
           } @empty {
-            <p class="text-muted-foreground px-1.5 py-7 text-sm">Nothing here for this semester.</p>
+            <p class="text-muted-foreground px-1.5 py-7 text-sm">{{ 'absences.emptySemester' | translate }}</p>
           }
         </div>
       }
@@ -155,9 +157,9 @@ export class Absences {
     this.withdrawing.set(key);
     try {
       await this.reports.withdraw(report);
-      toast.success('Report withdrawn.');
+      toast.success(t('absences.withdraw.done'));
     } catch (error) {
-      this.error.set(absenceErrorMessage(error, 'Could not withdraw the report. Try again.'));
+      this.error.set(absenceErrorMessage(error, t('absences.withdraw.failed')));
     }
     await this.reports.refresh();
     this.withdrawing.set(null);

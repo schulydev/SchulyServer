@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../../core/i18n';
 import { Component, inject, input, signal } from '@angular/core';
 import { form, FormField, FormRoot, minLength, required } from '@angular/forms/signals';
 import { RouterLink } from '@angular/router';
@@ -25,28 +27,29 @@ import { AuthLayout } from './auth-layout';
     HlmInput,
     HlmSpinner,
     AuthLayout,
+    TranslatePipe,
   ],
   template: `
     <app-auth-layout
-      title="Choose a new password."
-      subtitle="You're signed out everywhere once it's set."
+      [title]="'auth.reset.title' | translate"
+      [subtitle]="'auth.reset.subtitle' | translate"
     >
       <section hlmCard>
         <div hlmCardContent>
           @if (done()) {
             <div hlmAlert>
-              <h4 hlmAlertTitle>Password changed</h4>
-              <p hlmAlertDescription>Sign in with your new password.</p>
+              <h4 hlmAlertTitle>{{ 'auth.reset.changed' | translate }}</h4>
+              <p hlmAlertDescription>{{ 'auth.reset.signInNew' | translate }}</p>
             </div>
           } @else if (!token()) {
             <div hlmAlert variant="destructive">
-              <h4 hlmAlertTitle>This link is incomplete</h4>
-              <p hlmAlertDescription>Open the link from the email again, or request a new one.</p>
+              <h4 hlmAlertTitle>{{ 'auth.reset.incomplete' | translate }}</h4>
+              <p hlmAlertDescription>{{ 'auth.reset.openAgain' | translate }}</p>
             </div>
           } @else {
             <form [formRoot]="reset" class="flex flex-col gap-4">
               <div hlmField>
-                <label hlmFieldLabel for="new-password">New password</label>
+                <label hlmFieldLabel for="new-password">{{ 'auth.reset.new' | translate }}</label>
                 <input
                   hlmInput
                   id="new-password"
@@ -54,7 +57,7 @@ import { AuthLayout } from './auth-layout';
                   autocomplete="new-password"
                   [formField]="reset.password"
                 />
-                <p hlmFieldDescription>At least 8 characters.</p>
+                <p hlmFieldDescription>{{ 'auth.minLength' | translate }}</p>
               </div>
               @if (error()) {
                 <hlm-field-error>{{ error() }}</hlm-field-error>
@@ -63,14 +66,14 @@ import { AuthLayout } from './auth-layout';
                 @if (reset().submitting()) {
                   <hlm-spinner />
                 }
-                Set password
+                {{ 'auth.reset.set' | translate }}
               </button>
             </form>
           }
         </div>
       </section>
       <a hlmBtn variant="link" [routerLink]="done() ? '/login' : '/forgot-password'">{{
-        done() ? 'Sign in' : 'Request a new link'
+        (done() ? 'nav.signIn' : 'auth.reset.request') | translate
       }}</a>
     </app-auth-layout>
   `,
@@ -98,7 +101,7 @@ export class ResetPassword {
       this.done.set(true);
     } catch (error) {
       this.error.set(
-        authErrorMessage(error, 'This link has expired or was already used. Request a new one.'),
+        authErrorMessage(error, t('auth.reset.expired')),
       );
     }
     return undefined;

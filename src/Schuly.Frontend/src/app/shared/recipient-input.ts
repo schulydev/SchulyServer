@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, input, model, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
@@ -20,7 +21,7 @@ export function parseAddresses(text: string): { valid: string[]; invalid: string
 /** Recipient field with one removable chip per address. Enter, comma, semicolon or leaving the field turns the text into chips. */
 @Component({
   selector: 'app-recipient-input',
-  imports: [NgIcon],
+  imports: [TranslatePipe, NgIcon],
   providers: [provideIcons({ lucideX })],
   template: `
     <div
@@ -35,7 +36,7 @@ export function parseAddresses(text: string): { valid: string[]; invalid: string
             (click)="remove(address)"
           >
             <ng-icon name="lucideX" class="text-xs" aria-hidden="true" />
-            <span class="sr-only">Remove {{ address }}</span>
+            <span class="sr-only">{{ 'common.removeName' | translate: { name: address } }}</span>
           </button>
         </span>
       }

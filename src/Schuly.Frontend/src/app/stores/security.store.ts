@@ -3,7 +3,7 @@ import { patchState, signalStore, withHooks, withMethods, withState } from '@ngr
 import { firstValueFrom } from 'rxjs';
 import { toDataURL } from 'qrcode';
 import { AuthApi, LinkedSignIn, SignInProof, SignInProvider, TrustedDevice, TwoFactorStatus } from '../core/auth-api';
-import { externalErrors, newLinkState, returnUrl, takePending } from '../core/external-sign-in';
+import { externalError, newLinkState, returnUrl, takePending } from '../core/external-sign-in';
 import { AuthStore } from './auth.store';
 import { authErrorMessage } from './auth.store';
 
@@ -102,7 +102,7 @@ export const SecurityStore = signalStore(
         }, "That did not work. Check your code or password, and keep at least one way to sign in."),
       linkFinished: (linked: string | null, failure: string | null, state: string | null) => {
         const pending = takePending(state);
-        if (failure) patchState(store, { error: externalErrors[failure] ?? externalErrors['external_login_failed'] });
+        if (failure) patchState(store, { error: externalError(failure) });
         else if (linked && pending) patchState(store, { notice: 'The provider is linked. You can now sign in with it.' });
       },
       forgetDevices: () =>

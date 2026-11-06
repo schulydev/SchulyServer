@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -9,7 +10,7 @@ import { UserStore } from '../stores/user.store';
 
 @Component({
   selector: 'app-nav-user',
-  imports: [HlmSidebarImports, HlmAvatarImports, HlmDropdownMenuImports, NgIcon, RouterLink],
+  imports: [HlmSidebarImports, HlmAvatarImports, HlmDropdownMenuImports, NgIcon, RouterLink, TranslatePipe],
   providers: [provideIcons({ lucideEllipsisVertical, lucideLogOut, lucideUserRound })],
   template: `
     <ul hlmSidebarMenu>
@@ -57,13 +58,13 @@ import { UserStore } from '../stores/user.store';
         <hlm-dropdown-menu-group>
           <a hlmDropdownMenuItem routerLink="/settings">
             <ng-icon name="lucideUserRound" />
-            <span>Account</span>
+            <span>{{ 'common.account' | translate }}</span>
           </a>
         </hlm-dropdown-menu-group>
         <hlm-dropdown-menu-separator />
         <button hlmDropdownMenuItem (click)="user.logout()">
           <ng-icon name="lucideLogOut" />
-          <span>Log out</span>
+          <span>{{ 'nav.logOut' | translate }}</span>
         </button>
       </hlm-dropdown-menu>
     </ng-template>

@@ -1,3 +1,5 @@
+import { TranslatePipe } from '@ngx-translate/core';
+import { t } from '../core/i18n';
 import { Component, DestroyRef, ElementRef, LOCALE_ID, afterNextRender, computed, effect, inject, output, signal, untracked, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -49,7 +51,7 @@ interface Row {
 }
 
 const SORT_CHOICES = EXPLORER_SORT_KEYS.flatMap((key) => [`${key}:asc`, `${key}:desc`] as SortChoice[]);
-const COLUMN_LABELS: Record<ExplorerSortKey, string> = { name: 'Name', modified: 'Modified', type: 'Type', size: 'Size' };
+const COLUMN_LABELS: Record<ExplorerSortKey, string> = { name: 'files.column.name', modified: 'files.column.modified', type: 'files.column.type', size: 'files.column.size' };
 /** How long a pointer rests on a folder before its listing is fetched ahead. */
 const PREFETCH_DELAY_MS = 120;
 
@@ -61,7 +63,7 @@ const PREFETCH_DELAY_MS = 120;
  */
 @Component({
   selector: 'app-drive-explorer',
-  imports: [HlmButton, HlmContextMenuImports, HlmDropdownMenuImports, HlmSkeletonImports, HlmToggleGroupImports, NgIcon, DriveThumb, SearchField],
+  imports: [TranslatePipe, HlmButton, HlmContextMenuImports, HlmDropdownMenuImports, HlmSkeletonImports, HlmToggleGroupImports, NgIcon, DriveThumb, SearchField],
   providers: [
     provideIcons({
       lucideArrowDown,
@@ -81,29 +83,29 @@ const PREFETCH_DELAY_MS = 120;
   host: { class: '@container/explorer flex flex-col' },
   template: `
     <div #toolbar class="bg-background sticky top-(--header-height) z-[2] flex flex-wrap items-center gap-2 border-b pb-2">
-      <div class="flex items-center gap-1" role="toolbar" aria-label="File actions">
-        <button hlmBtn variant="ghost" size="sm" type="button" title="Open" [disabled]="!single()" (click)="openChosen()">
+      <div class="flex items-center gap-1" role="toolbar" [attr.aria-label]="'files.actions' | translate">
+        <button hlmBtn variant="ghost" size="sm" type="button" [title]="'common.open' | translate" [disabled]="!single()" (click)="openChosen()">
           <ng-icon [name]="single()?.isFolder ? 'lucideFolderOpen' : 'lucideEye'" aria-hidden="true" />
-          <span class="@max-[44rem]/explorer:sr-only">Open</span>
+          <span class="@max-[44rem]/explorer:sr-only">{{ 'common.open' | translate }}</span>
         </button>
-        <button hlmBtn variant="ghost" size="sm" type="button" title="Download" [disabled]="!downloadable().length" (click)="download(downloadable())">
+        <button hlmBtn variant="ghost" size="sm" type="button" [title]="'common.download' | translate" [disabled]="!downloadable().length" (click)="download(downloadable())">
           <ng-icon name="lucideDownload" aria-hidden="true" />
-          <span class="@max-[44rem]/explorer:sr-only">Download</span>
+          <span class="@max-[44rem]/explorer:sr-only">{{ 'common.download' | translate }}</span>
         </button>
-        <button hlmBtn variant="ghost" size="sm" type="button" title="Open online" [disabled]="!single()?.link" (click)="openInOneDrive()">
+        <button hlmBtn variant="ghost" size="sm" type="button" [title]="'chat.openOnline' | translate" [disabled]="!single()?.link" (click)="openInOneDrive()">
           <ng-icon name="lucideSquareArrowOutUpRight" aria-hidden="true" />
-          <span class="@max-[44rem]/explorer:sr-only">Open online</span>
-          <span class="sr-only">(opens in a new tab)</span>
+          <span class="@max-[44rem]/explorer:sr-only">{{ 'chat.openOnline' | translate }}</span>
+          <span class="sr-only">{{ 'common.opensNewTab' | translate }}</span>
         </button>
-        <button hlmBtn variant="ghost" size="sm" type="button" title="Copy link" [disabled]="!linkable().length" (click)="copyLinks(linkable())">
+        <button hlmBtn variant="ghost" size="sm" type="button" [title]="'files.copyLink' | translate" [disabled]="!linkable().length" (click)="copyLinks(linkable())">
           <ng-icon name="lucideLink" aria-hidden="true" />
-          <span class="@max-[44rem]/explorer:sr-only">Copy link</span>
+          <span class="@max-[44rem]/explorer:sr-only">{{ 'files.copyLink' | translate }}</span>
         </button>
       </div>
       <div class="ml-auto flex items-center gap-2">
-        <app-search-field [(value)]="search.query" label="Search all files" placeholder="Search all files" />
+        <app-search-field [(value)]="search.query" [label]="'files.searchAll' | translate" [placeholder]="'files.searchAll' | translate" />
         @if (mode.value() === 'grid') {
-          <button hlmBtn variant="outline" size="sm" type="button" [hlmDropdownMenuTrigger]="sortMenu" [attr.aria-label]="'Sort by ' + sortLabel()" title="Sort">
+          <button hlmBtn variant="outline" size="sm" type="button" [hlmDropdownMenuTrigger]="sortMenu" [attr.aria-label]="'files.sort.by' | translate: { sort: sortLabel() }" [title]="'files.sort.label' | translate">
             <ng-icon name="lucideArrowDownUp" aria-hidden="true" />
             <span class="@max-[44rem]/explorer:sr-only">{{ sortLabel() }}</span>
           </button>
@@ -115,17 +117,17 @@ const PREFETCH_DELAY_MS = 120;
           [nullable]="false"
           [value]="mode.value()"
           (valueChange)="setMode($event)"
-          aria-label="Layout"
+          [attr.aria-label]="'files.layout' | translate"
         >
-          <button hlmToggleGroupItem value="list" aria-label="List" title="List"><ng-icon name="lucideList" aria-hidden="true" /></button>
-          <button hlmToggleGroupItem value="grid" aria-label="Grid" title="Grid"><ng-icon name="lucideLayoutGrid" aria-hidden="true" /></button>
+          <button hlmToggleGroupItem value="list" [attr.aria-label]="'files.list' | translate" [title]="'files.list' | translate"><ng-icon name="lucideList" aria-hidden="true" /></button>
+          <button hlmToggleGroupItem value="grid" [attr.aria-label]="'files.grid' | translate" [title]="'files.grid' | translate"><ng-icon name="lucideLayoutGrid" aria-hidden="true" /></button>
         </hlm-toggle-group>
       </div>
     </div>
 
     @if (busy()) {
       @if (mode.value() === 'list') {
-        <div class="flex flex-col" aria-busy="true" aria-label="Loading files">
+        <div class="flex flex-col" aria-busy="true" [attr.aria-label]="'files.loading' | translate">
           @for (i of placeholders; track i) {
             <div class="flex h-10 items-center gap-3 border-b px-2">
               <hlm-skeleton class="size-6 rounded-sm" />
@@ -136,7 +138,7 @@ const PREFETCH_DELAY_MS = 120;
           }
         </div>
       } @else {
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 py-2 @max-[44rem]/explorer:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]" aria-busy="true" aria-label="Loading files">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 py-2 @max-[44rem]/explorer:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]" aria-busy="true" [attr.aria-label]="'files.loading' | translate">
           @for (i of placeholders; track i) {
             <div class="flex flex-col items-center gap-2 rounded-lg border p-2 pt-3">
               <hlm-skeleton class="h-24 w-full rounded-md" />
@@ -150,12 +152,12 @@ const PREFETCH_DELAY_MS = 120;
       <div class="text-muted-foreground grid place-items-center gap-2 py-16 text-center">
         <ng-icon name="lucideFolderOpen" size="32" aria-hidden="true" />
         <p class="grid gap-1">
-          <strong class="text-foreground font-medium">{{ store.entries().length ? 'No matching files' : 'This folder is empty' }}</strong>
-          <span class="text-sm">{{ store.entries().length ? 'Files from everywhere are listed below.' : nav.emptyText() }}</span>
+          <strong class="text-foreground font-medium">{{ store.entries().length ? ('files.noMatch' | translate) : ('files.emptyFolder' | translate) }}</strong>
+          <span class="text-sm">{{ store.entries().length ? ('files.everywhereBelow' | translate) : nav.emptyText() }}</span>
         </p>
       </div>
     } @else if (mode.value() === 'list') {
-      <div role="grid" aria-multiselectable="true" aria-label="Files and folders" [attr.aria-rowcount]="rows().length + 1" [attr.aria-busy]="store.loadingMore()">
+      <div role="grid" aria-multiselectable="true" [attr.aria-label]="'files.listLabel' | translate" [attr.aria-rowcount]="rows().length + 1" [attr.aria-busy]="store.loadingMore()">
         <div
           role="row"
           aria-rowindex="1"
@@ -176,7 +178,7 @@ const PREFETCH_DELAY_MS = 120;
                 [class.flex-row-reverse]="column === 'size'"
                 (click)="sortBy(column)"
               >
-                {{ columnLabels[column] }}
+                {{ columnLabels[column] | translate }}
                 @if (sort().key === column) {
                   <ng-icon [name]="sort().down ? 'lucideArrowDown' : 'lucideArrowUp'" size="14" aria-hidden="true" />
                 }
@@ -216,7 +218,7 @@ const PREFETCH_DELAY_MS = 120;
         role="listbox"
         aria-multiselectable="true"
         aria-orientation="horizontal"
-        aria-label="Files and folders"
+        [attr.aria-label]="'files.listLabel' | translate"
         class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 py-2 @max-[44rem]/explorer:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]"
         [attr.aria-busy]="store.loadingMore()"
       >
@@ -262,27 +264,27 @@ const PREFETCH_DELAY_MS = 120;
       <hlm-dropdown-menu class="min-w-48">
         <button hlmDropdownMenuItem [disabled]="!single()" (click)="openChosen()">
           <ng-icon [name]="single()?.isFolder ? 'lucideFolderOpen' : 'lucideEye'" />
-          <span>Open</span>
+          <span>{{ 'common.open' | translate }}</span>
         </button>
         <button hlmDropdownMenuItem [disabled]="!downloadable().length" (click)="download(downloadable())">
           <ng-icon name="lucideDownload" />
-          <span>Download</span>
+          <span>{{ 'common.download' | translate }}</span>
         </button>
         <hlm-dropdown-menu-separator />
         <button hlmDropdownMenuItem [disabled]="!single()?.link" (click)="openInOneDrive()">
           <ng-icon name="lucideSquareArrowOutUpRight" />
-          <span>Open online</span>
+          <span>{{ 'chat.openOnline' | translate }}</span>
         </button>
         <button hlmDropdownMenuItem [disabled]="!linkable().length" (click)="copyLinks(linkable())">
           <ng-icon name="lucideLink" />
-          <span>{{ linkable().length > 1 ? 'Copy links' : 'Copy link' }}</span>
+          <span>{{ linkable().length > 1 ? ('files.copyLinks' | translate) : ('files.copyLink' | translate) }}</span>
         </button>
       </hlm-dropdown-menu>
     </ng-template>
 
     <ng-template #sortMenu>
       <hlm-dropdown-menu class="min-w-44">
-        <hlm-dropdown-menu-label>Sort by</hlm-dropdown-menu-label>
+        <hlm-dropdown-menu-label>{{ 'files.sort.byLabel' | translate }}</hlm-dropdown-menu-label>
         @for (column of columns; track column) {
           <button hlmDropdownMenuItem (click)="sortBy(column)">
             @if (sort().key === column) {
@@ -290,9 +292,9 @@ const PREFETCH_DELAY_MS = 120;
             } @else {
               <span class="size-4" aria-hidden="true"></span>
             }
-            <span>{{ columnLabels[column] }}</span>
+            <span>{{ columnLabels[column] | translate }}</span>
             @if (sort().key === column) {
-              <span class="sr-only">(current, {{ sort().down ? 'descending' : 'ascending' }})</span>
+              <span class="sr-only">{{ (sort().down ? 'files.sort.currentDown' : 'files.sort.currentUp') | translate }}</span>
             }
           </button>
         }
@@ -337,13 +339,13 @@ export class DriveExplorer {
     return sortEntries(entries, this.sort(), this.locale).map((entry) => {
       const type = explorerTypeLabel(entry);
       const size = entry.isFolder ? '' : formatSize(entry.size);
-      const items = entry.childCount === null ? '' : `${entry.childCount} ${entry.childCount === 1 ? 'item' : 'items'}`;
+      const items = entry.childCount === null ? '' : t('files.items', { count: entry.childCount });
       return {
         entry,
         type,
         when: formatModified(entry.modified, now),
         size: entry.isFolder ? items : size,
-        meta: entry.isFolder ? (items ? `${items} · Folder` : 'Folder') : `${size} · ${type}`,
+        meta: entry.isFolder ? (items ? `${items} · ${t('files.folder')}` : t('files.folder')) : `${size} · ${type}`,
       };
     });
   });
@@ -367,7 +369,7 @@ export class DriveExplorer {
     return focused !== null && ids.includes(focused) ? focused : (ids[0] ?? null);
   });
 
-  protected readonly sortLabel = computed(() => `${COLUMN_LABELS[this.sort().key]} ${this.sort().down ? 'descending' : 'ascending'}`);
+  protected readonly sortLabel = computed(() => t(this.sort().down ? 'files.sort.descending' : 'files.sort.ascending', { column: t(COLUMN_LABELS[this.sort().key]) }));
 
   protected readonly status = computed(() => {
     const entries = this.rows().map((r) => r.entry);
@@ -593,9 +595,9 @@ export class DriveExplorer {
     if (!links.length) return;
     try {
       await navigator.clipboard.writeText(links.join('\n'));
-      toast.success(links.length === 1 ? 'Link copied' : `${links.length} links copied`);
+      toast.success(links.length === 1 ? t('files.linkCopied') : `${links.length} links copied`);
     } catch {
-      toast.error('Could not copy the link');
+      toast.error(t('files.copyFailed'));
     }
   }
 

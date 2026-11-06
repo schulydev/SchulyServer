@@ -1,3 +1,4 @@
+import { TranslatePipe } from '@ngx-translate/core';
 import { Component, inject, output } from '@angular/core';
 import { DriveSearch } from '../core/drive-search';
 import { formatModified, formatSize } from '../core/drive-explorer';
@@ -9,19 +10,19 @@ import { DriveThumb } from './drive-thumb';
 /** Files found everywhere in the account for the text in the search field: name, where it lives, when it changed. */
 @Component({
   selector: 'app-drive-search-results',
-  imports: [HlmButton, HlmSkeletonImports, DriveThumb],
+  imports: [TranslatePipe, HlmButton, HlmSkeletonImports, DriveThumb],
   host: { class: 'block' },
   template: `
     @if (search.active()) {
       <section aria-labelledby="drive-search-heading" class="flex flex-col gap-2">
-        <h2 id="drive-search-heading" class="text-muted-foreground text-sm font-medium">Everywhere</h2>
+        <h2 id="drive-search-heading" class="text-muted-foreground text-sm font-medium">{{ 'files.everywhere' | translate }}</h2>
         <div aria-live="polite" class="sr-only">
           @if (search.loading()) {
-            Searching
+            {{ 'files.searching' | translate }}
           } @else if (search.failed()) {
-            Search failed
+            {{ 'files.searchFailed' | translate }}
           } @else {
-            {{ search.results().length }} results
+            {{ 'files.results' | translate: { count: search.results().length } }}
           }
         </div>
         @if (search.loading()) {
@@ -31,9 +32,9 @@ import { DriveThumb } from './drive-thumb';
             }
           </div>
         } @else if (search.failed() && !search.results().length) {
-          <p class="text-muted-foreground text-sm">The search did not work. Try again in a moment.</p>
+          <p class="text-muted-foreground text-sm">{{ 'files.searchError' | translate }}</p>
         } @else if (!search.results().length) {
-          <p class="text-muted-foreground text-sm">No files found.</p>
+          <p class="text-muted-foreground text-sm">{{ 'files.noneFound' | translate }}</p>
         } @else {
           <ul class="flex flex-col">
             @for (result of search.results(); track result.entry.driveId + '|' + result.entry.id) {
@@ -59,12 +60,12 @@ import { DriveThumb } from './drive-thumb';
             }
           </ul>
           @if (search.failed()) {
-            <p class="text-muted-foreground text-sm">More results could not be loaded.</p>
+            <p class="text-muted-foreground text-sm">{{ 'files.moreFailed' | translate }}</p>
           }
           @if (search.nextFrom() !== null) {
             <div>
               <button hlmBtn variant="outline" size="sm" type="button" [disabled]="search.loadingMore()" (click)="search.loadMore()">
-                {{ search.loadingMore() ? 'Loading' : 'Load more results' }}
+                {{ search.loadingMore() ? ('common.loading' | translate) : ('files.moreResults' | translate) }}
               </button>
             </div>
           }
