@@ -59,8 +59,17 @@ namespace Schuly.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EndTime")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("ExcuseDeadline")
+                        .HasColumnType("date");
 
                     b.Property<string>("ExternalId")
                         .HasMaxLength(300)
@@ -72,6 +81,15 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<bool?>("IsExcused")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("Lessons")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ParentStatus")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("ParentStatusDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasColumnType("text");
@@ -82,6 +100,18 @@ namespace Schuly.Infrastructure.Migrations
                     b.Property<string>("Source")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("StartTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrainerComment")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TrainerStatus")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("TrainerStatusDate")
+                        .HasColumnType("date");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");

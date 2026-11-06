@@ -1,6 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { AbsenceDto, AbsencesService, AbsenceType } from '../api';
+import { dayOf, daysMissed, todayInSwitzerland } from '../core/absence-view';
 import { withCollection } from './with-collection';
 
 export type AbsenceFilter = 'all' | AbsenceType;
@@ -18,11 +19,11 @@ export const AbsencesStore = signalStore(
       visible: computed(() => sorted().filter((a) => store.filter() === 'all' || a.type === store.filter())),
       absenceCount: computed(() => store.items().filter((a) => a.type === 'Absence').length),
       delayCount: computed(() => store.items().filter((a) => a.type === 'Delay').length),
-      hoursAbsent: computed(() =>
-        store
-          .items()
-          .filter((a) => a.type === 'Absence')
-          .reduce((sum, a) => sum + Math.max(0, new Date(a.until).getTime() - new Date(a.from).getTime()) / 3_600_000, 0),
+      daysMissed: computed(() =>
+        daysMissed(
+          store.items().map((a) => ({ isDelay: a.type === 'Delay', from: dayOf(a.from), until: dayOf(a.until) })),
+          todayInSwitzerland(),
+        ),
       ),
     };
   }),

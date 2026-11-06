@@ -126,6 +126,92 @@ namespace Schuly.Tests
         }
 
         [Test]
+        public async Task SyncAbsences_keeps_what_a_later_page_leaves_out()
+        {
+            const string db = nameof(SyncAbsences_keeps_what_a_later_page_leaves_out);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 11, 5, 0, 0, 0, TimeSpan.Zero);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt") { TrainerStatus = "Offen", TrainerComment = "Geprüft", StartTime = "12:00", EndTime = "17:30", Lessons = 4 }]);
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt") { ExcuseDeadline = new DateOnly(2026, 11, 19), Comment = "Termin" }]);
+
+            using var check = TestDb.NewContext(db);
+            var row = await check.Absences.SingleAsync();
+            await Assert.That(row.TrainerStatus).IsEqualTo("Offen");
+            await Assert.That(row.TrainerComment).IsEqualTo("Geprüft");
+            await Assert.That(row.StartTime).IsEqualTo("12:00");
+            await Assert.That(row.Lessons).IsEqualTo(4);
+            await Assert.That(row.ExcuseDeadline).IsEqualTo(new DateOnly(2026, 11, 19));
+            await Assert.That(row.Comment).IsEqualTo("Termin");
+        }
+
+        [Test]
+        public async Task SyncAbsences_removes_a_copy_left_behind_under_an_old_id()
+        {
+            const string db = nameof(SyncAbsences_removes_a_copy_left_behind_under_an_old_id);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var from = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+            var until = from.AddDays(1);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", from, until, "Andere Absenz") { IsExcused = false }, new AbsenceRecord("a|profile-2", from, until, "Andere Absenz") { IsExcused = false }]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, [new AbsenceRecord("a", from, until, "Andere Absenz") { IsExcused = true }]);
+
+            using var check = TestDb.NewContext(db);
+            var row = await check.Absences.SingleAsync();
+            await Assert.That(row.ExternalId).IsEqualTo("a");
+            await Assert.That(row.IsExcused).IsTrue();
+        }
+
+        [Test]
+        public async Task SyncAbsences_deletes_nothing_when_a_sync_returns_an_empty_list()
+        {
+            const string db = nameof(SyncAbsences_deletes_nothing_when_a_sync_returns_an_empty_list);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt"), new AbsenceRecord("b", day.AddDays(1), day.AddDays(1), "Arzt")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, []);
+
+            using var check = TestDb.NewContext(db);
+            await Assert.That(await check.Absences.CountAsync()).IsEqualTo(2);
+        }
+
+        [Test]
+        public async Task SyncAbsences_keeps_the_same_reason_on_other_dates()
+        {
+            const string db = nameof(SyncAbsences_keeps_the_same_reason_on_other_dates);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt"), new AbsenceRecord("b", day.AddDays(1), day.AddDays(1), "Arzt"), new AbsenceRecord("c", day, day.AddDays(1), "Arzt")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt")]);
+
+            using var check = TestDb.NewContext(db);
+            await Assert.That(await check.Absences.CountAsync()).IsEqualTo(3);
+        }
+
+        [Test]
+        public async Task SyncAbsences_leaves_other_absences_on_the_same_dates_alone()
+        {
+            const string db = nameof(SyncAbsences_leaves_other_absences_on_the_same_dates_alone);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var day = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+            using (var ctx = TestDb.NewContext(db))
+            {
+                ctx.Absences.Add(new Absence { SchoolUserId = studentId, Reason = "Andere Absenz", Type = AbsenceType.Absence, From = day.UtcDateTime, Until = day.UtcDateTime });
+                await ctx.SaveChangesAsync();
+            }
+
+            await data.SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt"), new AbsenceRecord("b", day, day, "Krank")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, [new AbsenceRecord("a", day, day, "Arzt")]);
+            await new PluginSchoolData(TestDb.NewContext(db), Source).SyncAbsencesAsync(studentId, [new AbsenceRecord("c", day, day, "Andere Absenz")]);
+
+            using var check = TestDb.NewContext(db);
+            var reasons = await check.Absences.Select(a => a.Reason).ToListAsync();
+            await Assert.That(reasons.Count).IsEqualTo(4);
+        }
+
+        [Test]
         public async Task SyncGrades_creates_subject_and_exam_once_and_enrols_the_student()
         {
             const string db = nameof(SyncGrades_creates_subject_and_exam_once_and_enrols_the_student);

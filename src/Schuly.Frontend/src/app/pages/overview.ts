@@ -159,7 +159,7 @@ import { AppDatePipe } from '../core/date-format';
           </div>
           <div hlmCardFooter class="flex-col items-start gap-1.5 text-sm">
             <div class="line-clamp-1 flex gap-2 font-medium">
-              {{ absences.hoursAbsent() | number: '1.0-1' }} hours missed
+              {{ absences.daysMissed() }} days missed
             </div>
             <div class="text-muted-foreground">Recorded by your school</div>
           </div>
@@ -306,7 +306,7 @@ export class Overview {
   private readonly user = inject(UserStore);
 
   protected readonly firstName = computed(() => this.user.name().split(' ')[0]);
-  protected readonly recentGrades = computed(() => this.grades.grades().slice(0, 6));
+  protected readonly recentGrades = computed(() => this.grades.grades().filter((g) => g.score > 0).slice(0, 6));
   /** All-day entries arrive as midnight UTC (the calendar's rule), so they show a date or a range instead of 01:00. */
   protected readonly comingUp = computed(() =>
     this.agenda

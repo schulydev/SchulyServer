@@ -199,6 +199,7 @@ namespace Schuly.Infrastructure.Plugins
             await OwnedStudentAsync(schoolUserId, cancellationToken);
             var existing = await ExistingAsync(db.Absences.Where(a => a.SchoolUserId == schoolUserId), cancellationToken);
             var (added, updated) = (0, 0);
+            var current = new List<Absence>();
 
             foreach (var record in Latest(absences, a => a.ExternalId))
             {
@@ -214,11 +215,23 @@ namespace Schuly.Infrastructure.Plugins
                 row.Reason = Clip(string.IsNullOrWhiteSpace(record.Reason) ? "Absent" : record.Reason, 500)!;
                 row.Type = record.IsLate ? AbsenceType.Delay : AbsenceType.Absence;
                 row.IsExcused = record.IsExcused ?? row.IsExcused;
+                row.StartTime = Clip(record.StartTime, 5) ?? row.StartTime;
+                row.EndTime = Clip(record.EndTime, 5) ?? row.EndTime;
+                row.ParentStatus = Clip(record.ParentStatus, 100) ?? row.ParentStatus;
+                row.ParentStatusDate = record.ParentStatusDate ?? row.ParentStatusDate;
+                row.TrainerStatus = Clip(record.TrainerStatus, 100) ?? row.TrainerStatus;
+                row.TrainerStatusDate = record.TrainerStatusDate ?? row.TrainerStatusDate;
+                row.TrainerComment = Clip(record.TrainerComment, Absence.MaxReasonLength) ?? row.TrainerComment;
+                row.Comment = Clip(record.Comment, Absence.MaxReasonLength) ?? row.Comment;
+                row.ExcuseDeadline = record.ExcuseDeadline ?? row.ExcuseDeadline;
+                row.Lessons = record.Lessons ?? row.Lessons;
                 row.From = from;
                 row.Until = until;
                 if (IsModified(row)) updated++;
+                current.Add(row);
             }
 
+            RemoveSuperseded(existing.Values, current);
             await db.SaveChangesAsync(cancellationToken);
             return new SyncResult(added, updated);
         }
@@ -344,6 +357,14 @@ namespace Schuly.Infrastructure.Plugins
             else if (student.Source != Source)
                 throw new UnauthorizedAccessException($"Student {schoolUserId} is managed by {student.Source}, not {Source}.");
             return student;
+        }
+
+        /// <summary>A row that says the same as one the school just sent, under an id it no longer uses. It would never be updated again, so it could only ever show an old state.</summary>
+        private void RemoveSuperseded(IEnumerable<Absence> existing, List<Absence> current)
+        {
+            var kept = current.ToHashSet();
+            var said = current.Select(a => (a.Type, a.From, a.Until, a.Reason)).ToHashSet();
+            db.Absences.RemoveRange(existing.Where(a => !kept.Contains(a) && said.Contains((a.Type, a.From, a.Until, a.Reason))));
         }
 
         private async Task<Dictionary<string, T>> ExistingAsync<T>(IQueryable<T> query, CancellationToken cancellationToken) where T : class, ISyncedEntity

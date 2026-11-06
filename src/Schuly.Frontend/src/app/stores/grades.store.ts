@@ -1,7 +1,8 @@
 import { computed, inject } from '@angular/core';
-import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
+import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { ExamDto, ExamsService } from '../api';
 import { startOfToday } from '../core/dates';
+import { isGraded } from '../core/grade-report';
 import { ClassesStore } from './classes.store';
 import { withCollection } from './with-collection';
 
@@ -13,6 +14,7 @@ export interface GradeRow {
   score: number;
   weighting: number;
   classAverage: number;
+  schoolId: string | null;
 }
 
 export interface SubjectAverage {
@@ -36,7 +38,6 @@ export const GradesStore = signalStore(
     const api = inject(ExamsService);
     return () => api.apiExamsGet();
   }),
-  withState<{ query: string; subject: string }>({ query: '', subject: 'all' }),
   withComputed((store, classes = inject(ClassesStore)) => {
     const subjectOf = (exam: ExamDto) => classes.names().get(exam.classId ?? '') ?? 'Other';
     const exams = computed<ExamRow[]>(() =>
@@ -49,7 +50,7 @@ export const GradesStore = signalStore(
           description: exam.description ?? null,
           date: exam.date ?? null,
           finalExam: exam.type === 'FinalExam',
-          score: exam.grades?.find((g) => g.score != null)?.score ?? null,
+          score: exam.grades?.find((g) => isGraded(g.score))?.score ?? null,
         }))
         .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
     );
@@ -67,13 +68,14 @@ export const GradesStore = signalStore(
               score: grade.score ?? 0,
               weighting: grade.weighting ?? 1,
               classAverage: exam.classAverage,
+              schoolId: exam.schoolId ?? null,
             })),
         )
         .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')),
     );
     const subjectAverages = computed<SubjectAverage[]>(() => {
       const bySubject = new Map<string, GradeRow[]>();
-      for (const grade of grades()) bySubject.set(grade.subject, [...(bySubject.get(grade.subject) ?? []), grade]);
+      for (const grade of grades().filter((g) => isGraded(g.score))) bySubject.set(grade.subject, [...(bySubject.get(grade.subject) ?? []), grade]);
       return [...bySubject.entries()]
         .map(([subject, rows]) => ({ subject, average: weightedAverage(rows), count: rows.length }))
         .sort((a, b) => a.subject.localeCompare(b.subject));
@@ -89,23 +91,9 @@ export const GradesStore = signalStore(
         return subjects.length ? subjects.reduce((sum, s) => sum + s.average, 0) / subjects.length : null;
       }),
       insufficientCount: computed(() => subjectAverages().filter((s) => s.average < 4).length),
-      filteredGrades: computed(() => {
-        const query = store.query().trim().toLowerCase();
-        return grades().filter(
-          (grade) =>
-            (store.subject() === 'all' || grade.subject === store.subject()) &&
-            (!query || grade.exam.toLowerCase().includes(query) || grade.subject.toLowerCase().includes(query)),
-        );
-      }),
     };
   }),
   withMethods((store, classes = inject(ClassesStore)) => ({
-    setQuery(query: string): void {
-      patchState(store, { query });
-    },
-    setSubject(subject: string): void {
-      patchState(store, { subject });
-    },
     reload(): void {
       classes.load();
       store.load();
