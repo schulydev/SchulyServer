@@ -50,7 +50,7 @@ services:
       - data
 
   schulware:
-    image: ghcr.io/pianonic/schulwareapi:1.11.1@sha256:bc88288ec4aed2449ec621fb747cfdeaff992246943f512bd218013d9f65d78b
+    image: ghcr.io/pianonic/schulwareapi:1.12.0@sha256:f4c29cadaaca2f523bdd663046b9eb460cbe4f8bf8eacfb62cff35b63f6c2a62
     restart: unless-stopped
     logging: *logging
     init: true
