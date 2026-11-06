@@ -16,9 +16,11 @@ const KEYS: Record<string, string> = {
   "Your school's Microsoft policy blocks this sign-in here. Use the Schuly mobile app to link this account.": 'linkMessages.blocked',
 };
 
-/** A plugin's sign-in text in the active language; texts without a translation show as sent. */
+/** A plugin's sign-in text in the active language; texts without a translation, or with none loaded yet, show as sent. */
 export function linkText(text: string | null | undefined): string {
   if (!text) return '';
   const key = KEYS[text];
-  return key ? t(key) : text;
+  if (!key) return text;
+  const translated = t(key);
+  return translated === key ? text : translated;
 }

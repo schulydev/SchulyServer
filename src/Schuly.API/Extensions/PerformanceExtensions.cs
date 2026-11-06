@@ -30,7 +30,7 @@ namespace Schuly.API.Extensions
             app.UseWhen(context => !context.Request.Path.StartsWithSegments("/auth") && !(HttpMethods.IsPost(context.Request.Method) && context.Request.Path.StartsWithSegments("/api/helply")), branch => branch.UseResponseCompression());
     }
 
-    /// <summary>Cache headers for the web app's files: hashed build output is immutable, index.html is always revalidated so a release shows up at once.</summary>
+    /// <summary>Cache headers for the web app's files: hashed build output is immutable, index.html and the translation files are always revalidated so a release shows up at once.</summary>
     public static partial class StaticAssetCaching
     {
         [GeneratedRegex(@"-[A-Z0-9]{8}\.(js|css|woff2?)$")]
@@ -43,7 +43,7 @@ namespace Schuly.API.Extensions
                 var name = context.File.Name;
                 context.Context.Response.Headers[HeaderNames.CacheControl] = HashedName().IsMatch(name)
                     ? "public, max-age=31536000, immutable"
-                    : name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                    : name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
                         ? "no-cache"
                         : "public, max-age=86400";
             },
