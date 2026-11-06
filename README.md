@@ -44,6 +44,7 @@ School systems come from plugins, not from the server. List one in `config/plugi
 - [Plugin management](https://docs.schuly.dev/SchulyServer/plugin-management): choose which school systems you offer
 - [Development setup](https://docs.schuly.dev/SchulyServer/setup/development): run it from source, with the API reference at `/scalar`
 - [Architecture](https://docs.schuly.dev/SchulyServer/architecture): how the code is layered
+- [`tools/screenshots`](tools/screenshots): regenerate the sign-in page screenshots
 
 ## License
 
