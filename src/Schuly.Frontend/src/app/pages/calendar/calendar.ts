@@ -56,9 +56,9 @@ interface ListGroup {
         </div>
       }
 
-      <div class="grid gap-3 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1fr)_17rem] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div class="flex min-w-0 flex-col gap-3 md:min-h-0">
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="grid grid-cols-[minmax(0,1fr)] gap-3 md:min-h-0 md:flex-1 md:grid-cols-[minmax(0,1fr)_17rem] md:grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <!-- The day panel starts level with the grid, not with this row. -->
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
       <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Show">
         @for (source of calendar.sources(); track source.id) {
           <button
@@ -93,13 +93,13 @@ interface ListGroup {
 
         @switch (calendar.view()) {
           @case ('month') {
-            <app-month-view />
+            <app-month-view class="md:col-start-1" />
           }
           @case ('week') {
-            <app-week-view />
+            <app-week-view class="md:col-start-1" />
           }
           @case ('list') {
-            <div class="flex flex-col md:min-h-0 md:overflow-y-auto">
+            <div class="flex flex-col md:col-start-1 md:min-h-0 md:overflow-y-auto">
               @for (group of listGroups(); track group.label) {
                 <h3 class="text-muted-foreground px-1 pt-4 pb-1 text-xs font-semibold first:pt-0">{{ group.label }}</h3>
                 @for (item of group.items; track item.id) {
@@ -125,8 +125,7 @@ interface ListGroup {
             </div>
           }
         }
-        </div>
-        <section class="bg-card h-fit rounded-lg border md:max-h-full md:overflow-y-auto" aria-labelledby="selected-day" aria-live="polite">
+        <section class="bg-card h-fit rounded-lg border md:col-start-2 md:row-start-2 md:max-h-full md:overflow-y-auto" aria-labelledby="selected-day" aria-live="polite">
           <div class="border-b px-4 py-3">
             <h3 id="selected-day" class="text-sm font-semibold">
               {{ calendar.selectedDay() | appDate: 'weekdayDayMonthLong' }}{{ isToday() ? ' · Today' : '' }}
