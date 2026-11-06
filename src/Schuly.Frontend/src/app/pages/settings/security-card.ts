@@ -122,7 +122,7 @@ const MIN_PASSWORD = 8;
         @if (security.sessions().length) {
           <h4 class="text-muted-foreground mt-2 border-t pt-4 pb-1 text-xs font-semibold tracking-wide uppercase">{{ 'settings.security.devices.title' | translate }}</h4>
           <ul class="divide-y">
-            @for (session of security.sessions(); track session.id) {
+            @for (session of visibleSessions(); track session.id) {
               <li class="flex items-center justify-between gap-4 py-3">
                 <span class="grid min-w-0 gap-0.5">
                   <span class="truncate text-sm font-medium">{{ deviceName(session) }}</span>
@@ -139,6 +139,11 @@ const MIN_PASSWORD = 8;
               </li>
             }
           </ul>
+          @if (security.sessions().length > deviceLimit) {
+            <button hlmBtn variant="ghost" size="sm" type="button" class="mx-auto mt-1 flex" [attr.aria-expanded]="showAllDevices()" (click)="showAllDevices.set(!showAllDevices())">
+              {{ (showAllDevices() ? 'settings.security.devices.showLess' : 'settings.security.devices.showAll') | translate }}
+            </button>
+          }
         }
         @if (security.devices().length) {
           <div class="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
@@ -396,6 +401,10 @@ export class SecurityCard {
   readonly resume = input<string | null>(null);
 
   protected readonly dialog = signal<Dialog | null>(null);
+  // ponytail: a fixed three, newest first as the server sends them; the rest open on demand so a long device list doesn't bury the page.
+  protected readonly deviceLimit = 3;
+  protected readonly showAllDevices = signal(false);
+  protected readonly visibleSessions = computed(() => (this.showAllDevices() ? this.security.sessions() : this.security.sessions().slice(0, this.deviceLimit)));
   protected readonly currentPassword = signal('');
   protected readonly newPassword = signal('');
   protected readonly code = signal('');
