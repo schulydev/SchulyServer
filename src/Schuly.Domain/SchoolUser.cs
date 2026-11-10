@@ -15,6 +15,8 @@ namespace Schuly.Domain
         public required string LastName { get; set; }
         public required string Email { get; set; }
         public string? ProfilePictureUrl { get; set; }
+        /// <summary>Blob key of the account's own picture set by its plugin (e.g. the student ID card photo); shown only on the owner's account rows.</summary>
+        public string? AccountPictureKey { get; set; }
 
 
         public required DateOnly EntryDate { get; set; }

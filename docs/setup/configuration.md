@@ -133,13 +133,16 @@ Document and avatar blobs go to an S3-compatible bucket, which is SeaweedFS in t
 
 Users upload a profile picture with `PUT /api/me/avatar` (multipart; PNG, JPEG, or WebP; 2 MB at most)
 and remove it with `DELETE /api/me/avatar`. Plugins store a linked account's picture (the Microsoft
-plugin uses the account's own Microsoft photo). The files go to document storage.
+plugin uses the account's own Microsoft photo) and a school account's own picture (the Schulnetz plugin
+uses the photo on the Lernendenausweis). The files go to document storage. An account row shows the
+school account's own picture first, then the linked account's, then the school profile's.
 
 | Route | Answers |
 |---|---|
 | `GET /api/avatars/users/{applicationUserId}` | The caller's own profile picture. |
 | `GET /api/avatars/{schoolUserId}` | The picture of one of the caller's school profiles. |
 | `GET /api/avatars/accounts/{linkedAccountId}` | The picture of one of the caller's linked accounts. |
+| `GET /api/avatars/school-accounts/{schoolUserId}` | The own picture of one of the caller's school accounts. |
 
 Every route needs the normal sign-in and answers `404` for anyone else's id and for a missing picture.
 The DTOs (`profilePictureUrl`, `pictureUrl`) carry the path with a `?v=` value that changes with the

@@ -61,7 +61,8 @@ The backend proxies every byte. Clients never receive S3 URLs or connect to stor
 - Download from `GET /api/documents/{id}`, which returns a file response.
 
 Pictures work the same way. You upload your own with `PUT /api/me/avatar`; plugins store a linked
-account's picture through `ILinkedAccounts.SetPictureAsync`. The database holds only a bare blob key, and
+account's picture through `ILinkedAccounts.SetPictureAsync` and a school account's own picture through
+`ILinkedAccounts.SetSchoolUserPictureAsync`. The database holds only a bare blob key, and
 the DTOs carry an API path under `/api/avatars/...`. Every avatar route needs the normal sign-in and
 answers only the picture's owner, so clients load pictures with their bearer token. See
 [Pictures](setup/configuration.md#pictures).

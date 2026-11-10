@@ -13,8 +13,8 @@ namespace Schuly.Infrastructure.Services
             var students = schoolUserIds.Count == 0
                 ? []
                 : await db.SchoolUsers.AsNoTracking()
-                    .Where(su => su.ApplicationUserId == applicationUserId && schoolUserIds.Contains(su.Id) && su.ProfilePictureUrl != null)
-                    .Select(su => new { su.Id, su.ProfilePictureUrl })
+                    .Where(su => su.ApplicationUserId == applicationUserId && schoolUserIds.Contains(su.Id) && (su.AccountPictureKey != null || su.ProfilePictureUrl != null))
+                    .Select(su => new { su.Id, su.AccountPictureKey, su.ProfilePictureUrl })
                     .ToListAsync(ct);
 
             var accounts = linkedAccountIds.Count == 0
@@ -25,16 +25,18 @@ namespace Schuly.Infrastructure.Services
                     .ToListAsync(ct);
 
             return new AccountPictureLookup(
-                students.Select(s => (s.Id, Url: signer.ToPublicUrl(s.Id, s.ProfilePictureUrl))).Where(s => s.Url is not null).ToDictionary(s => s.Id, s => s.Url!),
-                accounts.Select(a => (a.Id, Url: signer.ToPublicAccountUrl(a.Id, a.PictureKey))).Where(a => a.Url is not null).ToDictionary(a => a.Id, a => a.Url!));
+                students.Select(s => (s.Id, Url: signer.ToPublicSchoolAccountUrl(s.Id, s.AccountPictureKey))).Where(s => s.Url is not null).ToDictionary(s => s.Id, s => s.Url!),
+                accounts.Select(a => (a.Id, Url: signer.ToPublicAccountUrl(a.Id, a.PictureKey))).Where(a => a.Url is not null).ToDictionary(a => a.Id, a => a.Url!),
+                students.Select(s => (s.Id, Url: signer.ToPublicUrl(s.Id, s.ProfilePictureUrl))).Where(s => s.Url is not null).ToDictionary(s => s.Id, s => s.Url!));
         }
     }
 
-    public sealed record AccountPictureLookup(IReadOnlyDictionary<Guid, string> SchoolUsers, IReadOnlyDictionary<Guid, string> LinkedAccounts)
+    public sealed record AccountPictureLookup(IReadOnlyDictionary<Guid, string> SchoolAccounts, IReadOnlyDictionary<Guid, string> LinkedAccounts, IReadOnlyDictionary<Guid, string> SchoolUsers)
     {
-        /// <summary>The linked account's own picture wins over the student profile's.</summary>
+        /// <summary>The school account's own picture, then the linked account's, then the student profile's.</summary>
         public string? For(Guid? schoolUserId, Guid? linkedAccountId) =>
-            linkedAccountId is { } a && LinkedAccounts.TryGetValue(a, out var account) ? account
+            schoolUserId is { } own && SchoolAccounts.TryGetValue(own, out var schoolAccount) ? schoolAccount
+            : linkedAccountId is { } a && LinkedAccounts.TryGetValue(a, out var account) ? account
             : schoolUserId is { } s && SchoolUsers.TryGetValue(s, out var student) ? student
             : null;
     }

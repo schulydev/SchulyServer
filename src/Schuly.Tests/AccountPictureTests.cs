@@ -161,7 +161,7 @@ namespace Schuly.Tests
             await using var host = await LinkingTestHost.StartAsync();
             var id = Guid.NewGuid();
 
-            foreach (var path in new[] { $"/api/avatars/{id}", $"/api/avatars/users/{id}", $"/api/avatars/accounts/{id}", $"/api/avatars/{id}?exp=9999999999&sig=abc" })
+            foreach (var path in new[] { $"/api/avatars/{id}", $"/api/avatars/users/{id}", $"/api/avatars/accounts/{id}", $"/api/avatars/school-accounts/{id}", $"/api/avatars/{id}?exp=9999999999&sig=abc" })
                 await Assert.That((await host.Send(HttpMethod.Get, path, null)).StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
         }
 
@@ -209,6 +209,114 @@ namespace Schuly.Tests
             await Assert.That(pictures["stolen-school"]).IsNull();
             await Assert.That(pictures["stolen-ms"]).IsNull();
             await Assert.That(pictures["plain"]).IsNull();
+        }
+
+        private static async Task<SchoolUser> NewStudentAsync(SchulyDbContext ctx, Guid owner)
+        {
+            var student = TestDb.NewSchoolUser(Guid.NewGuid());
+            student.ApplicationUserId = owner;
+            ctx.SchoolUsers.Add(student);
+            await ctx.SaveChangesAsync();
+            return student;
+        }
+
+        [Test]
+        public async Task A_school_account_picture_is_stored_replaced_and_cleared_only_by_its_owner()
+        {
+            using var ctx = TestDb.NewContext(nameof(A_school_account_picture_is_stored_replaced_and_cleared_only_by_its_owner));
+            var (store, storage) = NewStore(ctx);
+            var owner = NewUser(ctx);
+            var other = NewUser(ctx);
+            var student = await NewStudentAsync(ctx, owner);
+
+            await Assert.That(await store.SetSchoolUserPictureAsync(other, student.Id, new MemoryStream(Png), "image/png")).IsFalse();
+            await Assert.That(await store.SetSchoolUserPictureAsync(owner, Guid.NewGuid(), new MemoryStream(Png), "image/png")).IsFalse();
+            await Assert.That(await store.SetSchoolUserPictureAsync(owner, student.Id, new MemoryStream("<svg>"u8.ToArray()), "image/png")).IsFalse();
+            await Assert.That(await new LinkedAccountStore(ctx, TestVault.Factory()).SetSchoolUserPictureAsync(owner, student.Id, new MemoryStream(Png), "image/png")).IsFalse();
+            await Assert.That(storage.Objects.Count).IsEqualTo(0);
+
+            await Assert.That(await store.SetSchoolUserPictureAsync(owner, student.Id, new MemoryStream(Jpeg), "image/png")).IsTrue();
+            var first = ctx.SchoolUsers.Single().AccountPictureKey!;
+            await Assert.That(storage.ContentTypes[first]).IsEqualTo("image/jpeg");
+
+            await Assert.That(await store.SetSchoolUserPictureAsync(owner, student.Id, new MemoryStream(Png), null)).IsTrue();
+            var second = ctx.SchoolUsers.Single().AccountPictureKey!;
+            await Assert.That(second).IsNotEqualTo(first);
+            await Assert.That(storage.Objects.ContainsKey(first)).IsFalse();
+            await Assert.That(storage.Objects.Count).IsEqualTo(1);
+
+            await Assert.That(await store.SetSchoolUserPictureAsync(other, student.Id, null, null)).IsFalse();
+            await Assert.That(ctx.SchoolUsers.Single().AccountPictureKey).IsEqualTo(second);
+            await Assert.That(await store.SetSchoolUserPictureAsync(owner, student.Id, null, null)).IsTrue();
+            await Assert.That(ctx.SchoolUsers.Single().AccountPictureKey).IsNull();
+            await Assert.That(storage.Objects.Count).IsEqualTo(0);
+        }
+
+        [Test]
+        public async Task A_school_account_picture_is_served_only_to_its_owner()
+        {
+            using var ctx = TestDb.NewContext(nameof(A_school_account_picture_is_served_only_to_its_owner));
+            var (store, storage) = NewStore(ctx);
+            var owner = NewUser(ctx);
+            var other = NewUser(ctx);
+            var student = await NewStudentAsync(ctx, owner);
+            var bare = await NewStudentAsync(ctx, owner);
+            await store.SetSchoolUserPictureAsync(owner, student.Id, new MemoryStream(Png), "image/png");
+
+            async Task<bool> As(Guid caller, Guid schoolUserId) =>
+                (await new GetSchoolAccountAvatarQueryHandler(ctx, storage, new FakeUserService { CurrentUserId = caller }).Handle(new GetSchoolAccountAvatarQuery(schoolUserId), default)).IsSuccess;
+
+            await Assert.That(await As(owner, student.Id)).IsTrue();
+            await Assert.That(await As(other, student.Id)).IsFalse();
+            await Assert.That(await As(owner, bare.Id)).IsFalse();
+
+            var urls = new AvatarUrlSigner();
+            await Assert.That(urls.ToPublicSchoolAccountUrl(student.Id, "https://example.com/a.png")).IsNull();
+            await Assert.That(urls.ToPublicSchoolAccountUrl(student.Id, ctx.SchoolUsers.Single(su => su.Id == student.Id).AccountPictureKey)!).StartsWith($"/api/avatars/school-accounts/{student.Id}?v=");
+        }
+
+        [Test]
+        public async Task A_row_shows_the_school_account_picture_then_the_linked_account_then_the_profile()
+        {
+            using var ctx = TestDb.NewContext(nameof(A_row_shows_the_school_account_picture_then_the_linked_account_then_the_profile));
+            var owner = NewUser(ctx);
+            var other = NewUser(ctx);
+            var withCard = await NewStudentAsync(ctx, owner);
+            withCard.AccountPictureKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/account-picture.jpg";
+            withCard.ProfilePictureUrl = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/avatar.png";
+            var profileOnly = await NewStudentAsync(ctx, owner);
+            profileOnly.ProfilePictureUrl = "cccccccccccccccccccccccccccccccc/avatar.png";
+            var foreign = await NewStudentAsync(ctx, other);
+            foreign.AccountPictureKey = "dddddddddddddddddddddddddddddddd/account-picture.jpg";
+            var microsoft = new Domain.LinkedAccount { Id = Guid.NewGuid(), ApplicationUserId = owner, Provider = LinkedProviders.Microsoft, ExternalId = "oid", Email = "a@school.ch", PictureKey = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee/account-picture.jpg" };
+            ctx.LinkedAccounts.Add(microsoft);
+            await ctx.SaveChangesAsync();
+
+            var pictures = await new AccountPictureUrls(ctx, new FakeAvatarUrlSigner()).ResolveAsync(owner, [withCard.Id, profileOnly.Id, foreign.Id], [microsoft.Id], default);
+
+            await Assert.That(pictures.For(withCard.Id, microsoft.Id)).IsEqualTo($"/api/avatars/school-accounts/{withCard.Id}");
+            await Assert.That(pictures.For(withCard.Id, null)).IsEqualTo($"/api/avatars/school-accounts/{withCard.Id}");
+            await Assert.That(pictures.For(profileOnly.Id, microsoft.Id)).IsEqualTo($"/api/avatars/accounts/{microsoft.Id}");
+            await Assert.That(pictures.For(profileOnly.Id, null)).IsEqualTo(profileOnly.ProfilePictureUrl);
+            await Assert.That(pictures.For(foreign.Id, null)).IsNull();
+            await Assert.That(pictures.For(foreign.Id, microsoft.Id)).IsEqualTo($"/api/avatars/accounts/{microsoft.Id}");
+        }
+
+        [Test]
+        public async Task Purging_the_user_deletes_the_school_account_pictures()
+        {
+            using var ctx = TestDb.NewContext(nameof(Purging_the_user_deletes_the_school_account_pictures));
+            var (store, storage) = NewStore(ctx);
+            var user = NewUser(ctx);
+            var student = await NewStudentAsync(ctx, user);
+            await store.SetSchoolUserPictureAsync(user, student.Id, new MemoryStream(Png), "image/png");
+            await Assert.That(storage.Objects.Count).IsEqualTo(1);
+
+            var purger = new AccountPurger(ctx, storage, TestVault.Factory(), NullPluginUserDataPurger.Instance, NullLogger<AccountPurger>.Instance);
+            await purger.PurgeApplicationUserAsync(user);
+
+            await Assert.That(storage.Objects.Count).IsEqualTo(0);
+            await Assert.That(ctx.SchoolUsers.Count()).IsEqualTo(0);
         }
 
         [Test]

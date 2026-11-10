@@ -299,6 +299,7 @@ namespace Schuly.Infrastructure.Services
             referenced.UnionWith(await dbContext.StudentDocuments.Where(d => d.FileUrl != null).Select(d => d.FileUrl!).ToListAsync(cancellationToken));
             referenced.UnionWith(await dbContext.ApplicationUsers.Where(u => u.ProfilePictureUrl != null).Select(u => u.ProfilePictureUrl!).ToListAsync(cancellationToken));
             referenced.UnionWith(await dbContext.SchoolUsers.Where(su => su.ProfilePictureUrl != null).Select(su => su.ProfilePictureUrl!).ToListAsync(cancellationToken));
+            referenced.UnionWith(await dbContext.SchoolUsers.Where(su => su.AccountPictureKey != null).Select(su => su.AccountPictureKey!).ToListAsync(cancellationToken));
             referenced.UnionWith(await dbContext.LinkedAccounts.Where(a => a.PictureKey != null).Select(a => a.PictureKey!).ToListAsync(cancellationToken));
 
             // With no references at all this is a fresh or wrong database, not a bucket full of garbage.
