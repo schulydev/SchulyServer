@@ -61,7 +61,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
           @for (group of store.groups(); track group.providerId) {
             <div class="flex flex-col gap-2">
               <div class="flex items-center gap-2.5">
-                <app-provider-icon [icon]="group.provider?.icon" />
+                <app-provider-icon [icon]="group.provider?.icon" [providerId]="group.providerId" />
                 <div class="grid min-w-0">
                   <h4 class="text-sm font-semibold">{{ group.name }}</h4>
                   @if (group.provider?.description; as description) {

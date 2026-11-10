@@ -104,7 +104,7 @@ type Mode = { kind: 'add' } | { kind: 'reauth'; account: LinkedAccountDto };
                     [attr.data-autofocus]="$first ? '' : null"
                     (click)="pick(provider)"
                   >
-                    <app-provider-icon [icon]="provider.icon" />
+                    <app-provider-icon [icon]="provider.icon" [providerId]="provider.id" />
                     <span class="flex min-w-0 flex-1 flex-col">
                       <span class="text-sm font-medium">{{ provider.displayName }}</span>
                       @if (provider.description) {
