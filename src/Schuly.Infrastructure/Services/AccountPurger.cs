@@ -202,6 +202,7 @@ namespace Schuly.Infrastructure.Services
                 schoolUser.Classes.Clear();
             dbContext.SchoolUsers.RemoveRange(schoolUsers);
             fileUrls.AddRange(schoolUsers.Where(su => BlobKeys.IsStored(su.ProfilePictureUrl)).Select(su => su.ProfilePictureUrl!));
+            fileUrls.AddRange(schoolUsers.Where(su => BlobKeys.IsStored(su.AccountPictureKey)).Select(su => su.AccountPictureKey!));
 
             return (schoolUsers.Count, documents.Count, fileUrls);
         }

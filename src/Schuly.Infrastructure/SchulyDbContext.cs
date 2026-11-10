@@ -136,6 +136,7 @@ namespace Schuly.Infrastructure
                 entity.Property(su => su.FirstName).HasMaxLength(100);
                 entity.Property(su => su.LastName).HasMaxLength(100);
                 entity.Property(su => su.Source).HasMaxLength(SourceMaxLength);
+                entity.Property(su => su.AccountPictureKey).HasMaxLength(300);
                 entity.Property(su => su.Role).IsRequired();
 
                 entity.HasOne(su => su.ApplicationUser)

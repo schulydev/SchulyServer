@@ -17,6 +17,9 @@ namespace Schuly.Infrastructure.Services
 
         /// <summary>A linked account's picture.</summary>
         string? ToPublicAccountUrl(Guid linkedAccountId, string? stored);
+
+        /// <summary>A school account's own picture (<c>SchoolUser.AccountPictureKey</c>).</summary>
+        string? ToPublicSchoolAccountUrl(Guid schoolUserId, string? stored);
     }
 
     public class AvatarUrlSigner : IAvatarUrlSigner
@@ -26,6 +29,8 @@ namespace Schuly.Infrastructure.Services
         public string? ToPublicUserUrl(Guid applicationUserId, string? stored) => Build(applicationUserId, stored, "/api/avatars/users", passExternal: true);
 
         public string? ToPublicAccountUrl(Guid linkedAccountId, string? stored) => Build(linkedAccountId, stored, "/api/avatars/accounts", passExternal: false);
+
+        public string? ToPublicSchoolAccountUrl(Guid schoolUserId, string? stored) => Build(schoolUserId, stored, "/api/avatars/school-accounts", passExternal: false);
 
         private static string? Build(Guid id, string? stored, string route, bool passExternal)
         {

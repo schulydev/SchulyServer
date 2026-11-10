@@ -22,6 +22,11 @@ namespace Schuly.API.Controllers
         public async Task<IActionResult> GetAccount(Guid linkedAccountId, CancellationToken ct) =>
             Picture(await mediator.Send(new GetLinkedAccountAvatarQuery(linkedAccountId), ct));
 
+        /// <summary>The own picture of one of the caller's school accounts (e.g. the student ID card photo).</summary>
+        [HttpGet("school-accounts/{schoolUserId:guid}")]
+        public async Task<IActionResult> GetSchoolAccount(Guid schoolUserId, CancellationToken ct) =>
+            Picture(await mediator.Send(new GetSchoolAccountAvatarQuery(schoolUserId), ct));
+
         /// <summary>The caller's own profile picture.</summary>
         [HttpGet("users/{applicationUserId:guid}")]
         public async Task<IActionResult> GetUser(Guid applicationUserId, CancellationToken ct) =>

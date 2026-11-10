@@ -326,12 +326,14 @@ namespace Schuly.Tests
             using var env = new Env();
             var (user, _) = await env.AccountAsync(DateTime.UtcNow);
             var keep = $"{Guid.NewGuid():N}/avatar.png";
+            var keepCard = $"{Guid.NewGuid():N}/account-picture.jpg";
             var orphan = $"{Guid.NewGuid():N}/avatar.png";
             var young = $"{Guid.NewGuid():N}/doc.pdf";
             user.ProfilePictureUrl = keep;
+            (await env.SchoolUserAsync(user.Id, "schulware", null)).AccountPictureKey = keepCard;
             await env.Db.SaveChangesAsync();
             var old = DateTime.UtcNow.AddDays(-30);
-            env.Storage.Stored.AddRange([new StoredBlob(keep, old), new StoredBlob(orphan, old), new StoredBlob(young, DateTime.UtcNow), new StoredBlob("someone-elses/file.txt", old)]);
+            env.Storage.Stored.AddRange([new StoredBlob(keep, old), new StoredBlob(keepCard, old), new StoredBlob(orphan, old), new StoredBlob(young, DateTime.UtcNow), new StoredBlob("someone-elses/file.txt", old)]);
 
             var result = await env.SweepAsync();
 

@@ -105,26 +105,53 @@ namespace Schuly.Infrastructure.Plugins
                 return false;
 
             var previous = account.PictureKey;
-            if (content is null)
-            {
-                account.PictureKey = null;
-            }
-            else
-            {
-                // The declared type is ignored: the bytes decide, so nothing but a real picture is ever served from here.
-                var bytes = await ReadAtMostAsync(content, MaxPictureBytes, cancellationToken);
-                if (bytes is null || PictureType(bytes) is not { } type)
-                    return false;
+            if (await StorePictureAsync(content, cancellationToken) is not { } picture)
+                return false;
 
-                var blob = await storage.UploadAsync(new MemoryStream(bytes, writable: false), $"account-picture.{type.Extension}", type.ContentType, cancellationToken);
-                account.PictureKey = blob.Key;
-            }
-
+            account.PictureKey = picture.Key;
             account.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(cancellationToken);
             await DeletePictureAsync(previous, cancellationToken);
             return true;
         }
+
+        /// <summary>The school account's own picture (<see cref="Domain.SchoolUser.AccountPictureKey"/>), only on the user's own school users.</summary>
+        public async Task<bool> SetSchoolUserPictureAsync(Guid applicationUserId, Guid schoolUserId, Stream? content, string? contentType, CancellationToken cancellationToken = default)
+        {
+            if (storage is null)
+                return false;
+
+            var schoolUser = await db.SchoolUsers.FirstOrDefaultAsync(su => su.Id == schoolUserId && su.ApplicationUserId == applicationUserId, cancellationToken);
+            if (schoolUser is null)
+                return false;
+
+            var previous = schoolUser.AccountPictureKey;
+            if (await StorePictureAsync(content, cancellationToken) is not { } picture)
+                return false;
+
+            schoolUser.AccountPictureKey = picture.Key;
+            schoolUser.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            await DeletePictureAsync(previous, cancellationToken);
+            return true;
+        }
+
+        // Uploads the picture and returns its key (null key for null content), or null when it is no picture.
+        private async Task<StoredPicture?> StorePictureAsync(Stream? content, CancellationToken cancellationToken)
+        {
+            if (content is null)
+                return new StoredPicture(null);
+
+            // The declared type is ignored: the bytes decide, so nothing but a real picture is ever served from here.
+            var bytes = await ReadAtMostAsync(content, MaxPictureBytes, cancellationToken);
+            if (bytes is null || PictureType(bytes) is not { } type)
+                return null;
+
+            var blob = await storage!.UploadAsync(new MemoryStream(bytes, writable: false), $"account-picture.{type.Extension}", type.ContentType, cancellationToken);
+            return new StoredPicture(blob.Key);
+        }
+
+        private sealed record StoredPicture(string? Key);
 
         /// <summary>The PNG, JPEG or WebP type of <paramref name="data"/>, or null for anything else.</summary>
         public static (string ContentType, string Extension)? PictureType(ReadOnlySpan<byte> data)
