@@ -1,0 +1,4 @@
+{
+  "/api": { "target": "http://127.0.0.1:5157", "secure": false },
+  "/auth": { "target": "http://127.0.0.1:5157", "secure": false }
+}

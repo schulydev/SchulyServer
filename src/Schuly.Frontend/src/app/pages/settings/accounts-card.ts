@@ -12,6 +12,7 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { LinkedAccountDto, LinkedAccountStatus, LinkingApi } from '../../core/linking-api';
 import { failureMessage, isTerminal, linkErrorMessage } from '../../core/linking-step';
+import { ApiAvatar } from '../../shared/api-avatar';
 import { ProviderIcon } from '../../shared/provider-icon';
 import { LinkedAccountsStore } from '../../stores/linked-accounts.store';
 import { LinkDialog } from './link-dialog';
@@ -28,7 +29,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
 /** Every linked school and service, grouped by provider, with add, re-authenticate and unlink. Nothing here knows a provider by name. */
 @Component({
   selector: 'app-accounts-card',
-  imports: [TranslatePipe, HlmAlertImports, HlmAlertDialogImports, HlmButton, HlmCardImports, HlmSpinner, NgIcon, LinkDialog, ProviderIcon],
+  imports: [TranslatePipe, HlmAlertImports, HlmAlertDialogImports, HlmButton, HlmCardImports, HlmSpinner, NgIcon, LinkDialog, ProviderIcon, ApiAvatar],
   providers: [provideIcons({ lucidePlus })],
   template: `
     <section hlmCard aria-labelledby="accounts-title">
@@ -77,7 +78,9 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
                     </li>
                   } @else {
                     <li class="flex flex-col gap-2 px-3.5 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                      <span class="flex min-w-0 flex-col">
+                      <span class="flex min-w-0 items-center gap-3">
+                        <app-api-avatar class="size-10" [src]="account.pictureUrl" [name]="account.title" />
+                        <span class="flex min-w-0 flex-col">
                         <span class="truncate font-medium">{{ account.title }}</span>
                         <span class="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-xs">
                           @if (account.detail) {
@@ -92,6 +95,7 @@ const STATUS: Record<LinkedAccountStatus, { label: string; dot: string; tone: st
                         @if (account.message) {
                           <span class="text-muted-foreground mt-0.5 text-xs">{{ account.message }}</span>
                         }
+                        </span>
                       </span>
                       <span class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                         @if (account.canReauth) {

@@ -23,6 +23,7 @@ export interface LinkProviderAccountDto {
     lastSyncedAt: string | null;
     capabilities: Array<LinkCapabilityDto>;
     canReauth: boolean;
+    pictureUrl?: string | null;
 }
 
 

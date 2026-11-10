@@ -14,22 +14,16 @@ namespace Schuly.API.Controllers
     {
         /// <summary>The picture of one of the caller's own school profiles.</summary>
         [HttpGet("{schoolUserId:guid}")]
-        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, "image/png", "image/jpeg", "image/webp")]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Get(Guid schoolUserId, CancellationToken ct) =>
             Picture(await mediator.Send(new GetAvatarQuery(schoolUserId), ct));
 
         /// <summary>The picture of one of the caller's linked accounts.</summary>
         [HttpGet("accounts/{linkedAccountId:guid}")]
-        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, "image/png", "image/jpeg", "image/webp")]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAccount(Guid linkedAccountId, CancellationToken ct) =>
             Picture(await mediator.Send(new GetLinkedAccountAvatarQuery(linkedAccountId), ct));
 
         /// <summary>The caller's own profile picture.</summary>
         [HttpGet("users/{applicationUserId:guid}")]
-        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, "image/png", "image/jpeg", "image/webp")]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetUser(Guid applicationUserId, CancellationToken ct) =>
             Picture(await mediator.Send(new GetUserAvatarQuery(applicationUserId), ct));
 
