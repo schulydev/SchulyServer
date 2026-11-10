@@ -3,11 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideMonitor,
-  lucideMoon,
-  lucideSun,
-} from '@ng-icons/lucide';
+import { lucideMonitor, lucideMoon, lucideSun } from '@ng-icons/lucide';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
 import { Theme, ThemeStore } from '../stores/theme.store';
@@ -19,7 +15,8 @@ import { DangerZoneCard } from './settings/danger-zone-card';
 @Component({
   selector: 'app-settings',
   imports: [
-    LanguageSelect,TranslatePipe,
+    LanguageSelect,
+    TranslatePipe,
     AccountCard,
     SecurityCard,
     AccountsCard,
@@ -40,28 +37,29 @@ import { DangerZoneCard } from './settings/danger-zone-card';
           <h3 hlmCardTitle>{{ 'settings.appearance.title' | translate }}</h3>
           <p hlmCardDescription>{{ 'settings.appearance.description' | translate }}</p>
         </div>
-        <div hlmCardContent>
-          <hlm-toggle-group
-            type="single"
-            variant="outline"
-            [nullable]="false"
-            [value]="theme.theme()"
-            (valueChange)="setTheme($event)"
-            [attr.aria-label]="'settings.appearance.theme' | translate"
-          >
-            <button hlmToggleGroupItem value="light" class="gap-2 px-3">
-              <ng-icon name="lucideSun" /> {{ 'settings.appearance.light' | translate }}
-            </button>
-            <button hlmToggleGroupItem value="dark" class="gap-2 px-3">
-              <ng-icon name="lucideMoon" /> {{ 'settings.appearance.dark' | translate }}
-            </button>
-            <button hlmToggleGroupItem value="system" class="gap-2 px-3">
-              <ng-icon name="lucideMonitor" /> {{ 'settings.appearance.system' | translate }}
-            </button>
-          </hlm-toggle-group>
-          <div class="mt-4">
-            <app-language-select [showLabel]="true" />
+        <div hlmCardContent class="divide-y">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
+            <span class="text-sm">{{ 'settings.appearance.theme' | translate }}</span>
+            <hlm-toggle-group
+              type="single"
+              variant="outline"
+              [nullable]="false"
+              [value]="theme.theme()"
+              (valueChange)="setTheme($event)"
+              [attr.aria-label]="'settings.appearance.theme' | translate"
+            >
+              <button hlmToggleGroupItem value="light" class="gap-2 px-3">
+                <ng-icon name="lucideSun" /> {{ 'settings.appearance.light' | translate }}
+              </button>
+              <button hlmToggleGroupItem value="dark" class="gap-2 px-3">
+                <ng-icon name="lucideMoon" /> {{ 'settings.appearance.dark' | translate }}
+              </button>
+              <button hlmToggleGroupItem value="system" class="gap-2 px-3">
+                <ng-icon name="lucideMonitor" /> {{ 'settings.appearance.system' | translate }}
+              </button>
+            </hlm-toggle-group>
           </div>
+          <app-language-select class="pt-3" [showLabel]="true" />
         </div>
       </section>
 
@@ -77,7 +75,12 @@ export class Settings {
   protected readonly resume = inject(ActivatedRoute).snapshot.queryParamMap.get('resume');
 
   constructor() {
-    if (this.resume) void inject(Router).navigate([], { queryParams: { resume: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    if (this.resume)
+      void inject(Router).navigate([], {
+        queryParams: { resume: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
   }
 
   protected setTheme(value: unknown): void {
