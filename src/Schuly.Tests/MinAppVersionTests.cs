@@ -11,9 +11,9 @@ namespace Schuly.Tests
         [Test]
         [Arguments("3.6.0", "3.6.0")]
         [Arguments(" 3.6.0 ", "3.6.0")]
-        [Arguments(null, null)]
-        [Arguments("", null)]
-        [Arguments("latest", null)]
+        [Arguments(null, AppQueryHandler.DefaultMinAppVersion)]
+        [Arguments("", AppQueryHandler.DefaultMinAppVersion)]
+        [Arguments("latest", AppQueryHandler.DefaultMinAppVersion)]
         public async Task ReadsOnlyARealVersion(string? configured, string? expected) => await Assert.That(Min(configured)).IsEqualTo(expected);
     }
 }
@@ -47,6 +47,9 @@ namespace Schuly.Tests
         public async Task BlocksOnlyOlderApps(string path, string? sent, string? expected) => await Assert.That(Gate(path, sent)).IsEqualTo(expected);
 
         [Test]
-        public async Task NoMinimumBlocksNothing() => await Assert.That(Gate("/api/grades", "0.1.0", min: null)).IsNull();
+        public async Task ZeroBlocksNothing() => await Assert.That(Gate("/api/grades", "0.1.0", min: "0.0.0")).IsNull();
+
+        [Test]
+        public async Task UnsetUsesTheCodedMinimum() => await Assert.That(Gate("/api/grades", "3.4.0", min: null)).IsEqualTo(AppQueryHandler.DefaultMinAppVersion);
     }
 }
