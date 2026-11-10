@@ -88,7 +88,8 @@ namespace Schuly.API.Linking
         DateTimeOffset? LinkedAt,
         DateTimeOffset? LastSyncedAt,
         List<LinkCapabilityDto> Capabilities,
-        bool CanReauth);
+        bool CanReauth,
+        string? PictureUrl = null);
 
     public sealed class StartLinkRequest
     {

@@ -12,17 +12,20 @@ namespace Schuly.Application.Queries.LinkedAccount
     [AllowAuthenticated]
     public record GetMyLinkedAccountsQuery(string? Provider) : IQuery<Result<List<LinkedAccountDto>>>;
 
-    public class GetMyLinkedAccountsQueryHandler(SchulyDbContext dbContext, IUserService userService) : IQueryHandler<GetMyLinkedAccountsQuery, Result<List<LinkedAccountDto>>>
+    public class GetMyLinkedAccountsQueryHandler(SchulyDbContext dbContext, IUserService userService, IAvatarUrlSigner avatarSigner) : IQueryHandler<GetMyLinkedAccountsQuery, Result<List<LinkedAccountDto>>>
     {
         public async ValueTask<Result<List<LinkedAccountDto>>> Handle(GetMyLinkedAccountsQuery query, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var accounts = await dbContext.LinkedAccounts
+            var rows = await dbContext.LinkedAccounts
                 .AsNoTracking()
                 .Where(a => a.ApplicationUserId == userId && (query.Provider == null || a.Provider == query.Provider))
                 .OrderBy(a => a.Provider).ThenBy(a => a.Email)
-                .Select(a => new LinkedAccountDto { Id = a.Id, Provider = a.Provider, Email = a.Email, DisplayName = a.DisplayName, CreatedAt = a.CreatedAt })
+                .Select(a => new { Dto = new LinkedAccountDto { Id = a.Id, Provider = a.Provider, Email = a.Email, DisplayName = a.DisplayName, CreatedAt = a.CreatedAt }, a.PictureKey })
                 .ToListAsync(cancellationToken);
+            foreach (var row in rows)
+                row.Dto.PictureUrl = avatarSigner.ToPublicAccountUrl(row.Dto.Id, row.PictureKey);
+            var accounts = rows.Select(r => r.Dto).ToList();
             return Result<List<LinkedAccountDto>>.Success(accounts);
         }
     }

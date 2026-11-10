@@ -165,7 +165,9 @@ namespace Schuly.Tests.TestHelpers
             public void Advance(TimeSpan by) => _now += by;
         }
 
-        public static async Task<LinkingTestHost> StartAsync(params ILinkProvider[] providers)
+        public static Task<LinkingTestHost> StartAsync(params ILinkProvider[] providers) => StartAsync(null, providers);
+
+        public static async Task<LinkingTestHost> StartAsync(Action<IServiceCollection>? configure, params ILinkProvider[] providers)
         {
             var logs = new CapturingLoggerProvider();
             var builder = WebApplication.CreateBuilder();
@@ -187,6 +189,7 @@ namespace Schuly.Tests.TestHelpers
             builder.Services.AddSchulyRateLimiting();
             builder.Services.AddAuthentication("Test").AddScheme<AuthenticationSchemeOptions, HeaderAuthHandler>("Test", null);
             builder.Services.AddAuthorizationBuilder().SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            configure?.Invoke(builder.Services);
 
             var app = builder.Build();
             // Stands in for the ForwardedHeaders middleware: it resolves the client IP before the rate limiter runs.

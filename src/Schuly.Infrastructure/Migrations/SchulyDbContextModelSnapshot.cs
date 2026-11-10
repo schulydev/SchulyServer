@@ -613,6 +613,10 @@ namespace Schuly.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("PictureKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(50)
