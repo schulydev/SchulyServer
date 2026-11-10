@@ -471,6 +471,8 @@
         "thisDevice": "Dieses Gerät",
         "signOut": "Abmelden",
         "signOutAria": "{{name}} abmelden",
+        "showAll": "Mehr anzeigen",
+        "showLess": "Weniger anzeigen",
         "signedOut": "{{name}} abgemeldet",
         "remembered": "{count, plural, one {# Gerät überspringt} other {# Geräte überspringen}} den Zwei-Faktor-Code.",
         "forget": "Gemerkte Geräte vergessen",

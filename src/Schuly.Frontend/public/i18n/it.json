@@ -471,6 +471,8 @@
         "thisDevice": "Questo dispositivo",
         "signOut": "Disconnetti",
         "signOutAria": "Disconnetti {{name}}",
+        "showAll": "Mostra di più",
+        "showLess": "Mostra meno",
         "signedOut": "{{name}} disconnesso",
         "remembered": "{count, plural, one {# dispositivo salta} other {# dispositivi saltano}} il codice a due fattori.",
         "forget": "Dimentica i dispositivi memorizzati",

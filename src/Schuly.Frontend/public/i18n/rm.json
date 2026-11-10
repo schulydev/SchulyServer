@@ -471,6 +471,8 @@
         "thisDevice": "Quest apparat",
         "signOut": "Deconnectar",
         "signOutAria": "Deconnectar {{name}}",
+        "showAll": "Mussar dapli",
+        "showLess": "Mussar damain",
         "signedOut": "{{name}} deconnectà",
         "remembered": "{count, plural, one {# apparat sursiglia} other {# apparats sursiglian}} il code da dus facturs.",
         "forget": "Emblidar ils apparats memorisads",

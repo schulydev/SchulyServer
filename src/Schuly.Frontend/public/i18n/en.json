@@ -471,6 +471,8 @@
         "thisDevice": "This device",
         "signOut": "Sign out",
         "signOutAria": "Sign out {{name}}",
+        "showAll": "Show more",
+        "showLess": "Show fewer",
         "signedOut": "Signed out {{name}}",
         "remembered": "{count, plural, one {# device skips} other {# devices skip}} the two-factor code.",
         "forget": "Forget remembered devices",

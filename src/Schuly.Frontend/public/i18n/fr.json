@@ -471,6 +471,8 @@
         "thisDevice": "Cet appareil",
         "signOut": "Déconnecter",
         "signOutAria": "Déconnecter {{name}}",
+        "showAll": "Afficher plus",
+        "showLess": "Afficher moins",
         "signedOut": "{{name}} déconnecté",
         "remembered": "{count, plural, one {# appareil saute} other {# appareils sautent}} le code à deux facteurs.",
         "forget": "Oublier les appareils mémorisés",
