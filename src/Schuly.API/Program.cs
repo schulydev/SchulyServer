@@ -80,6 +80,8 @@ app.UseMiddleware<SecurityHeaders>();
 
 app.UseExceptionHandler();
 
+app.UseMiddleware<Schuly.API.AppVersion.AppVersionGate>();
+
 if (app.Configuration.SwitzerlandOnly())
     app.UseMiddleware<SwissSignUpGate>();
 
