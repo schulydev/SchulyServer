@@ -129,19 +129,23 @@ Document and avatar blobs go to an S3-compatible bucket, which is SeaweedFS in t
 | `Documents:EncryptionKey` | Encrypts documents before they reach the bucket. Generate with `openssl rand -base64 32`. Required outside Development. Losing it makes stored documents unreadable. |
 | `Documents:KeyVersion`, `Documents:PreviousKeys:<version>` | Current key version (default `1`) and earlier keys, so documents encrypted with them stay readable. |
 
-## Avatar URL signing
-
-| Key | Purpose |
-|---|---|
-| `Avatar:SigningKey` | HMAC key for short-lived signed avatar URLs. Generate with `openssl rand -hex 32`. |
+## Pictures
 
 Users upload a profile picture with `PUT /api/me/avatar` (multipart; PNG, JPEG, or WebP; 2 MB at most)
-and remove it with `DELETE /api/me/avatar`. The file goes to document storage and is served through
-short-lived signed URLs under `/api/avatars/users/{id}`.
+and remove it with `DELETE /api/me/avatar`. Plugins store a linked account's picture (the Microsoft
+plugin uses the account's own Microsoft photo). The files go to document storage.
 
-The database stores only a bare blob key, and the server creates a signed URL for each access. The server
-reads the key lazily. If it's missing, you see `Avatar:SigningKey is not configured.` the first time an
-avatar URL is signed, not at startup.
+| Route | Answers |
+|---|---|
+| `GET /api/avatars/users/{applicationUserId}` | The caller's own profile picture. |
+| `GET /api/avatars/{schoolUserId}` | The picture of one of the caller's school profiles. |
+| `GET /api/avatars/accounts/{linkedAccountId}` | The picture of one of the caller's linked accounts. |
+
+Every route needs the normal sign-in and answers `404` for anyone else's id and for a missing picture.
+The DTOs (`profilePictureUrl`, `pictureUrl`) carry the path with a `?v=` value that changes with the
+picture, so clients may cache by URL. A plain `img src` can't send the bearer token: the web app loads
+pictures with its authenticated `HttpClient`. No configuration is needed; `Avatar:SigningKey` is no
+longer read and can be removed.
 
 ## Plugin vault
 

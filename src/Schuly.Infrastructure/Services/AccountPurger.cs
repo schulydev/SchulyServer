@@ -94,6 +94,7 @@ namespace Schuly.Infrastructure.Services
                 pending = fileUrls.Select(BlobStep).ToList();
                 if (BlobKeys.IsStored(user.ProfilePictureUrl))
                     pending.Add(BlobStep(user.ProfilePictureUrl!));
+                pending.AddRange(linkedAccounts.Where(a => BlobKeys.IsStored(a.PictureKey)).Select(a => BlobStep(a.PictureKey!)));
                 pending.AddRange(linkedAccounts.Select(a => new PendingPurge { Kind = PendingPurgeKind.LinkedAccountSecrets, Target = a.Id.ToString() }));
                 pending.AddRange(failedPlugins.Select(source => PluginStep(applicationUserId, source)));
                 dbContext.PendingPurges.AddRange(pending);

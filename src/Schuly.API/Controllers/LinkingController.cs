@@ -102,7 +102,7 @@ namespace Schuly.API.Controllers
         public async Task<IActionResult> GetAccounts(CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            return Ok(await linking.ListAccountsAsync(userId, cancellationToken));
+            return Ok(await linking.ListAccountsAsync(userId, cancellationToken, withPictures: true));
         }
 
         [HttpDelete("accounts/{providerId}/{accountId}")]

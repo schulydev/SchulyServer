@@ -10,5 +10,8 @@ namespace Schuly.Domain
         public required string ExternalId { get; set; }
         public required string Email { get; set; }
         public string? DisplayName { get; set; }
+
+        /// <summary>Storage key of the account's profile picture, set by the provider's plugin; only the owner sees it.</summary>
+        public string? PictureKey { get; set; }
     }
 }

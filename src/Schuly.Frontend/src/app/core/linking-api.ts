@@ -137,6 +137,8 @@ export interface LinkedAccountDto {
   lastSyncedAt?: string | null;
   capabilities: CapabilityDto[];
   canReauth: boolean;
+  /** API path of the account's picture (load it with the authenticated HttpClient), or null. */
+  pictureUrl?: string | null;
 }
 
 export interface LinkStartBody {

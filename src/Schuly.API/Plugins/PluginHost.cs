@@ -398,7 +398,11 @@ namespace Schuly.API.Plugins
             services.AddScoped(_ => new HostServiceScope(rootProvider));
             services.AddScoped<ISchoolData>(sp => new PluginSchoolData(sp.GetRequiredService<HostServiceScope>().Services.GetRequiredService<SchulyDbContext>(), source));
             services.AddScoped<IPluginFileStore>(sp => new PluginFileStore(sp.GetRequiredService<HostServiceScope>().Services.GetRequiredService<IDocumentStorage>()));
-            services.AddScoped<ILinkedAccounts>(sp => new LinkedAccountStore(sp.GetRequiredService<HostServiceScope>().Services.GetRequiredService<SchulyDbContext>(), sp.GetRequiredService<IPluginVaultFactory>()));
+            services.AddScoped<ILinkedAccounts>(sp =>
+            {
+                var host = sp.GetRequiredService<HostServiceScope>().Services;
+                return new LinkedAccountStore(host.GetRequiredService<SchulyDbContext>(), sp.GetRequiredService<IPluginVaultFactory>(), host.GetRequiredService<IDocumentStorage>());
+            });
 
             // Plugin services that inject IConfiguration see the host config with the
             // plugin's own plugins-config (yml + SCHULY_PLUGIN_* env) overlaid on top, so

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Schuly.Infrastructure.Storage;
 using Schuly.Infrastructure.Vault;
 using Schuly.Plugin.Abstractions;
 
@@ -6,10 +7,12 @@ namespace Schuly.Infrastructure.Plugins
 {
     /// <summary>
     /// <see cref="ILinkedAccounts"/> for the host and every plugin: rows in <c>LinkedAccounts</c>,
-    /// secrets in the <see cref="VaultNamespace"/> vault under <c>{linkedAccountId}:{name}</c>.
+    /// secrets in the <see cref="VaultNamespace"/> vault under <c>{linkedAccountId}:{name}</c>,
+    /// pictures in the encrypted document storage (without <paramref name="storage"/> pictures are refused).
     /// </summary>
-    public sealed class LinkedAccountStore(SchulyDbContext db, IPluginVaultFactory vaultFactory) : ILinkedAccounts
+    public sealed class LinkedAccountStore(SchulyDbContext db, IPluginVaultFactory vaultFactory, IDocumentStorage? storage = null) : ILinkedAccounts
     {
+        public const long MaxPictureBytes = 2_000_000;
         public const string VaultNamespace = "linked-accounts";
         private const string NamesSecret = "__names";
 
@@ -88,7 +91,82 @@ namespace Schuly.Infrastructure.Plugins
             db.LinkedAccounts.Remove(account);
             await db.SaveChangesAsync(cancellationToken);
             RemoveSecrets(linkedAccountId);
+            await DeletePictureAsync(account.PictureKey, cancellationToken);
             return true;
+        }
+
+        public async Task<bool> SetPictureAsync(Guid applicationUserId, Guid linkedAccountId, Stream? content, string? contentType, CancellationToken cancellationToken = default)
+        {
+            if (storage is null)
+                return false;
+
+            var account = await FindAsync(applicationUserId, linkedAccountId, cancellationToken);
+            if (account is null)
+                return false;
+
+            var previous = account.PictureKey;
+            if (content is null)
+            {
+                account.PictureKey = null;
+            }
+            else
+            {
+                // The declared type is ignored: the bytes decide, so nothing but a real picture is ever served from here.
+                var bytes = await ReadAtMostAsync(content, MaxPictureBytes, cancellationToken);
+                if (bytes is null || PictureType(bytes) is not { } type)
+                    return false;
+
+                var blob = await storage.UploadAsync(new MemoryStream(bytes, writable: false), $"account-picture.{type.Extension}", type.ContentType, cancellationToken);
+                account.PictureKey = blob.Key;
+            }
+
+            account.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            await DeletePictureAsync(previous, cancellationToken);
+            return true;
+        }
+
+        /// <summary>The PNG, JPEG or WebP type of <paramref name="data"/>, or null for anything else.</summary>
+        public static (string ContentType, string Extension)? PictureType(ReadOnlySpan<byte> data)
+        {
+            if (data.StartsWith((ReadOnlySpan<byte>)[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
+                return ("image/png", "png");
+            if (data.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xD8, 0xFF]))
+                return ("image/jpeg", "jpg");
+            if (data.Length >= 12 && data[..4].SequenceEqual("RIFF"u8) && data[8..12].SequenceEqual("WEBP"u8))
+                return ("image/webp", "webp");
+            return null;
+        }
+
+        private static async Task<byte[]?> ReadAtMostAsync(Stream content, long max, CancellationToken cancellationToken)
+        {
+            using var buffer = new MemoryStream();
+            var chunk = new byte[81920];
+            int read;
+            while ((read = await content.ReadAsync(chunk, cancellationToken)) > 0)
+            {
+                if (buffer.Length + read > max)
+                    return null;
+                buffer.Write(chunk, 0, read);
+            }
+            return buffer.Length == 0 ? null : buffer.ToArray();
+        }
+
+        // A blob that can't be deleted now is queued for the daily retention sweep rather than failing the caller.
+        private async Task DeletePictureAsync(string? key, CancellationToken cancellationToken)
+        {
+            if (storage is null || !BlobKeys.IsStored(key))
+                return;
+
+            try
+            {
+                await storage.DeleteAsync(key!, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                db.PendingPurges.Add(new Domain.PendingPurge { Kind = Domain.PendingPurgeKind.Blob, Target = key! });
+                await db.SaveChangesAsync(CancellationToken.None);
+            }
         }
 
         public async Task<string?> GetSecretAsync(Guid applicationUserId, Guid linkedAccountId, string name, CancellationToken cancellationToken = default)

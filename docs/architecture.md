@@ -60,9 +60,11 @@ The backend proxies every byte. Clients never receive S3 URLs or connect to stor
 - Upload with `POST /api/students/{id}/documents` (multipart).
 - Download from `GET /api/documents/{id}`, which returns a file response.
 
-Avatars are the one exception. You upload them with `PUT /api/me/avatar`, and the database holds only
-a bare blob key. The server creates a short-lived HMAC-signed URL under `/api/avatars/users/{id}` for
-each access. See [Avatar URL signing](setup/configuration.md#avatar-url-signing).
+Pictures work the same way. You upload your own with `PUT /api/me/avatar`; plugins store a linked
+account's picture through `ILinkedAccounts.SetPictureAsync`. The database holds only a bare blob key, and
+the DTOs carry an API path under `/api/avatars/...`. Every avatar route needs the normal sign-in and
+answers only the picture's owner, so clients load pictures with their bearer token. See
+[Pictures](setup/configuration.md#pictures).
 
 ## MCP server and Helply
 

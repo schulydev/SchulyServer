@@ -383,6 +383,7 @@ namespace Schuly.Infrastructure
                 entity.Property(a => a.ExternalId).HasMaxLength(200).IsRequired();
                 entity.Property(a => a.Email).HasMaxLength(320).IsRequired();
                 entity.Property(a => a.DisplayName).HasMaxLength(200);
+                entity.Property(a => a.PictureKey).HasMaxLength(300);
                 entity.HasIndex(a => new { a.ApplicationUserId, a.Provider, a.ExternalId }).IsUnique();
 
                 entity.HasOne(a => a.ApplicationUser)

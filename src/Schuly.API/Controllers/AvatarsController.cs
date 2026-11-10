@@ -1,38 +1,34 @@
 using Mediator;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Schuly.Application.Queries.Avatar;
-using Schuly.Infrastructure.Services;
 
 namespace Schuly.API.Controllers
 {
+    /// <summary>
+    /// Stored pictures. Every route needs the normal sign-in (the default policy) and answers only the picture's owner;
+    /// anyone else, and a missing picture, get 404. Clients fetch these with their bearer token, not a plain img src.
+    /// </summary>
     [ApiController]
     [Route("api/avatars")]
-    public class AvatarsController(IMediator mediator, IAvatarUrlSigner signer) : ControllerBase
+    public class AvatarsController(IMediator mediator) : ControllerBase
     {
+        /// <summary>The picture of one of the caller's own school profiles.</summary>
         [HttpGet("{schoolUserId:guid}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Get(Guid schoolUserId, [FromQuery] long exp, [FromQuery] string? sig, CancellationToken ct)
-        {
-            if (string.IsNullOrEmpty(sig) || !signer.Verify(schoolUserId, exp, sig))
-                return NotFound();
+        public async Task<IActionResult> Get(Guid schoolUserId, CancellationToken ct) =>
+            Picture(await mediator.Send(new GetAvatarQuery(schoolUserId), ct));
 
-            var result = await mediator.Send(new GetAvatarQuery(schoolUserId), ct);
-            if (!result.IsSuccess) return NotFound();
+        /// <summary>The picture of one of the caller's linked accounts.</summary>
+        [HttpGet("accounts/{linkedAccountId:guid}")]
+        public async Task<IActionResult> GetAccount(Guid linkedAccountId, CancellationToken ct) =>
+            Picture(await mediator.Send(new GetLinkedAccountAvatarQuery(linkedAccountId), ct));
 
-            var stream = result.Value!.Stream;
-            Response.Headers.CacheControl = "private, max-age=3600";
-            return File(stream.Content, stream.ContentType ?? "image/png");
-        }
-
+        /// <summary>The caller's own profile picture.</summary>
         [HttpGet("users/{applicationUserId:guid}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetUser(Guid applicationUserId, [FromQuery] long exp, [FromQuery] string? sig, CancellationToken ct)
-        {
-            if (string.IsNullOrEmpty(sig) || !signer.VerifyUser(applicationUserId, exp, sig))
-                return NotFound();
+        public async Task<IActionResult> GetUser(Guid applicationUserId, CancellationToken ct) =>
+            Picture(await mediator.Send(new GetUserAvatarQuery(applicationUserId), ct));
 
-            var result = await mediator.Send(new GetUserAvatarQuery(applicationUserId), ct);
+        private IActionResult Picture(Application.Models.Result<AvatarDownload> result)
+        {
             if (!result.IsSuccess) return NotFound();
 
             var stream = result.Value!.Stream;

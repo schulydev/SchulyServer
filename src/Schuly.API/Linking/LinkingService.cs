@@ -1,3 +1,4 @@
+using Schuly.Infrastructure.Services;
 using Schuly.Plugin.Abstractions.Linking;
 
 namespace Schuly.API.Linking
@@ -17,7 +18,7 @@ namespace Schuly.API.Linking
     /// Generic account-linking host: drives whatever ILinkProvider the loaded plugins declare. It validates every step
     /// the plugin returns and every submit the client sends, and never stores, logs or echoes submitted values.
     /// </summary>
-    public sealed class LinkingService(ILinkProviderCatalog catalog, LinkSessionStore sessions, TimeProvider time, ILogger<LinkingService> logger)
+    public sealed class LinkingService(ILinkProviderCatalog catalog, LinkSessionStore sessions, TimeProvider time, ILogger<LinkingService> logger, IServiceScopeFactory? scopes = null)
     {
         public const string GenericFailure = "The sign-in could not be completed. Please try again.";
         public const string ExpiredMessage = "This sign-in expired. Please start again.";
@@ -179,12 +180,34 @@ namespace Schuly.API.Linking
             }
         }
 
-        public async Task<IReadOnlyList<LinkProviderAccountDto>> ListAccountsAsync(Guid userId, CancellationToken ct)
+        /// <param name="withPictures">Adds each account's signed picture URL; only for the owner's own live view, never for exports.</param>
+        public async Task<IReadOnlyList<LinkProviderAccountDto>> ListAccountsAsync(Guid userId, CancellationToken ct, bool withPictures = false)
         {
             var tasks = catalog.Providers.Select(entry => ListOneAsync(entry, userId, ct)).ToList();
-            var lists = await Task.WhenAll(tasks);
-            return lists.SelectMany(l => l).ToList();
+            var rows = (await Task.WhenAll(tasks)).SelectMany(l => l).ToList();
+            if (!withPictures || scopes is null)
+                return rows.Select(r => r.Dto).ToList();
+
+            var schoolUserIds = rows.Where(r => r.SchoolUserId is not null).Select(r => r.SchoolUserId!.Value).Distinct().ToList();
+            var linkedAccountIds = rows.Where(r => r.LinkedAccountId is not null).Select(r => r.LinkedAccountId!.Value).Distinct().ToList();
+            if (schoolUserIds.Count == 0 && linkedAccountIds.Count == 0)
+                return rows.Select(r => r.Dto).ToList();
+
+            try
+            {
+                await using var scope = scopes.CreateAsyncScope();
+                var pictures = await scope.ServiceProvider.GetRequiredService<AccountPictureUrls>().ResolveAsync(userId, schoolUserIds, linkedAccountIds, ct);
+                return rows.Select(r => r.Dto with { PictureUrl = pictures.For(r.SchoolUserId, r.LinkedAccountId) }).ToList();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Pictures are decoration: the list still loads without them.
+                logger.LogWarning("Account pictures could not be resolved ({ExceptionType})", ex.GetType().Name);
+                return rows.Select(r => r.Dto).ToList();
+            }
         }
+
+        private sealed record AccountRow(LinkProviderAccountDto Dto, Guid? SchoolUserId, Guid? LinkedAccountId);
 
         public async Task<LinkResult<bool>> UnlinkAsync(Guid userId, string providerId, string accountId, CancellationToken ct)
         {
@@ -299,7 +322,7 @@ namespace Schuly.API.Linking
             return TimeSpan.FromSeconds(Math.Clamp(seconds, 1, 60));
         }
 
-        private async Task<IReadOnlyList<LinkProviderAccountDto>> ListOneAsync(LinkProviderEntry entry, Guid userId, CancellationToken ct)
+        private async Task<IReadOnlyList<AccountRow>> ListOneAsync(LinkProviderEntry entry, Guid userId, CancellationToken ct)
         {
             var d = entry.Descriptor;
             var capabilities = LinkDtoMapper.ToDtos(d.Capabilities);
@@ -311,13 +334,13 @@ namespace Schuly.API.Linking
                 using var lease = catalog.Open(d.Id) ?? throw new InvalidOperationException("Provider is no longer loaded.");
                 var accounts = await lease.Provider.ListAccountsAsync(userId, timeout.Token);
                 return accounts
-                    .Select(a => new LinkProviderAccountDto(d.Id, d.DisplayName, a.Id, a.Title, a.Detail, Enum.Parse<LinkedAccountStatusDto>(a.Status.ToString()), a.Message, a.LinkedAt, a.LastSyncedAt, capabilities, canReauth))
+                    .Select(a => new AccountRow(new LinkProviderAccountDto(d.Id, d.DisplayName, a.Id, a.Title, a.Detail, Enum.Parse<LinkedAccountStatusDto>(a.Status.ToString()), a.Message, a.LinkedAt, a.LastSyncedAt, capabilities, canReauth), a.SchoolUserId, a.LinkedAccountId))
                     .ToList();
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
             {
                 LogPluginFailure(d.Id, "list", ex);
-                return [new LinkProviderAccountDto(d.Id, d.DisplayName, string.Empty, d.DisplayName, null, LinkedAccountStatusDto.Error, "Accounts could not be loaded right now.", null, null, capabilities, false)];
+                return [new AccountRow(new LinkProviderAccountDto(d.Id, d.DisplayName, string.Empty, d.DisplayName, null, LinkedAccountStatusDto.Error, "Accounts could not be loaded right now.", null, null, capabilities, false), null, null)];
             }
         }
 

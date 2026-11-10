@@ -51,7 +51,7 @@ two-factor secrets. Keep them once you set them: a new signing key signs everybo
 encryption key breaks two-factor. You can use environment variables instead. See
 [Configuration](configuration.md).
 
-To use documents and avatars, also set the `S3:` keys and `Avatar:SigningKey`. The dev S3 credentials
+To use documents and pictures, also set the `S3:` keys. The dev S3 credentials
 are in `scripts/seaweedfs/s3-config.json`.
 
 In Development, the server starts without `Vault:MasterKey` and `Documents:EncryptionKey`. It then uses

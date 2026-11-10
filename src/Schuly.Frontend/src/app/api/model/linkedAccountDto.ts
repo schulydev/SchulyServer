@@ -14,6 +14,7 @@ export interface LinkedAccountDto {
     provider: string;
     email: string;
     displayName?: string | null;
+    pictureUrl?: string | null;
     createdAt?: string;
 }
 

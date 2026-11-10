@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideLoader2, lucidePencil } from '@ng-icons/lucide';
 import { HlmAlertImports } from '@spartan-ng/helm/alert';
-import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
+import { ApiAvatar } from '../../shared/api-avatar';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { UserStore } from '../../stores/user.store';
@@ -12,7 +12,7 @@ import { t } from '../../core/i18n';
 /** One profile line: the picture, changed from a small menu on it, then the name and sign-in email. */
 @Component({
   selector: 'app-account-card',
-  imports: [NgIcon, HlmAlertImports, HlmAvatarImports, HlmCardImports, HlmDropdownMenuImports, TranslatePipe],
+  imports: [NgIcon, HlmAlertImports, ApiAvatar, HlmCardImports, HlmDropdownMenuImports, TranslatePipe],
   providers: [provideIcons({ lucideLoader2, lucidePencil })],
   template: `
     <section hlmCard [attr.aria-label]="'settings.profile.label' | translate">
@@ -27,12 +27,7 @@ import { t } from '../../core/i18n';
             [hlmDropdownMenuTrigger]="picMenu"
             align="start"
           >
-            <hlm-avatar class="size-16">
-              @if (user.avatar(); as src) {
-                <img hlmAvatarImage [src]="src" alt="" />
-              }
-              <span hlmAvatarFallback class="text-lg">{{ user.initials() }}</span>
-            </hlm-avatar>
+            <app-api-avatar class="size-16" [src]="user.avatar()" [name]="user.name()" fallbackClass="text-lg" />
             <span class="bg-background hover:bg-muted absolute -right-0.5 -bottom-0.5 grid size-6 place-items-center rounded-full border leading-none shadow-xs" aria-hidden="true">
               @if (user.busy()) {
                 <!-- A square icon box spinning about its own centre; the spinner component's font-sized icon overflows a smaller host and wobbles. -->

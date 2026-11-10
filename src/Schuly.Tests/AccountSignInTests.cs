@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Schuly.Application.Commands.User;
 using Schuly.Domain;
 using Schuly.Infrastructure.Services;
@@ -9,11 +8,6 @@ namespace Schuly.Tests
 {
     public class AccountSignInTests
     {
-        private static IConfiguration Config() =>
-            new ConfigurationBuilder()
-                .AddInMemoryCollection([new KeyValuePair<string, string?>("Avatar:SigningKey", "test-signing-key")])
-                .Build();
-
         [Test]
         public async Task Avatar_upload_replaces_the_previous_picture()
         {
@@ -54,20 +48,19 @@ namespace Schuly.Tests
         }
 
         [Test]
-        public async Task Signed_avatar_urls_do_not_cross_between_school_users_and_accounts()
+        public async Task Avatar_urls_are_plain_api_paths_that_change_with_the_picture()
         {
-            var signer = new AvatarUrlSigner(Config());
+            var urls = new AvatarUrlSigner();
             var id = Guid.NewGuid();
 
-            var userUrl = signer.ToPublicUserUrl(id, "avatars/key")!;
-            var query = System.Web.HttpUtility.ParseQueryString(new Uri("http://x" + userUrl).Query);
-            var exp = long.Parse(query["exp"]!);
-            var sig = query["sig"]!;
+            var first = urls.ToPublicUserUrl(id, "avatars/key")!;
+            var second = urls.ToPublicUserUrl(id, "avatars/other")!;
 
-            await Assert.That(userUrl).StartsWith($"/api/avatars/users/{id}");
-            await Assert.That(signer.VerifyUser(id, exp, sig)).IsTrue();
-            await Assert.That(signer.Verify(id, exp, sig)).IsFalse();
-            await Assert.That(signer.VerifyUser(Guid.NewGuid(), exp, sig)).IsFalse();
+            await Assert.That(first).StartsWith($"/api/avatars/users/{id}?v=");
+            await Assert.That(first).DoesNotContain("sig=");
+            await Assert.That(second).IsNotEqualTo(first);
+            await Assert.That(urls.ToPublicUrl(id, "avatars/key")!).StartsWith($"/api/avatars/{id}?v=");
+            await Assert.That(urls.ToPublicUserUrl(id, null)).IsNull();
         }
     }
 }

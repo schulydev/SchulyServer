@@ -36,11 +36,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IOidcService, OidcService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<IAvatarUrlSigner, AvatarUrlSigner>();
+builder.Services.AddScoped<AccountPictureUrls>();
 builder.Services.AddScoped<IPluginUserContext, PluginUserContext>();
 builder.Services.AddScoped<IPluginUserDataPurger, Schuly.API.Plugins.PluginUserDataPurger>();
 builder.Services.AddScoped<AccountPurger>();
 builder.Services.AddScoped<IAccountPurger, AuditedAccountPurger>();
-builder.Services.AddScoped<ILinkedAccounts, LinkedAccountStore>();
+builder.Services.AddScoped<ILinkedAccounts>(sp => new LinkedAccountStore(sp.GetRequiredService<Schuly.Infrastructure.SchulyDbContext>(), sp.GetRequiredService<IPluginVaultFactory>(), sp.GetRequiredService<IDocumentStorage>()));
 builder.Services.AddSchulyDocumentStorage(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.Configure<RetentionOptions>(builder.Configuration.GetSection(RetentionOptions.SectionName));
