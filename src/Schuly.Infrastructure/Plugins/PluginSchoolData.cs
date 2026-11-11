@@ -151,6 +151,25 @@ namespace Schuly.Infrastructure.Plugins
             return new SyncResult(added, updated);
         }
 
+        public async Task<SyncResult> ReplaceGradesAsync(Guid schoolUserId, IReadOnlyCollection<GradeRecord> grades, DateOnly since, CancellationToken cancellationToken = default)
+        {
+            var result = await SyncGradesAsync(schoolUserId, grades, cancellationToken);
+            // An empty list is more likely a failed read than a semester without grades: never wipe on it.
+            if (grades.Count == 0) return result;
+
+            var listed = grades.Select(g => g.ExternalId).ToHashSet(StringComparer.Ordinal);
+            var stale = (await db.Grades
+                    .Where(g => g.SchoolUserId == schoolUserId && g.Source == Source && g.ExternalId != null && g.Exam!.Date >= since)
+                    .ToListAsync(cancellationToken))
+                .Where(g => !listed.Contains(g.ExternalId!))
+                .ToList();
+            if (stale.Count == 0) return result;
+
+            db.Grades.RemoveRange(stale);
+            await db.SaveChangesAsync(cancellationToken);
+            return result;
+        }
+
         public async Task<SyncResult> SyncExamsAsync(Guid schoolUserId, IReadOnlyCollection<ExamRecord> exams, CancellationToken cancellationToken = default)
         {
             var student = await OwnedStudentAsync(schoolUserId, cancellationToken, withClasses: true);

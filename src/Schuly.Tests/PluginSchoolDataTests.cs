@@ -212,6 +212,26 @@ namespace Schuly.Tests
         }
 
         [Test]
+        public async Task ReplaceGrades_removes_only_unlisted_dated_grades_of_the_period()
+        {
+            const string db = nameof(ReplaceGrades_removes_only_unlisted_dated_grades_of_the_period);
+            var (data, studentId) = await ProvisionedAsync(db);
+            var since = new DateOnly(2026, 8, 1);
+            await data.SyncGradesAsync(studentId, [
+                new GradeRecord("deu|python", "Deutsch", "Python", 6.0m, 1, new DateOnly(2026, 9, 3)),
+                new GradeRecord("old", "Deutsch", "Last year", 5.0m, 1, new DateOnly(2026, 3, 1)),
+                new GradeRecord("undated", "Deutsch", "No date", 4.0m),
+            ]);
+
+            await data.ReplaceGradesAsync(studentId, [new GradeRecord("inf|python", "Informatik", "Python", 6.0m, 1, new DateOnly(2026, 9, 3))], since);
+            await data.ReplaceGradesAsync(studentId, [], since);
+
+            using var ctx = TestDb.NewContext(db);
+            var ids = await ctx.Grades.Select(g => g.ExternalId).OrderBy(id => id).ToListAsync();
+            await Assert.That(ids).IsEquivalentTo(new[] { "inf|python", "old", "undated" });
+        }
+
+        [Test]
         public async Task SyncGrades_creates_subject_and_exam_once_and_enrols_the_student()
         {
             const string db = nameof(SyncGrades_creates_subject_and_exam_once_and_enrols_the_student);
