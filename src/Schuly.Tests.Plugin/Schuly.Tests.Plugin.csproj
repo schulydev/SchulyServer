@@ -11,7 +11,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <!-- Compile against the abstractions but don't ship them: the host shares the
          one copy from its default load context (same pattern as real plugins). -->
-    <PackageReference Include="Schuly.Plugin.Abstractions" Version="0.11.*" ExcludeAssets="runtime" />
+    <PackageReference Include="Schuly.Plugin.Abstractions" Version="0.12.*" ExcludeAssets="runtime" />
   </ItemGroup>
 
 </Project>
