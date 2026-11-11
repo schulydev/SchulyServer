@@ -227,7 +227,7 @@ namespace Schuly.Tests
             await data.ReplaceGradesAsync(studentId, [], since);
 
             using var ctx = TestDb.NewContext(db);
-            var ids = await ctx.Grades.Select(g => g.ExternalId).OrderBy(id => id).ToListAsync();
+            var ids = await ctx.Grades.Select(g => g.ExternalId!).OrderBy(id => id).ToListAsync();
             await Assert.That(ids).IsEquivalentTo(new[] { "inf|python", "old", "undated" });
         }
 
