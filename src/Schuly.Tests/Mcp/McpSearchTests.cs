@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Web;
 using TUnit.Assertions.Enums;
+using Schuly.API.Helply;
 using Schuly.Domain.Mcp;
 using static Schuly.Tests.Mcp.McpTestSupport;
 
@@ -169,6 +170,16 @@ namespace Schuly.Tests.Mcp
             var many = await client.CallToolAsync("search", new Dictionary<string, object?> { ["query"] = "a", ["terms"] = Enumerable.Range(0, 8).Select(i => "t" + i).ToArray() });
             await Assert.That(many.IsError ?? false).IsTrue();
             await Assert.That(seen.IsEmpty).IsTrue();
+        }
+
+        [Test]
+        public async Task The_prompt_teaches_one_search_call_with_terms_and_a_date_range()
+        {
+            var prompt = HelplyPrompt.System(DateTimeOffset.UtcNow);
+
+            await Assert.That(prompt).Contains("as terms");
+            await Assert.That(prompt).Contains("from/to date range");
+            await Assert.That(prompt).Contains("fall back to search_files");
         }
     }
 }

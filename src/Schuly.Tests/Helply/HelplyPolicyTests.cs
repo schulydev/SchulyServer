@@ -104,15 +104,5 @@ namespace Schuly.Tests.Helply
             foreach (var tool in new[] { "list_exams", "list_grades", "search_files", "search_pages", "list_notebooks", "list_sections", "list_pages", "read_page", "list_teams", "search_channel_messages", "list_team_files", "list_mail", "read_mail" })
                 await Assert.That(prompt).Contains(tool);
         }
-
-        [Test]
-        public async Task The_prompt_teaches_one_search_call_with_terms_and_a_date_range()
-        {
-            var prompt = HelplyPrompt.System(DateTimeOffset.UtcNow);
-
-            await Assert.That(prompt).Contains("as terms");
-            await Assert.That(prompt).Contains("from/to date range");
-            await Assert.That(prompt).Contains("fall back to search_files");
-        }
     }
 }
