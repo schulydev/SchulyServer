@@ -44,7 +44,7 @@ const NEAR_BOTTOM_THRESHOLD = 32;
 export class PkChatContainerRoot implements AfterViewInit, ChatContainerState {
   public readonly class = input<string>('');
   protected readonly computedClass = computed(() =>
-    cn('flex flex-col overflow-y-auto', this.class()),
+    cn('relative flex flex-col overflow-y-auto', this.class()),
   );
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
