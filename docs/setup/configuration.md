@@ -244,9 +244,9 @@ These keys live under `Helply:Limits`.
 | `MessagesPerMinute` | `10` | Messages per user per minute. |
 | `MessagesPerDay` | `200` | Messages per user per day. |
 | `MaxInputChars` | `4000` | Longest message. |
-| `RunTimeoutSeconds` | `120` | Time budget for a turn. |
+| `RunTimeoutSeconds` | `180` | Time budget for a turn. |
 | `RunTimeoutSecondsWithWorkspace` | `300` | Time budget for a turn with the workspace. |
-| `MaxToolIterations` | `8` | Tool round trips in a turn. |
+| `MaxToolIterations` | `16` | Tool round trips in a turn. |
 | `MaxToolIterationsWithWorkspace` | `16` | Tool round trips in a turn with the workspace. |
 | `MaxHistoryMessages` | `40` | Earlier messages sent to the model. |
 | `MaxHistoryChars` | `60000` | Earlier text sent to the model. |

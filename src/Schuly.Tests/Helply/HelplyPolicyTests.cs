@@ -94,5 +94,15 @@ namespace Schuly.Tests.Helply
             await Assert.That(prompt).Contains("not a person");
             await Assert.That(prompt).Contains("privacy policy");
         }
+
+        [Test]
+        public async Task The_prompt_teaches_the_search_workflow_with_real_tool_names()
+        {
+            var prompt = HelplyPrompt.System(DateTimeOffset.UtcNow);
+
+            await Assert.That(prompt).Contains("Finding tests, dates, learning objectives and prep material");
+            foreach (var tool in new[] { "list_exams", "list_grades", "search_files", "search_pages", "list_notebooks", "list_sections", "list_pages", "read_page", "list_teams", "search_channel_messages", "list_team_files", "list_mail", "read_mail" })
+                await Assert.That(prompt).Contains(tool);
+        }
     }
 }
