@@ -104,14 +104,5 @@ namespace Schuly.Tests.Helply
             foreach (var tool in new[] { "list_exams", "list_grades", "search_files", "search_pages", "list_notebooks", "list_sections", "list_pages", "read_page", "list_teams", "search_channel_messages", "list_team_files", "list_mail", "read_mail" })
                 await Assert.That(prompt).Contains(tool);
         }
-
-        [Test]
-        public async Task The_prompt_resolves_the_subject_with_list_subjects_and_keeps_the_manual_fallback()
-        {
-            var prompt = HelplyPrompt.System(DateTimeOffset.UtcNow);
-
-            await Assert.That(prompt).Contains("call list_subjects with the user's word as subject");
-            await Assert.That(prompt).Contains("If it is unavailable or finds nothing, collect subject names yourself from list_grades");
-        }
     }
 }

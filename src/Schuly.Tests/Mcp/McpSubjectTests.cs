@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using Schuly.API.Helply;
 using Schuly.API.Mcp.Tools;
 using Schuly.API.Plugins;
 using Schuly.Application.Dtos;
@@ -180,7 +181,7 @@ namespace Schuly.Tests.Mcp
         [Test]
         public async Task Teacher_names_are_taken_from_lesson_notes_that_look_like_names_only()
         {
-            var teachers = MicrosoftTools.TeachersFromLessons(["Hans Muster", "Hans Muster, Anna Frei", "Bitte Laptop mitnehmen!", "Prüfung Test 3", null, ""]);
+            var teachers = SubjectTeachers.FromLessons(["Hans Muster", "Hans Muster, Anna Frei", "Bitte Laptop mitnehmen!", "Prüfung Test 3", null, ""]);
             await Assert.That(teachers).IsEquivalentTo(new[] { "Hans Muster", "Anna Frei" });
             await Assert.That(teachers[0]).IsEqualTo("Hans Muster");
         }
@@ -301,6 +302,15 @@ namespace Schuly.Tests.Mcp
             await using var _h = host;
             await using var _c = client;
             await Assert.That((await client.ListToolsAsync()).Select(t => t.Name)).DoesNotContain("list_subjects");
+        }
+
+        [Test]
+        public async Task The_prompt_resolves_the_subject_with_list_subjects_and_keeps_the_manual_fallback()
+        {
+            var prompt = HelplyPrompt.System(DateTimeOffset.UtcNow);
+
+            await Assert.That(prompt).Contains("call list_subjects with the user's word as subject");
+            await Assert.That(prompt).Contains("If it is unavailable or finds nothing, collect subject names yourself from list_grades");
         }
 
         private sealed class SchoolMediator : IMediator

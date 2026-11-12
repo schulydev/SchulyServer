@@ -80,7 +80,7 @@ namespace Schuly.API.Mcp.Tools
             }
             partial |= errors.Count > 0;
 
-            var today = TodayInSwitzerland();
+            var today = SwissTime.Today();
             var subjects = rows.Select(r => SubjectOutput(r, exams, lessons, names, gradesAllowed, today)).ToList();
             return Serialize(new
             {
@@ -107,7 +107,7 @@ namespace Schuly.API.Mcp.Tools
                     lastOutput = new { source = "grade", examId = graded.Id, name = graded.Name, date = graded.Date, score = graded.Grades.First(g => g.SchoolUserId == r.SchoolUserId).Score };
             }
 
-            var teachers = TeachersFromLessons(lessons.Where(a => a.ClassId == r.ClassId || (a.ClassId is null && known is not null && SubjectAliases.Resolve(a.Title)?.Key == known.Key)).Select(a => a.Description));
+            var teachers = SubjectTeachers.FromLessons(lessons.Where(a => a.ClassId == r.ClassId || (a.ClassId is null && known is not null && SubjectAliases.Resolve(a.Title)?.Key == known.Key)).Select(a => a.Description));
             return new
             {
                 subjectId = r.ClassId,
@@ -125,38 +125,6 @@ namespace Schuly.API.Mcp.Tools
         }
 
         private static object ExamOutput(ExamDto e, string source) => new { source, examId = e.Id, name = e.Name, date = e.Date, type = e.Type };
-
-        /// <summary>
-        /// Teacher names as far as the school passes them on: Schulnetz lessons carry them in the lesson note, so a note that looks like a short list of names
-        /// (no digits, no sentence punctuation) counts, anything else is a comment and is ignored. The most frequent names come first, at most four.
-        /// </summary>
-        public static List<string> TeachersFromLessons(IEnumerable<string?> notes)
-        {
-            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (var note in notes)
-            {
-                if (string.IsNullOrWhiteSpace(note) || note.Length > 80)
-                    continue;
-                var parts = note.Split([',', ';', '/'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (parts.Length == 0 || parts.Any(p => p.Length > 40 || p.Split(' ').Length > 4 || p.Any(c => char.IsDigit(c) || c is '.' or '!' or '?' or ':') || !char.IsUpper(p[0])))
-                    continue;
-                foreach (var part in parts)
-                    counts[part] = counts.GetValueOrDefault(part) + 1;
-            }
-            return counts.OrderByDescending(c => c.Value).ThenBy(c => c.Key, StringComparer.OrdinalIgnoreCase).Take(4).Select(c => c.Key).ToList();
-        }
-
-        private static DateOnly TodayInSwitzerland()
-        {
-            try
-            {
-                return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich")));
-            }
-            catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-            {
-                return DateOnly.FromDateTime(DateTime.UtcNow);
-            }
-        }
 
         /// <summary>Team, channel, notebook and section names of the user's Microsoft account, fetched with a cap on calls and a timeout.</summary>
         private async Task<MicrosoftNames> LoadMicrosoftNamesAsync(Guid account, bool teams, bool notebooks, List<string> errors, CancellationToken ct)
