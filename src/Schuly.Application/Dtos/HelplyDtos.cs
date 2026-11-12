@@ -5,7 +5,7 @@ using Schuly.Infrastructure.Helply;
 namespace Schuly.Application.Dtos
 {
     /// <summary>What Helply may use. <c>WorkspaceAvailable</c> says whether this server has a sandbox at all; without it the workspace switch does nothing.</summary>
-    public record HelplySettingsDto(McpPermissionSet Permissions, bool Workspace, bool WorkspaceAvailable);
+    public record HelplySettingsDto(McpPermissionSet Permissions, bool Workspace, bool WorkspaceAvailable, HelplyReasoningEffort ReasoningEffort);
 
     public record HelplyAttachmentDto(Guid Id, string FileName, string MediaType, long SizeBytes);
 
@@ -26,7 +26,7 @@ namespace Schuly.Application.Dtos
     /// <summary>Maps the decrypted stored shapes to what the API returns. Nothing from the framework's session or the stored approval request ever leaves through here.</summary>
     public static class HelplyDtoMapper
     {
-        public static HelplySettingsDto ToDto(McpPermissionSet permissions, bool workspace, bool workspaceAvailable) => new(permissions, workspace, workspaceAvailable);
+        public static HelplySettingsDto ToDto(McpPermissionSet permissions, bool workspace, bool workspaceAvailable, HelplyReasoningEffort reasoningEffort) => new(permissions, workspace, workspaceAvailable, reasoningEffort);
 
         public static HelplyAttachmentDto ToDto(HelplyStoredAttachment a) => new(a.Id, a.FileName, a.MediaType, a.SizeBytes);
 

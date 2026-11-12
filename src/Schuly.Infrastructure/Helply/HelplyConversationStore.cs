@@ -125,6 +125,24 @@ namespace Schuly.Infrastructure.Helply
             return enabled;
         }
 
+        public async Task<HelplyReasoningEffort> GetReasoningEffortAsync(Guid applicationUserId, CancellationToken ct = default) =>
+            (await db.HelplySettings.AsNoTracking().FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct))?.ReasoningEffort ?? HelplyReasoningEffort.High;
+
+        public async Task<HelplyReasoningEffort> SetReasoningEffortAsync(Guid applicationUserId, HelplyReasoningEffort effort, CancellationToken ct = default)
+        {
+            var settings = await db.HelplySettings.FirstOrDefaultAsync(s => s.ApplicationUserId == applicationUserId, ct);
+            var now = Now;
+            if (settings is null)
+                db.HelplySettings.Add(new HelplySettings { Id = Guid.NewGuid(), ApplicationUserId = applicationUserId, Permissions = McpPermissionSet.SchoolDataOnly(), ReasoningEffort = effort, CreatedAt = now, UpdatedAt = now });
+            else
+            {
+                settings.ReasoningEffort = effort;
+                settings.UpdatedAt = now;
+            }
+            await db.SaveChangesAsync(ct);
+            return effort;
+        }
+
         public async Task<McpPermissionSet> SetPermissionsAsync(Guid applicationUserId, McpPermissionSet? permissions, CancellationToken ct = default)
         {
             var normalized = McpScopes.Normalize(permissions);

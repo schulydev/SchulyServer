@@ -8,12 +8,14 @@
  * Do not edit the class manually.
  */
 import { McpPermissionSet } from './mcpPermissionSet';
+import { HelplyReasoningEffort } from './helplyReasoningEffort';
 import { ExportHelplyConversationDto } from './exportHelplyConversationDto';
 
 
 export interface ExportHelplyDto { 
     permissions: McpPermissionSet;
     workspaceEnabled: boolean;
+    reasoningEffort: HelplyReasoningEffort;
     conversations: Array<ExportHelplyConversationDto>;
 }
 

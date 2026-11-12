@@ -88,6 +88,7 @@ describe('starterPrompts', () => {
     permissions: { areas, allowDestructive: false, microsoftAccountIds: null },
     workspace,
     workspaceAvailable: true,
+    reasoningEffort: 'High',
   });
 
   it('offers nothing until the settings are known', () => {

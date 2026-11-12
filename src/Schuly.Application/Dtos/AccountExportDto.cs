@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 
 namespace Schuly.Application.Dtos
@@ -49,7 +50,7 @@ namespace Schuly.Application.Dtos
 
     public record ExportConnectedAccountDto(string Provider, string Title, string? Detail, string Status, DateTimeOffset? LinkedAt, DateTimeOffset? LastSyncedAt);
 
-    public record ExportHelplyDto(McpPermissionSet Permissions, bool WorkspaceEnabled, List<ExportHelplyConversationDto> Conversations);
+    public record ExportHelplyDto(McpPermissionSet Permissions, bool WorkspaceEnabled, HelplyReasoningEffort ReasoningEffort, List<ExportHelplyConversationDto> Conversations);
 
     public record ExportHelplyConversationDto(Guid Id, string Title, JsonElement Messages, string? ModelHistory, DateTime LastActivityAt, DateTime ExpiresAt, List<ExportHelplyAttachmentDto> Attachments);
 

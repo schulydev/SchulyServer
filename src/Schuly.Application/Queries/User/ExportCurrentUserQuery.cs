@@ -5,6 +5,7 @@ using Schuly.Application.Authorization;
 using Schuly.Application.Dtos;
 using Schuly.Application.Mappers;
 using Schuly.Application.Models;
+using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure;
 using Schuly.Infrastructure.Helply;
@@ -125,7 +126,7 @@ namespace Schuly.Application.Queries.User
                 c.ExpiresAt,
                 attachments.Where(a => a.ConversationId == c.Id).Select(a => new ExportHelplyAttachmentDto(helplyCipher.DecryptString(a.FileName, c.Id, userId, HelplyAttachmentStore.Field(a.Id, "name")), a.SizeBytes, a.CreatedAt)).ToList())).ToList();
 
-            return new ExportHelplyDto(settings?.Permissions ?? McpPermissionSet.SchoolDataOnly(), settings?.WorkspaceEnabled ?? false, exported);
+            return new ExportHelplyDto(settings?.Permissions ?? McpPermissionSet.SchoolDataOnly(), settings?.WorkspaceEnabled ?? false, settings?.ReasoningEffort ?? HelplyReasoningEffort.High, exported);
         }
 
         private async Task<ExportAiAppsDto> AiAppsAsync(Guid userId, CancellationToken cancellationToken)

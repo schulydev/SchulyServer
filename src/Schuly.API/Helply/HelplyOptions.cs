@@ -54,7 +54,7 @@ namespace Schuly.API.Helply
         public int MaxToolIterations { get; set; } = 16;
         public int MaxHistoryMessages { get; set; } = 40;
         public int MaxHistoryChars { get; set; } = 60000;
-        public int MaxOutputTokens { get; set; } = 2048;
+        public int MaxOutputTokens { get; set; } = 8192;
 
         /// <summary>Tool round trips in a turn that has the workspace; running and fixing code takes more steps than looking something up.</summary>
         public int MaxToolIterationsWithWorkspace { get; set; } = 16;

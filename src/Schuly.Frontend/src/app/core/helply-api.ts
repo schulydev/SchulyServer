@@ -8,6 +8,7 @@ import {
   Conversation,
   ConversationSummary,
   HelplyAttachment,
+  HelplyReasoningEffort,
   HelplySettings,
   StreamEvent,
 } from './helply-types';
@@ -45,6 +46,10 @@ export class HelplyApi {
 
   updateWorkspace(enabled: boolean): Promise<HelplySettings> {
     return firstValueFrom(this.http.put<HelplySettings>(`${BASE}/settings/workspace`, { enabled }));
+  }
+
+  updateReasoning(effort: HelplyReasoningEffort): Promise<HelplySettings> {
+    return firstValueFrom(this.http.put<HelplySettings>(`${BASE}/settings/reasoning`, { effort }));
   }
 
   uploadAttachment(conversationId: string, file: File): Promise<HelplyAttachment> {
