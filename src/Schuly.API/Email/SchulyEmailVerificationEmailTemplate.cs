@@ -6,7 +6,7 @@ using Toamaisutaa.Email.Smtp;
 namespace Schuly.API.Email
 {
     /// <summary>
-    /// Schuly's verification mails, in the design the Keycloak theme used (themes/schuly/email in SchulyKeycloak): the
+    /// Schuly's verification mails, in Schuly's own mail design: the
     /// code mail and the link mail. The address-in-use notice keeps the library's default.
     /// </summary>
     public sealed class SchulyEmailVerificationEmailTemplate(IOptions<ToamaisutaaSmtpEmailOptions> options) : IEmailVerificationEmailTemplate
