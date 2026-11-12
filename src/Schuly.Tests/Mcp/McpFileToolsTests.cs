@@ -23,7 +23,7 @@ namespace Schuly.Tests.Mcp
 {
     /// <summary>Teams / SharePoint file tools, unified search, file text and channel messages against fake plugin endpoints that record what they receive.</summary>
     [NotInParallel]
-    public class McpFileToolsTests
+    public partial class McpFileToolsTests
     {
         private static readonly Guid AccountId = Guid.Parse("11111111-2222-3333-4444-555555555555");
 
@@ -37,7 +37,9 @@ namespace Schuly.Tests.Mcp
             return set;
         }
 
-        private static async Task<(McpHttpHost Host, McpClient Client, ConcurrentQueue<Seen> Seen)> StartAsync(string name, McpPermissionSet permissions, Func<string, string, string?> answer)
+        private static Task<(McpHttpHost Host, McpClient Client, ConcurrentQueue<Seen> Seen)> StartAsync(string name, McpPermissionSet permissions, Func<string, string, string?> answer) => StartAsync(name, permissions, seen => answer(seen.Method, seen.Path));
+
+        private static async Task<(McpHttpHost Host, McpClient Client, ConcurrentQueue<Seen> Seen)> StartAsync(string name, McpPermissionSet permissions, Func<Seen, string?> answer)
         {
             var seen = new ConcurrentQueue<Seen>();
             var host = await McpHttpHost.StartAsync(
@@ -50,8 +52,9 @@ namespace Schuly.Tests.Mcp
                 app => app.MapMethods("/api/plugins/microsoft/accounts/{accountId}/{**rest}", ["GET", "POST"], async (HttpContext context, string rest) =>
                 {
                     var body = context.Request.ContentLength > 0 ? await new StreamReader(context.Request.Body).ReadToEndAsync() : string.Empty;
-                    seen.Enqueue(new Seen(context.Request.Method, rest, context.Request.QueryString.Value ?? string.Empty, body));
-                    var json = answer(context.Request.Method, rest);
+                    var request = new Seen(context.Request.Method, rest, context.Request.QueryString.Value ?? string.Empty, body);
+                    seen.Enqueue(request);
+                    var json = answer(request);
                     return json is null ? Results.NotFound() : Results.Content(json, "application/json");
                 }));
             var userId = host.Scoped(sp => NewUser(sp.GetRequiredService<SchulyDbContext>()).User.Id);
@@ -130,7 +133,15 @@ namespace Schuly.Tests.Mcp
                 await Assert.That(hit.GetProperty("itemId").GetString()).IsEqualTo("item-1");
                 await Assert.That(hit.GetProperty("driveId").GetString()).IsEqualTo("b!drive");
                 await Assert.That(hit.GetProperty("location").GetProperty("label").GetString()).IsEqualTo("Team BM23d > General");
-                await Assert.That(result.GetProperty("nextOffset").GetInt32()).IsEqualTo(25);
+                await Assert.That(hit.GetProperty("source").GetString()).IsEqualTo("files");
+                await Assert.That(hit.GetProperty("readWith").GetString()).IsEqualTo("read_file");
+                await Assert.That(hit.GetProperty("matchedTerms").EnumerateArray().Select(t => t.GetString()!)).IsEquivalentTo(new[] { "Masterplan" });
+                await Assert.That(result.GetProperty("partial").GetBoolean()).IsTrue();
+                await Assert.That(result.GetProperty("searched").EnumerateArray().Select(t => t.GetString() ?? "")).IsEquivalentTo(cases[i].Types);
+                var skipped = result.GetProperty("skipped").EnumerateArray().Select(t => t.GetProperty("source").GetString() + ":" + t.GetProperty("reason").GetString()).ToList();
+                await Assert.That(skipped.Contains("mail:needs Mail read")).IsEqualTo(!cases[i].Types.Contains("mail"));
+                await Assert.That(skipped.Contains("chats:needs Teams read")).IsEqualTo(!cases[i].Types.Contains("chats"));
+                await Assert.That(skipped.Contains("pages:needs OneNote read")).IsTrue();
             }
         }
 

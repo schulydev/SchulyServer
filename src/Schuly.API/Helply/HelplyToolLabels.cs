@@ -48,7 +48,7 @@ namespace Schuly.API.Helply
             ["list_shared_with_me"] = ("Checking files shared with you", "Checked files shared with you"),
             ["list_recent_files"] = ("Checking your recent files", "Checked your recent files"),
             ["search_files"] = ("Searching your files", "Searched your files"),
-            ["search"] = ("Searching your files, mail and chats", "Searched your files, mail and chats"),
+            ["search"] = ("Searching your files, notes, mail and chats", "Searched your files, notes, mail and chats"),
             ["read_file"] = ("Reading a file", "Read a file"),
             ["list_channel_messages"] = ("Reading a Teams channel", "Read a Teams channel"),
             ["search_channel_messages"] = ("Searching Teams channels", "Searched Teams channels"),
