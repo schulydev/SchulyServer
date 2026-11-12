@@ -23,6 +23,7 @@ namespace Schuly.API.Helply
             ["list_grades"] = ("Looking up your grades", "Looked up your grades"),
             ["list_semester_reports"] = ("Looking up your semester reports", "Looked up your semester reports"),
             ["list_exams"] = ("Checking your exams", "Checked your exams"),
+            ["list_subjects"] = ("Looking up your subjects", "Looked up your subjects"),
             ["list_agenda"] = ("Checking your agenda", "Checked your agenda"),
             ["list_absences"] = ("Checking your absences", "Checked your absences"),
             ["list_documents"] = ("Looking through your documents", "Looked through your documents"),
