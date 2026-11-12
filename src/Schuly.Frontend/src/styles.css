@@ -105,6 +105,22 @@
   @apply motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:ease-out;
 }
 
+/* Out of the top of a list: moves up and fades while its height folds, so what is below follows. */
+@utility fold-away {
+  @media (prefers-reduced-motion: no-preference) {
+    overflow: hidden;
+    interpolate-size: allow-keywords;
+    animation: fold-away 250ms ease-in forwards;
+  }
+}
+@keyframes fold-away {
+  to {
+    height: 0;
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

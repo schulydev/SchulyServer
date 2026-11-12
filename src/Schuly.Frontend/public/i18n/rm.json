@@ -1113,6 +1113,8 @@
     "run": {
       "pages": "{count, plural, one {# pagina} other {# paginas}}",
       "times": "{count, plural, one {# giada} other {# giadas}}",
+      "earlier": "{count, plural, one {+# pass pli baud} other {+# pass pli baud}}",
+      "fewer": "Mussar main pass",
       "worked": "Fatg",
       "steps": "{count, plural, one {# pass} other {# pass}}",
       "failed": "{count, plural, one {# pass n'ha betg funcziunà} other {# pass n'han betg funcziunà}}"

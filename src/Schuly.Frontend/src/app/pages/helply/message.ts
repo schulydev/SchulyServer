@@ -9,7 +9,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { ChatMessage } from '../../core/helply-state';
 import { HelplyAttachment } from '../../core/helply-types';
 import { AttachmentCards } from './attachment-cards';
-import { buildTimeline } from './helply-timeline';
+import { buildTimeline, chainBlocks } from './helply-timeline';
 import { ReplyChain } from './reply-chain';
 
 /**
@@ -18,11 +18,11 @@ import { ReplyChain } from './reply-chain';
  * highlighting, is styled here.
  */
 const MARKDOWN =
-  'text-sm leading-relaxed break-words ' +
+  'break-words ' +
   '[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 ' +
   '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 ' +
-  '[&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold ' +
-  '[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold ' +
+  '[&_h1]:mt-4 [&_h1]:mb-1 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mt-4 [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold ' +
+  '[&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-base [&_h3]:font-semibold [&_:is(h1,h2,h3):first-child]:mt-0 ' +
   '[&_a]:text-primary [&_a]:underline [&_a+span]:text-muted-foreground [&_a]:underline-offset-2 [&_a]:rounded-sm [&_a:focus-visible]:ring-ring/50 [&_a:focus-visible]:ring-3 [&_a]:outline-none ' +
   '[&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:rounded [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_code]:font-mono [&_:not(pre)>code]:text-xs ' +
   '[&_.pk-code-container>pre]:bg-muted [&_.pk-code-container>pre]:my-3 [&_.pk-code-container>pre]:overflow-x-auto [&_.pk-code-container>pre]:rounded-md [&_.pk-code-container>pre]:border [&_.pk-code-container>pre]:p-3 [&_.pk-code-container>pre]:text-[13px] ' +
@@ -47,10 +47,15 @@ const MARKDOWN =
     } @else {
       <article aria-label="Helply" class="flex w-full min-w-0 gap-3">
         <img src="helply-avatar.svg" alt="" width="32" height="32" class="mt-0.5 size-8 shrink-0" />
-        <pk-assistant-turn class="min-w-0 flex-1 gap-2" [copyText]="copyText()" [streaming]="message().streaming">
-          <div class="flex min-w-0 flex-col gap-3">
-            @if (timeline().chain.length) {
-              <app-reply-chain [timeline]="timeline()" [streaming]="message().streaming" />
+        <pk-assistant-turn class="min-w-0 flex-1" [copyText]="copyText()" [streaming]="message().streaming">
+          <div class="flex min-w-0 flex-col gap-4">
+            <!-- Text and runs of steps in the order they happened; a run is open while it is being taken. -->
+            @for (block of blocks(); track block.key; let last = $last) {
+              @if (block.kind === 'steps') {
+                <app-reply-chain [steps]="block.steps" [active]="message().streaming && last && !timeline().answer" />
+              } @else {
+                <pk-markdown externalImages="none" rawHtml="escape" linkPolicy="strict" [class]="markdownClass" [content]="block.text" />
+              }
             }
             @if (timeline().answer) {
               <pk-markdown externalImages="none" rawHtml="escape" linkPolicy="strict" [class]="markdownClass" [content]="timeline().answer" />
@@ -95,6 +100,7 @@ export class HelplyMessageView {
   protected readonly isUser = computed(() => this.message().role === 'user');
   /** The steps Helply took, with the text it wrote between them, and its answer after the last one. */
   protected readonly timeline = computed(() => buildTimeline(this.message().text, this.message().tools));
+  protected readonly blocks = computed(() => chainBlocks(this.timeline().chain));
   /** Copy takes the answer; a reply that is all steps copies its whole text. */
   protected readonly copyText = computed(() => this.timeline().answer || this.message().text);
   /** Waiting for the model: nothing written yet after the last step and no step running. */
