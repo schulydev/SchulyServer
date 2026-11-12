@@ -105,10 +105,31 @@ export function buildTimeline(text: string, tools: readonly ToolActivity[]): Rep
   return { chain, answer: text.slice(position).trim(), steps: tools.length };
 }
 
-/** A finished chain in one line: "Read your mail list · 4 steps", or the two kinds of step it took. */
-export function chainSummary(timeline: ReplyTimeline): string {
-  const labels = [...new Set(timeline.chain.flatMap((e) => (e.kind === 'step' ? [e.label] : [])))];
+/** A stretch of the chain: text Helply wrote, or the run of steps it took between two stretches of text. */
+export type ChainBlock = { kind: 'text'; key: string; text: string } | { kind: 'steps'; key: string; steps: ChainStep[] };
+
+/** The chain with its consecutive steps grouped, so each run folds and opens on its own. */
+export function chainBlocks(chain: readonly ChainEntry[]): ChainBlock[] {
+  const blocks: ChainBlock[] = [];
+  for (const entry of chain) {
+    const last = blocks[blocks.length - 1];
+    if (entry.kind === 'text') blocks.push({ kind: 'text', key: entry.key, text: entry.text });
+    else if (last?.kind === 'steps') last.steps.push(entry);
+    else blocks.push({ kind: 'steps', key: `steps-${entry.key}`, steps: [entry] });
+  }
+  return blocks;
+}
+
+/** A finished run in one line: "Read your mail list · 4 steps", or the two kinds of step it took. */
+export function runSummary(steps: readonly ChainStep[]): string {
+  const labels = [...new Set(steps.map((s) => s.label))];
   if (!labels.length) return t('helply.run.worked');
   const shown = labels.slice(0, 2).join(' · ');
-  return timeline.steps > 1 ? `${shown} · ${t('helply.run.steps', { count: timeline.steps })}` : shown;
+  const total = steps.reduce((sum, s) => sum + s.count, 0);
+  return total > 1 ? `${shown} · ${t('helply.run.steps', { count: total })}` : shown;
+}
+
+/** A finished chain in one line. */
+export function chainSummary(timeline: ReplyTimeline): string {
+  return runSummary(timeline.chain.filter((e): e is ChainStep => e.kind === 'step'));
 }

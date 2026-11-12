@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HelplySettings, ToolActivity } from '../../core/helply-types';
-import { buildTimeline, chainSummary, runDetail, stepIcon } from './helply-timeline';
+import { buildTimeline, chainBlocks, chainSummary, runDetail, runSummary, stepIcon } from './helply-timeline';
 import { starterPrompts } from './helply-suggestions';
 
 const tool = (id: string, at: number | null, change: Partial<ToolActivity> = {}): ToolActivity => ({
@@ -64,6 +64,29 @@ describe('buildTimeline', () => {
     const timeline = buildTimeline('Let me', [tool('a', 40)]);
     expect(timeline.chain[0]).toMatchObject({ kind: 'text', text: 'Let me' });
     expect(timeline.answer).toBe('');
+  });
+});
+
+describe('chainBlocks and runSummary', () => {
+  it('groups consecutive steps into runs between the text', () => {
+    const text = 'First.\n\nSecond.\n\nAnswer.';
+    const first = text.indexOf('First.') + 'First.'.length;
+    const second = text.indexOf('Second.') + 'Second.'.length;
+    const timeline = buildTimeline(text, [tool('a', first), tool('b', first, { label: 'Read an email' }), tool('c', second)]);
+    const blocks = chainBlocks(timeline.chain);
+    expect(blocks.map((b) => (b.kind === 'text' ? b.text : b.steps.map((s) => s.label)))).toEqual([
+      'First.',
+      ['Read your mail list', 'Read an email'],
+      'Second.',
+      ['Read your mail list'],
+    ]);
+  });
+
+  it('sums folded runs in the one-line summary', () => {
+    const timeline = buildTimeline('', [tool('a', 0), tool('b', 0), tool('c', 0, { label: 'Read an email' })]);
+    const steps = chainBlocks(timeline.chain).flatMap((b) => (b.kind === 'steps' ? b.steps : []));
+    expect(runSummary(steps)).toBe('Read your mail list · Read an email · 3 steps');
+    expect(runSummary([])).toBe('Worked it out');
   });
 });
 

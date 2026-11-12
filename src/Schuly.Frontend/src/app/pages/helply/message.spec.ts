@@ -59,4 +59,20 @@ describe('Helply message markdown', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
     expect(el.querySelector('pk-markdown')!.textContent).toContain('click here (evil.example)');
   });
+
+  it('shows the text between steps as part of the reply, with each run of steps between', async () => {
+    const fixture = TestBed.createComponent(HelplyMessageView);
+    const text = 'Checking mail.\n\nAnswer.';
+    const at = 'Checking mail.'.length;
+    fixture.componentRef.setInput('message', {
+      ...message(text),
+      tools: [{ id: 't1', label: 'Read your mail list', status: 'done', at }],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('app-reply-chain')).toHaveLength(1);
+    expect(el.querySelectorAll('pk-markdown')).toHaveLength(2);
+    expect(el.textContent).toContain('Checking mail.');
+  });
 });

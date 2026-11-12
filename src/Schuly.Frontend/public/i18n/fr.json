@@ -1113,6 +1113,8 @@
     "run": {
       "pages": "{count, plural, one {# page} other {# pages}}",
       "times": "{count, plural, one {# fois} other {# fois}}",
+      "earlier": "{count, plural, one {+# étape précédente} other {+# étapes précédentes}}",
+      "fewer": "Afficher moins d'étapes",
       "worked": "C'est fait",
       "steps": "{count, plural, one {# étape} other {# étapes}}",
       "failed": "{count, plural, one {# étape n'a pas marché} other {# étapes n'ont pas marché}}"
