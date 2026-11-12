@@ -336,7 +336,7 @@ namespace Schuly.Tests.Mcp
             var names = (await client.ListToolsAsync()).Select(t => t.Name).ToList();
 
             await Assert.That(endpoint.ToString()).IsEqualTo("http://localhost/mcp");
-            await Assert.That(names).IsEquivalentTo(new[] { "list_exams" });
+            await Assert.That(names).IsEquivalentTo(new[] { "list_exams", "list_assessments" });
             // Internal tokens never show up as a connected app.
             await Assert.That(await host.ScopedAsync(sp => sp.GetRequiredService<McpOAuthService>().ListGrantsAsync(userId))).IsEmpty();
         }

@@ -19,7 +19,7 @@ namespace Schuly.API.Mcp.Tools
 {
     /// <summary>The user's own school data, read through the same Mediator queries as the REST API and so under the same checks.</summary>
     [McpServerToolType]
-    public sealed class SchulyTools(IMediator mediator, IHttpContextAccessor accessor, InProcessPluginApi plugins)
+    public sealed partial class SchulyTools(IMediator mediator, IHttpContextAccessor accessor, InProcessPluginApi plugins)
     {
         private const int MaxDocumentBytes = 2 * 1024 * 1024;
         private const int MaxBase64Bytes = 256 * 1024;

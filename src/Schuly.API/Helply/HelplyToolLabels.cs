@@ -25,6 +25,7 @@ namespace Schuly.API.Helply
             ["list_exams"] = ("Checking your exams", "Checked your exams"),
             ["list_subjects"] = ("Looking up your subjects", "Looked up your subjects"),
             ["list_agenda"] = ("Checking your agenda", "Checked your agenda"),
+            ["list_assessments"] = ("Looking up your tests and deadlines", "Looked up your tests and deadlines"),
             ["list_absences"] = ("Checking your absences", "Checked your absences"),
             ["list_documents"] = ("Looking through your documents", "Looked through your documents"),
             ["read_document"] = ("Reading a document", "Read a document"),
