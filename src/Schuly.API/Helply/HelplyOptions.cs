@@ -50,8 +50,8 @@ namespace Schuly.API.Helply
         public int MessagesPerMinute { get; set; } = 10;
         public int MessagesPerDay { get; set; } = 200;
         public int MaxInputChars { get; set; } = 4000;
-        public int RunTimeoutSeconds { get; set; } = 120;
-        public int MaxToolIterations { get; set; } = 8;
+        public int RunTimeoutSeconds { get; set; } = 180;
+        public int MaxToolIterations { get; set; } = 16;
         public int MaxHistoryMessages { get; set; } = 40;
         public int MaxHistoryChars { get; set; } = 60000;
         public int MaxOutputTokens { get; set; } = 2048;
