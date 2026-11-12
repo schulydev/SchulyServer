@@ -68,6 +68,48 @@ namespace Schuly.Tests.Helply
         }
 
         [Test]
+        public async Task A_step_label_carries_a_stable_key_and_structured_args()
+        {
+            static Dictionary<string, object?> Args(string json) => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json)!.ToDictionary(p => p.Key, p => (object?)p.Value);
+
+            await Assert.That(HelplyToolLabels.Key("list_grades")).IsEqualTo("list_grades");
+            await Assert.That(HelplyToolLabels.Key("list_subjects")).IsEqualTo("list_subjects");
+            await Assert.That(HelplyToolLabels.Key("list_assessments")).IsEqualTo("list_assessments");
+            await Assert.That(HelplyToolLabels.Key("brand_new_tool")).IsEqualTo(HelplyToolLabels.GenericKey);
+            await Assert.That(HelplyToolLabels.Args("list_grades", null, Args("{}"))).IsNull();
+            await Assert.That(HelplyToolLabels.Args("brand_new_tool", "Brand new", null)!["name"]).IsEqualTo("Brand new");
+
+            var mail = HelplyToolLabels.Args("list_mail", "List mail", Args("{\"offset\":20,\"limit\":20,\"unreadOnly\":true,\"folder\":\"SentItems\",\"search\":\"from:anna@example.ch\"}"))!;
+            await Assert.That(mail["page"]).IsEqualTo("2");
+            await Assert.That(mail["unreadOnly"]).IsEqualTo("true");
+            await Assert.That(mail["folder"]).IsEqualTo("sentitems");
+            await Assert.That(mail["withSearch"]).IsEqualTo("true");
+            await Assert.That(mail.ContainsKey("name")).IsFalse();
+            await Assert.That(mail.Values.Any(v => v.Contains("anna"))).IsFalse();
+
+            var read = HelplyToolLabels.Args("read_mail", null, Args("{\"messageId\":\"abc\",\"offset\":4000}"))!;
+            await Assert.That(read["continued"]).IsEqualTo("true");
+
+            var search = Args("{\"query\":\"Prüfung\",\"terms\":[\"Test\",\"LK\",\" \"],\"sources\":[\"Mail\",\"files\",\"bogus\"]}");
+            var searchArgs = HelplyToolLabels.Args("search", null, search)!;
+            await Assert.That(searchArgs["terms"]).IsEqualTo("2");
+            await Assert.That(searchArgs["sources"]).IsEqualTo("files,mail");
+            await Assert.That(HelplyToolLabels.Detail("search", search)).IsEqualTo("2 terms · in files, mail");
+            await Assert.That(HelplyToolLabels.Args("list_assessments", null, Args("{\"offset\":100,\"limit\":100}"))!["page"]).IsEqualTo("2");
+        }
+
+        [Test]
+        public async Task A_stored_step_without_a_key_still_maps_to_a_dto_with_its_english_label()
+        {
+            var old = System.Text.Json.JsonSerializer.Deserialize<Schuly.Infrastructure.Helply.HelplyStoredTool>("{\"id\":\"c1\",\"label\":\"Read your profile\",\"status\":\"done\",\"at\":3}", new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+            var dto = Schuly.Application.Dtos.HelplyDtoMapper.ToDto(old);
+
+            await Assert.That(dto.Label).IsEqualTo("Read your profile");
+            await Assert.That(dto.Key).IsNull();
+            await Assert.That(dto.Args).IsNull();
+        }
+
+        [Test]
         public async Task Approval_summaries_describe_exactly_what_will_happen()
         {
             var longBody = new string('b', 500);

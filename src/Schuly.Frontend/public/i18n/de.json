@@ -1139,7 +1139,242 @@
       "empty": "{{name}} ist leer.",
       "max": "Du kannst bis zu {{max}} Dateien pro Nachricht anhängen."
     },
-    "exitCode": "Exit-Code {{code}}"
+    "exitCode": "Exit-Code {{code}}",
+    "tool": {
+      "bash": {
+        "running": "Code wird ausgeführt",
+        "done": "Code ausgeführt"
+      },
+      "read_file": {
+        "running": "Datei wird gelesen",
+        "done": "Datei gelesen"
+      },
+      "write_file": {
+        "running": "Arbeitsbereich-Datei wird geschrieben",
+        "done": "Arbeitsbereich-Datei geschrieben"
+      },
+      "share_file": {
+        "running": "Datei wird geteilt",
+        "done": "Datei geteilt"
+      },
+      "get_profile": {
+        "running": "Dein Profil wird gelesen",
+        "done": "Dein Profil gelesen"
+      },
+      "list_school_accounts": {
+        "running": "Deine Schulkonten werden geprüft",
+        "done": "Deine Schulkonten geprüft"
+      },
+      "list_grades": {
+        "running": "Deine Noten werden nachgeschlagen",
+        "done": "Deine Noten nachgeschlagen"
+      },
+      "list_semester_reports": {
+        "running": "Deine Semesterzeugnisse werden nachgeschlagen",
+        "done": "Deine Semesterzeugnisse nachgeschlagen"
+      },
+      "list_exams": {
+        "running": "Deine Prüfungen werden angeschaut",
+        "done": "Deine Prüfungen angeschaut"
+      },
+      "list_subjects": {
+        "running": "Deine Fächer werden nachgeschlagen",
+        "done": "Deine Fächer nachgeschlagen"
+      },
+      "list_agenda": {
+        "running": "Deine Agenda wird angeschaut",
+        "done": "Deine Agenda angeschaut"
+      },
+      "list_assessments": {
+        "running": "Deine Tests und Abgabetermine werden nachgeschlagen",
+        "done": "Deine Tests und Abgabetermine nachgeschlagen"
+      },
+      "list_absences": {
+        "running": "Deine Absenzen werden angeschaut",
+        "done": "Deine Absenzen angeschaut"
+      },
+      "list_documents": {
+        "running": "Deine Dokumente werden durchgesehen",
+        "done": "Deine Dokumente durchgesehen"
+      },
+      "read_document": {
+        "running": "Dokument wird gelesen",
+        "done": "Dokument gelesen"
+      },
+      "list_mail_folders": {
+        "running": "Deine Mail-Ordner werden angeschaut",
+        "done": "Deine Mail-Ordner angeschaut"
+      },
+      "list_mail": {
+        "running": "Deine Mail-Liste wird gelesen",
+        "done": "Deine Mail-Liste gelesen"
+      },
+      "read_mail": {
+        "running": "E-Mail wird gelesen",
+        "done": "E-Mail gelesen"
+      },
+      "send_mail": {
+        "running": "E-Mail wird gesendet",
+        "done": "E-Mail gesendet"
+      },
+      "reply_mail": {
+        "running": "E-Mail wird beantwortet",
+        "done": "E-Mail beantwortet"
+      },
+      "forward_mail": {
+        "running": "E-Mail wird weitergeleitet",
+        "done": "E-Mail weitergeleitet"
+      },
+      "move_mail": {
+        "running": "E-Mail wird verschoben",
+        "done": "E-Mail verschoben"
+      },
+      "flag_mail": {
+        "running": "E-Mail wird markiert",
+        "done": "E-Mail markiert"
+      },
+      "mark_mail_read": {
+        "running": "Gelesen-Status einer E-Mail wird geändert",
+        "done": "Gelesen-Status einer E-Mail geändert"
+      },
+      "delete_mail": {
+        "running": "E-Mail wird gelöscht",
+        "done": "E-Mail gelöscht"
+      },
+      "list_chats": {
+        "running": "Deine Teams-Chats werden angeschaut",
+        "done": "Deine Teams-Chats angeschaut"
+      },
+      "read_chat_messages": {
+        "running": "Teams-Chat wird gelesen",
+        "done": "Teams-Chat gelesen"
+      },
+      "send_chat_message": {
+        "running": "Teams-Nachricht wird gesendet",
+        "done": "Teams-Nachricht gesendet"
+      },
+      "list_drive_items": {
+        "running": "Dein OneDrive wird durchstöbert",
+        "done": "Dein OneDrive durchstöbert"
+      },
+      "read_drive_file": {
+        "running": "OneDrive-Datei wird gelesen",
+        "done": "OneDrive-Datei gelesen"
+      },
+      "list_teams": {
+        "running": "Deine Teams werden nachgeschlagen",
+        "done": "Deine Teams nachgeschlagen"
+      },
+      "list_team_files": {
+        "running": "Dateien eines Teams werden durchstöbert",
+        "done": "Dateien eines Teams durchstöbert"
+      },
+      "list_folder": {
+        "running": "Ordner wird durchstöbert",
+        "done": "Ordner durchstöbert"
+      },
+      "list_shared_with_me": {
+        "running": "Mit dir geteilte Dateien werden angeschaut",
+        "done": "Mit dir geteilte Dateien angeschaut"
+      },
+      "list_recent_files": {
+        "running": "Deine letzten Dateien werden angeschaut",
+        "done": "Deine letzten Dateien angeschaut"
+      },
+      "search_files": {
+        "running": "Deine Dateien werden durchsucht",
+        "done": "Deine Dateien durchsucht"
+      },
+      "search": {
+        "running": "Dateien, Notizen, Mails und Chats werden durchsucht",
+        "done": "Dateien, Notizen, Mails und Chats durchsucht"
+      },
+      "list_channel_messages": {
+        "running": "Teams-Kanal wird gelesen",
+        "done": "Teams-Kanal gelesen"
+      },
+      "search_channel_messages": {
+        "running": "Teams-Kanäle werden durchsucht",
+        "done": "Teams-Kanäle durchsucht"
+      },
+      "list_notebooks": {
+        "running": "Deine OneNote-Notizbücher werden angeschaut",
+        "done": "Deine OneNote-Notizbücher angeschaut"
+      },
+      "list_sections": {
+        "running": "Deine OneNote-Abschnitte werden angeschaut",
+        "done": "Deine OneNote-Abschnitte angeschaut"
+      },
+      "list_pages": {
+        "running": "Deine OneNote-Seiten werden angeschaut",
+        "done": "Deine OneNote-Seiten angeschaut"
+      },
+      "read_page": {
+        "running": "OneNote-Seite wird gelesen",
+        "done": "OneNote-Seite gelesen"
+      },
+      "search_pages": {
+        "running": "Deine OneNote-Seiten werden durchsucht",
+        "done": "Deine OneNote-Seiten durchsucht"
+      },
+      "create_page": {
+        "running": "OneNote-Seite wird erstellt",
+        "done": "OneNote-Seite erstellt"
+      },
+      "update_page": {
+        "running": "OneNote-Seite wird aktualisiert",
+        "done": "OneNote-Seite aktualisiert"
+      },
+      "list_calendar_events": {
+        "running": "Dein Kalender wird angeschaut",
+        "done": "Dein Kalender angeschaut"
+      },
+      "list_reported_absences": {
+        "running": "Deine gemeldeten Absenzen werden angeschaut",
+        "done": "Deine gemeldeten Absenzen angeschaut"
+      },
+      "list_absence_reasons": {
+        "running": "Die Absenzgründe werden angeschaut",
+        "done": "Die Absenzgründe angeschaut"
+      },
+      "report_absence": {
+        "running": "Absenz wird gemeldet",
+        "done": "Absenz gemeldet"
+      },
+      "withdraw_absence_report": {
+        "running": "Absenzmeldung wird zurückgezogen",
+        "done": "Absenzmeldung zurückgezogen"
+      },
+      "generic": {
+        "running": "Ein Tool wird verwendet",
+        "done": "Ein Tool verwendet",
+        "runningNamed": "{{name}} wird verwendet",
+        "doneNamed": "{{name}} verwendet"
+      }
+    },
+    "note": {
+      "page": "Seite {{count}}",
+      "continued": "fortgesetzt",
+      "more": "weitere Ergebnisse",
+      "unreadOnly": "nur ungelesene",
+      "withSearch": "mit Suche",
+      "terms": "{count, plural, one {# Suchbegriff} other {# Suchbegriffe}}",
+      "sources": "in {{list}}",
+      "folder": {
+        "sentitems": "gesendete Mails",
+        "drafts": "Entwürfe",
+        "deleteditems": "gelöschte Mails",
+        "archive": "Archiv",
+        "junkemail": "Junk-Mails"
+      },
+      "source": {
+        "files": "Dateien",
+        "channels": "Kanäle",
+        "mail": "Mails",
+        "chats": "Chats",
+        "pages": "OneNote-Seiten"
+      }
+    }
   },
   "mcp": {
     "optIn": "Ich will diese Daten mit dieser KI-App teilen. Sie bekommt, was ich erlaube, nach ihren eigenen Bedingungen und möglicherweise ausserhalb der Schweiz. Absenzgründe können Gesundheitsdaten verraten.",

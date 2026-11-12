@@ -64,6 +64,10 @@ namespace Schuly.Infrastructure.Helply
         public int? At { get; set; }
         /// <summary>A short note on the step built only from harmless arguments ("page 2", "unread only"); never names, addresses or search text.</summary>
         public string? Detail { get; set; }
+        /// <summary>The stable key the web app translates the step's label by (the tool's name, or "generic"); null on steps stored before labels followed the language, which show <see cref="Label"/> as it is.</summary>
+        public string? Key { get; set; }
+        /// <summary>The structured arguments of that label (page number, flags, the tool's title); never names, addresses or search text.</summary>
+        public Dictionary<string, string>? Args { get; set; }
     }
 
     public sealed class HelplyStoredDetail

@@ -1139,7 +1139,242 @@
       "empty": "{{name}} est vide.",
       "max": "Tu peux joindre jusqu'à {{max}} fichiers par message."
     },
-    "exitCode": "code de sortie {{code}}"
+    "exitCode": "code de sortie {{code}}",
+    "tool": {
+      "bash": {
+        "running": "Exécution du code",
+        "done": "Code exécuté"
+      },
+      "read_file": {
+        "running": "Lecture d'un fichier",
+        "done": "Fichier lu"
+      },
+      "write_file": {
+        "running": "Écriture d'un fichier de l'espace de travail",
+        "done": "Fichier de l'espace de travail écrit"
+      },
+      "share_file": {
+        "running": "Partage d'un fichier",
+        "done": "Fichier partagé"
+      },
+      "get_profile": {
+        "running": "Lecture de ton profil",
+        "done": "Profil lu"
+      },
+      "list_school_accounts": {
+        "running": "Vérification de tes comptes scolaires",
+        "done": "Comptes scolaires vérifiés"
+      },
+      "list_grades": {
+        "running": "Consultation de tes notes",
+        "done": "Notes consultées"
+      },
+      "list_semester_reports": {
+        "running": "Consultation de tes bulletins semestriels",
+        "done": "Bulletins semestriels consultés"
+      },
+      "list_exams": {
+        "running": "Vérification de tes examens",
+        "done": "Examens vérifiés"
+      },
+      "list_subjects": {
+        "running": "Consultation de tes branches",
+        "done": "Branches consultées"
+      },
+      "list_agenda": {
+        "running": "Vérification de ton agenda",
+        "done": "Agenda vérifié"
+      },
+      "list_assessments": {
+        "running": "Consultation de tes tests et délais",
+        "done": "Tests et délais consultés"
+      },
+      "list_absences": {
+        "running": "Vérification de tes absences",
+        "done": "Absences vérifiées"
+      },
+      "list_documents": {
+        "running": "Parcours de tes documents",
+        "done": "Documents parcourus"
+      },
+      "read_document": {
+        "running": "Lecture d'un document",
+        "done": "Document lu"
+      },
+      "list_mail_folders": {
+        "running": "Vérification de tes dossiers de messagerie",
+        "done": "Dossiers de messagerie vérifiés"
+      },
+      "list_mail": {
+        "running": "Lecture de ta liste d'e-mails",
+        "done": "Liste d'e-mails lue"
+      },
+      "read_mail": {
+        "running": "Lecture d'un e-mail",
+        "done": "E-mail lu"
+      },
+      "send_mail": {
+        "running": "Envoi d'un e-mail",
+        "done": "E-mail envoyé"
+      },
+      "reply_mail": {
+        "running": "Réponse à un e-mail",
+        "done": "Réponse à un e-mail envoyée"
+      },
+      "forward_mail": {
+        "running": "Transfert d'un e-mail",
+        "done": "E-mail transféré"
+      },
+      "move_mail": {
+        "running": "Déplacement d'un e-mail",
+        "done": "E-mail déplacé"
+      },
+      "flag_mail": {
+        "running": "Marquage d'un e-mail",
+        "done": "E-mail marqué"
+      },
+      "mark_mail_read": {
+        "running": "Mise à jour du statut de lecture d'un e-mail",
+        "done": "Statut de lecture d'un e-mail mis à jour"
+      },
+      "delete_mail": {
+        "running": "Suppression d'un e-mail",
+        "done": "E-mail supprimé"
+      },
+      "list_chats": {
+        "running": "Vérification de tes chats Teams",
+        "done": "Chats Teams vérifiés"
+      },
+      "read_chat_messages": {
+        "running": "Lecture d'un chat Teams",
+        "done": "Chat Teams lu"
+      },
+      "send_chat_message": {
+        "running": "Envoi d'un message Teams",
+        "done": "Message Teams envoyé"
+      },
+      "list_drive_items": {
+        "running": "Parcours de ton OneDrive",
+        "done": "OneDrive parcouru"
+      },
+      "read_drive_file": {
+        "running": "Lecture d'un fichier OneDrive",
+        "done": "Fichier OneDrive lu"
+      },
+      "list_teams": {
+        "running": "Consultation de tes équipes Teams",
+        "done": "Équipes Teams consultées"
+      },
+      "list_team_files": {
+        "running": "Parcours des fichiers d'une équipe",
+        "done": "Fichiers d'une équipe parcourus"
+      },
+      "list_folder": {
+        "running": "Parcours d'un dossier",
+        "done": "Dossier parcouru"
+      },
+      "list_shared_with_me": {
+        "running": "Vérification des fichiers partagés avec toi",
+        "done": "Fichiers partagés avec toi vérifiés"
+      },
+      "list_recent_files": {
+        "running": "Vérification de tes fichiers récents",
+        "done": "Fichiers récents vérifiés"
+      },
+      "search_files": {
+        "running": "Recherche dans tes fichiers",
+        "done": "Recherche dans tes fichiers terminée"
+      },
+      "search": {
+        "running": "Recherche dans tes fichiers, notes, e-mails et chats",
+        "done": "Recherche dans tes fichiers, notes, e-mails et chats terminée"
+      },
+      "list_channel_messages": {
+        "running": "Lecture d'un canal Teams",
+        "done": "Canal Teams lu"
+      },
+      "search_channel_messages": {
+        "running": "Recherche dans les canaux Teams",
+        "done": "Recherche dans les canaux Teams terminée"
+      },
+      "list_notebooks": {
+        "running": "Vérification de tes carnets OneNote",
+        "done": "Carnets OneNote vérifiés"
+      },
+      "list_sections": {
+        "running": "Vérification de tes sections OneNote",
+        "done": "Sections OneNote vérifiées"
+      },
+      "list_pages": {
+        "running": "Vérification de tes pages OneNote",
+        "done": "Pages OneNote vérifiées"
+      },
+      "read_page": {
+        "running": "Lecture d'une page OneNote",
+        "done": "Page OneNote lue"
+      },
+      "search_pages": {
+        "running": "Recherche dans tes pages OneNote",
+        "done": "Recherche dans tes pages OneNote terminée"
+      },
+      "create_page": {
+        "running": "Création d'une page OneNote",
+        "done": "Page OneNote créée"
+      },
+      "update_page": {
+        "running": "Mise à jour d'une page OneNote",
+        "done": "Page OneNote mise à jour"
+      },
+      "list_calendar_events": {
+        "running": "Vérification de ton calendrier",
+        "done": "Calendrier vérifié"
+      },
+      "list_reported_absences": {
+        "running": "Vérification de tes absences annoncées",
+        "done": "Absences annoncées vérifiées"
+      },
+      "list_absence_reasons": {
+        "running": "Vérification des motifs d'absence",
+        "done": "Motifs d'absence vérifiés"
+      },
+      "report_absence": {
+        "running": "Annonce d'une absence",
+        "done": "Absence annoncée"
+      },
+      "withdraw_absence_report": {
+        "running": "Retrait d'une annonce d'absence",
+        "done": "Annonce d'absence retirée"
+      },
+      "generic": {
+        "running": "Utilisation d'un outil",
+        "done": "Outil utilisé",
+        "runningNamed": "Utilisation de {{name}}",
+        "doneNamed": "{{name}} utilisé"
+      }
+    },
+    "note": {
+      "page": "page {{count}}",
+      "continued": "suite",
+      "more": "autres résultats",
+      "unreadOnly": "non lus seulement",
+      "withSearch": "avec une recherche",
+      "terms": "{count, plural, one {# terme} other {# termes}}",
+      "sources": "dans {{list}}",
+      "folder": {
+        "sentitems": "e-mails envoyés",
+        "drafts": "brouillons",
+        "deleteditems": "e-mails supprimés",
+        "archive": "archives",
+        "junkemail": "courrier indésirable"
+      },
+      "source": {
+        "files": "fichiers",
+        "channels": "canaux",
+        "mail": "e-mails",
+        "chats": "chats",
+        "pages": "pages OneNote"
+      }
+    }
   },
   "mcp": {
     "optIn": "Je veux partager ces données avec cette app d'IA. Elle reçoit ce que j'autorise, selon ses propres conditions et peut-être hors de Suisse. Les motifs d'absence peuvent révéler des données de santé.",

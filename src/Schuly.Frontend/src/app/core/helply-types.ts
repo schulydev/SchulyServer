@@ -46,6 +46,10 @@ export interface ToolActivity {
   at?: number | null;
   /** A short harmless note from the server, such as "page 2" or "unread only". */
   detail?: string | null;
+  /** The stable key the label is translated by (the tool's name, or "generic"); absent on steps stored before labels followed the language. */
+  key?: string | null;
+  /** Structured facts for that label: page, unreadOnly, folder, withSearch, terms, sources, name. */
+  args?: Record<string, string> | null;
 }
 
 export interface ApprovalDetail {
@@ -85,8 +89,8 @@ export type StreamErrorCode = 'unavailable' | 'timeout' | 'rate_limited' | 'too_
 export type StreamEvent =
   | { type: 'start'; messageId: string }
   | { type: 'delta'; text: string }
-  | { type: 'tool_started'; id: string; label: string; code: ToolCode | null; at?: number | null; detail?: string | null }
-  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'>; code: ToolCode | null; at?: number | null; detail?: string | null }
+  | { type: 'tool_started'; id: string; label: string; code: ToolCode | null; at?: number | null; detail?: string | null; key?: string | null; args?: Record<string, string> | null }
+  | { type: 'tool_finished'; id: string; label: string; status: Exclude<ToolStatus, 'running'>; code: ToolCode | null; at?: number | null; detail?: string | null; key?: string | null; args?: Record<string, string> | null }
   | ({ type: 'approval_required' } & ApprovalRequest)
   | ({ type: 'file'; messageId: string } & HelplyAttachment)
   | { type: 'done'; messageId: string; awaitingApproval: boolean; title: string }

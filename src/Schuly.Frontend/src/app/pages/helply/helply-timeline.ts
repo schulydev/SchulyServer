@@ -33,6 +33,7 @@ export interface ReplyTimeline {
 }
 
 const ICONS: [RegExp, string][] = [
+  [/profile|school account/i, 'lucideUser'],
   [/\bcode\b/i, 'lucideSquareTerminal'],
   [/workspace file|shared a file|sharing a file/i, 'lucideFileCode'],
   [/mail|email/i, 'lucideMail'],
@@ -44,7 +45,6 @@ const ICONS: [RegExp, string][] = [
   [/agenda|calendar/i, 'lucideCalendar'],
   [/onedrive|document|file|folder/i, 'lucideFileText'],
   [/search/i, 'lucideSearch'],
-  [/profile|school account/i, 'lucideUser'],
 ];
 
 /** The lucide icon for a step, from its friendly label; a wrench for anything else. */
@@ -52,18 +52,118 @@ export function stepIcon(label: string): string {
   return ICONS.find(([pattern]) => pattern.test(label))?.[1] ?? 'lucideWrench';
 }
 
+const KEY_ICONS: [RegExp, string][] = [
+  [/^bash$/, 'lucideSquareTerminal'],
+  [/^(write|share)_file$/, 'lucideFileCode'],
+  [/mail/, 'lucideMail'],
+  [/chat|channel|^list_teams$/, 'lucideMessagesSquare'],
+  [/notebook|section|page/, 'lucideNotebookText'],
+  [/grade|semester_report|subject/, 'lucideGraduationCap'],
+  [/exam|assessment/, 'lucideNotebookPen'],
+  [/absence/, 'lucideCalendarX'],
+  [/agenda|calendar/, 'lucideCalendar'],
+  [/^search$/, 'lucideSearch'],
+  [/drive|document|file|folder|shared/, 'lucideFileText'],
+  [/profile|school_account/, 'lucideUser'],
+];
+
+/** The icon for a step: by its key when it has one, else from its (English) label. */
+export function toolIcon(tool: Pick<ToolActivity, 'key' | 'label'>): string {
+  if (tool.key && tool.key !== 'generic') return KEY_ICONS.find(([pattern]) => pattern.test(tool.key!))?.[1] ?? 'lucideWrench';
+  return stepIcon(tool.label);
+}
+
+/** What the language file knows under a key, or null when it does not (the lookup answers with the key itself then). */
+function known(key: string, params?: Record<string, unknown>): string | null {
+  const text = t(key, params);
+  return text === key ? null : text;
+}
+
+const PHASES: Record<ToolStatus, 'running' | 'done'> = { running: 'running', done: 'done', failed: 'running', denied: 'running' };
+
+/**
+ * A step's label in the UI language: the server's stable key ("list_grades", or "generic" for a tool
+ * without a label of its own) plus its args pick the sentence from the language file. A step without a
+ * key (stored before labels followed the language) or with a key this app has no sentence for keeps the
+ * server's English label.
+ */
+export function stepLabel(tool: Pick<ToolActivity, 'key' | 'label' | 'status' | 'args'>): string {
+  if (!tool.key) return tool.label;
+  const phase = PHASES[tool.status];
+  if (tool.key === 'generic') {
+    const name = tool.args?.['name'];
+    return (name ? known(`helply.tool.generic.${phase}Named`, { name }) : known(`helply.tool.generic.${phase}`)) ?? tool.label;
+  }
+  return known(`helply.tool.${tool.key}.${phase}`) ?? tool.label;
+}
+
+/** One small fact under a step ("page 2", "unread only"). */
+interface Note {
+  /** Same id, same fact: folded runs show it once. */
+  id: string;
+  text: string;
+  /** A page number: a run of these folds into "4 pages". */
+  paged: boolean;
+}
+
 const PAGE = /^page \d+$/;
+
+/** Notes of a step stored without args: the server's English detail, split into its parts. */
+function legacyNotes(detail: string | null | undefined): Note[] {
+  return detail ? detail.split(' · ').map((text) => ({ id: text, text, paged: PAGE.test(text) })) : [];
+}
+
+function argNote(key: string, value: string): Note | null {
+  const id = `${key}:${value}`;
+  switch (key) {
+    case 'name':
+      return null;
+    case 'page': {
+      const text = known('helply.note.page', { count: Number(value) });
+      return text ? { id, text, paged: true } : null;
+    }
+    case 'folder': {
+      const text = known(`helply.note.folder.${value}`);
+      return text ? { id, text, paged: false } : null;
+    }
+    case 'terms': {
+      const text = known('helply.note.terms', { count: Number(value) });
+      return text ? { id, text, paged: false } : null;
+    }
+    case 'sources': {
+      const names = value.split(',').map((source) => known(`helply.note.source.${source}`));
+      const text = names.every((n) => n) ? known('helply.note.sources', { list: names.join(', ') }) : null;
+      return text ? { id, text, paged: false } : null;
+    }
+    default: {
+      const text = known(`helply.note.${key}`);
+      return text ? { id, text, paged: false } : null;
+    }
+  }
+}
+
+/** The notes of a step in the UI language; the English detail stands in when the args hold something this app cannot say. */
+function stepNotes(tool: Pick<ToolActivity, 'args' | 'detail'>): Note[] {
+  const entries = Object.entries(tool.args ?? {}).filter(([key]) => key !== 'name');
+  if (!entries.length) return legacyNotes(tool.detail);
+  const notes = entries.map(([key, value]) => argNote(key, value));
+  return notes.every((n): n is Note => n !== null) ? notes : legacyNotes(tool.detail);
+}
+
+function runNotes(runs: Note[][]): string | null {
+  if (runs.length === 1) return runs[0].map((n) => n.text).join(' · ') || null;
+  const parts = runs.flat();
+  const paged = parts.some((p) => p.paged);
+  const others = new Map(parts.filter((p) => !p.paged).map((p) => [p.id, p.text]));
+  return [t(paged ? 'helply.run.pages' : 'helply.run.times', { count: runs.length }), ...others.values()].join(' · ');
+}
 
 /**
  * The note under a folded run: "4 pages" when it paged through results, "3 times" otherwise, plus any
  * other notes the steps carried ("unread only"). A single step keeps its own detail.
  */
 export function runDetail(details: (string | null | undefined)[]): string | null {
-  if (details.length === 1) return details[0] || null;
-  const parts = details.flatMap((d) => (d ? d.split(' · ') : []));
-  const paged = parts.some((p) => PAGE.test(p));
-  const others = [...new Set(parts.filter((p) => !PAGE.test(p)))];
-  return [t(paged ? 'helply.run.pages' : 'helply.run.times', { count: details.length }), ...others].join(' · ');
+  return runNotes(details.map(legacyNotes));
 }
 
 /**
@@ -74,7 +174,7 @@ export function runDetail(details: (string | null | undefined)[]): string | null
 export function buildTimeline(text: string, tools: readonly ToolActivity[]): ReplyTimeline {
   if (!tools.length) return { chain: [], answer: text.trim(), steps: 0 };
   const chain: ChainEntry[] = [];
-  const details = new Map<ChainStep, (string | null | undefined)[]>();
+  const notes = new Map<ChainStep, Note[][]>();
   let position = 0;
   for (const tool of tools) {
     const at = Math.min(Math.max(tool.at ?? 0, position), text.length);
@@ -82,26 +182,27 @@ export function buildTimeline(text: string, tools: readonly ToolActivity[]): Rep
     if (between) chain.push({ kind: 'text', key: `text-${position}`, text: between });
     position = at;
 
+    const label = stepLabel(tool);
     const last = chain[chain.length - 1];
-    if (last?.kind === 'step' && !last.code && !tool.code && last.label === tool.label && last.status === tool.status) {
+    if (last?.kind === 'step' && !last.code && !tool.code && last.label === label && last.status === tool.status) {
       last.count++;
-      details.get(last)!.push(tool.detail);
+      notes.get(last)!.push(stepNotes(tool));
       continue;
     }
     const step: ChainStep = {
       kind: 'step',
       key: tool.id,
-      label: tool.label,
+      label,
       status: tool.status,
       detail: null,
       count: 1,
-      icon: stepIcon(tool.label),
+      icon: toolIcon(tool),
       code: tool.code ?? null,
     };
-    details.set(step, [tool.detail]);
+    notes.set(step, [stepNotes(tool)]);
     chain.push(step);
   }
-  for (const [step, notes] of details) step.detail = runDetail(notes);
+  for (const [step, runs] of notes) step.detail = runNotes(runs);
   return { chain, answer: text.slice(position).trim(), steps: tools.length };
 }
 

@@ -17,5 +17,7 @@ export interface HelplyToolActivityDto {
     code: HelplyCodeRunDto | null;
     at: number | null;
     detail: string | null;
+    key: string | null;
+    args: { [key: string]: string; } | null;
 }
 

@@ -79,31 +79,68 @@ namespace Schuly.API.Helply
             ["junkemail"] = "junk mail",
         };
 
+        /// <summary>One harmless fact about a call. <see cref="Key"/> and <see cref="Value"/> are what the web app translates; <see cref="English"/> is the same note as plain English for clients that do not.</summary>
+        public sealed record StepNote(string Key, string Value, string English);
+
+        private static readonly string[] SearchSources = ["files", "channels", "mail", "chats", "pages"];
+
+        /// <summary>The key the web app translates a step by: the tool's name when it has a label of its own, otherwise "generic".</summary>
+        public static string Key(string toolName) => Labels.ContainsKey(toolName) ? toolName : GenericKey;
+
+        public const string GenericKey = "generic";
+
+        /// <summary>The structured arguments of a step label: the notes of <see cref="Notes"/> by key, plus the tool's title ("name") for a tool without a label of its own. Null when there is nothing to say.</summary>
+        public static Dictionary<string, string>? Args(string toolName, string? title, IDictionary<string, object?>? args)
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (!Labels.ContainsKey(toolName) && !string.IsNullOrWhiteSpace(title))
+                result["name"] = title;
+            foreach (var note in Notes(toolName, args))
+                result[note.Key] = note.Value;
+            return result.Count == 0 ? null : result;
+        }
+
         /// <summary>
-        /// A short note under a step in the chat ("page 2", "unread only"), built only from arguments that say nothing personal: paging numbers, flags and well-known folder names.
+        /// A short note under a step in the chat ("page 2", "unread only"), built only from arguments that say nothing personal: paging numbers, flags, well-known folder names and the number of search terms and the sources searched.
         /// Search text, ids, names and addresses never go into it. Null when there is nothing worth saying.
         /// </summary>
         public static string? Detail(string toolName, IDictionary<string, object?>? args)
         {
+            var notes = Notes(toolName, args);
+            return notes.Count == 0 ? null : string.Join(" · ", notes.Select(n => n.English));
+        }
+
+        public static List<StepNote> Notes(string toolName, IDictionary<string, object?>? args)
+        {
+            var notes = new List<StepNote>();
             if (args is null)
-                return null;
-            var notes = new List<string>();
+                return notes;
             if (Number(args, "offset") is > 0 and var offset)
             {
                 if (toolName.StartsWith("read_", StringComparison.Ordinal))
-                    notes.Add("continued");
+                    notes.Add(new StepNote("continued", "true", "continued"));
                 else if (Number(args, "limit") is > 0 and var limit)
-                    notes.Add($"page {offset / limit + 1}");
+                    notes.Add(new StepNote("page", (offset / limit + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), $"page {offset / limit + 1}"));
                 else
-                    notes.Add("more results");
+                    notes.Add(new StepNote("more", "true", "more results"));
             }
             if (Bool(args, "unreadOnly") == true)
-                notes.Add("unread only");
+                notes.Add(new StepNote("unreadOnly", "true", "unread only"));
             if (Text(args, "folder") is { } folder && WellKnownFolders.TryGetValue(folder, out var folderName))
-                notes.Add(folderName);
+                notes.Add(new StepNote("folder", folder.ToLowerInvariant(), folderName));
             if (toolName == "list_mail" && !string.IsNullOrWhiteSpace(Text(args, "search")))
-                notes.Add("with a search");
-            return notes.Count == 0 ? null : string.Join(" · ", notes);
+                notes.Add(new StepNote("withSearch", "true", "with a search"));
+            if (toolName == "search")
+            {
+                var terms = Strings(args, "terms").Count(t => !string.IsNullOrWhiteSpace(t));
+                if (terms > 0)
+                    notes.Add(new StepNote("terms", terms.ToString(System.Globalization.CultureInfo.InvariantCulture), terms == 1 ? "1 term" : $"{terms} terms"));
+                var sources = Strings(args, "sources").Select(s => s.Trim().ToLowerInvariant()).ToHashSet();
+                var named = SearchSources.Where(sources.Contains).ToList();
+                if (named.Count > 0)
+                    notes.Add(new StepNote("sources", string.Join(",", named), "in " + string.Join(", ", named)));
+            }
+            return notes;
         }
 
         private static long? Number(IDictionary<string, object?> args, string name) => args.TryGetValue(name, out var value) ? value switch
