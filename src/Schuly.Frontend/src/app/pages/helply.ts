@@ -86,7 +86,7 @@ function readListWidth(): number {
       }
     }
 
-    <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden" [attr.aria-label]="'helply.chat' | translate">
+    <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" [attr.aria-label]="'helply.chat' | translate">
       <div class="flex items-center gap-2 border-b px-4 py-2">
         @if (store.availability() === 'on') {
           <button
