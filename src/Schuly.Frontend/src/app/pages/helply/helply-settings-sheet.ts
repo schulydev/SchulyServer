@@ -8,8 +8,9 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSpinner } from '@spartan-ng/helm/spinner';
 import { HlmSwitch } from '@spartan-ng/helm/switch';
+import { HlmToggleGroupImports } from '@spartan-ng/helm/toggle-group';
 import { HelplyApi } from '../../core/helply-api';
-import { HelplySettings } from '../../core/helply-types';
+import { HelplyReasoningEffort, HelplySettings } from '../../core/helply-types';
 import { mcpErrorMessage } from '../../core/mcp-api';
 import { McpPermissionSet, samePermissions, schoolDataPreset } from '../../core/mcp-permissions';
 import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
@@ -17,7 +18,7 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
 /** Side sheet to choose what Helply may use. Reuses the MCP permission editor. */
 @Component({
   selector: 'app-helply-settings-sheet',
-  imports: [TranslatePipe, HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, HlmSwitch, McpPermissionEditor, NgIcon],
+  imports: [TranslatePipe, HlmAlertImports, HlmButton, HlmSheetImports, HlmSpinner, HlmSwitch, HlmToggleGroupImports, McpPermissionEditor, NgIcon],
   providers: [provideIcons({ lucideInfo })],
   template: `
     <hlm-sheet side="right" [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
@@ -36,6 +37,25 @@ import { McpPermissionEditor } from '../../shared/mcp-permission-editor';
           @if (loading()) {
             <hlm-spinner [attr.aria-label]="'helply.settingsSheet.loading' | translate" />
           } @else if (loaded()) {
+            <section class="flex flex-col gap-2 rounded-lg border p-4" aria-labelledby="helply-reasoning-title">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <h3 id="helply-reasoning-title" class="text-sm font-medium">{{ 'helply.settingsSheet.reasoning' | translate }}</h3>
+                <hlm-toggle-group
+                  type="single"
+                  variant="outline"
+                  [nullable]="false"
+                  [value]="draftReasoning()"
+                  (valueChange)="setReasoning($event)"
+                  aria-labelledby="helply-reasoning-title"
+                  aria-describedby="helply-reasoning-help"
+                >
+                  @for (option of reasoningOptions; track option.value) {
+                    <button hlmToggleGroupItem [value]="option.value" class="px-3">{{ option.key | translate }}</button>
+                  }
+                </hlm-toggle-group>
+              </div>
+              <p id="helply-reasoning-help" class="text-muted-foreground text-sm">{{ 'helply.settingsSheet.reasoningHelp' | translate }}</p>
+            </section>
             <section class="flex flex-col gap-2 rounded-lg border p-4" aria-labelledby="helply-workspace-title">
               <div class="flex items-center justify-between gap-3">
                 <h3 id="helply-workspace-title" class="text-sm font-medium">
@@ -93,6 +113,13 @@ export class HelplySettingsSheet {
   private readonly initialWorkspace = signal(false);
   protected readonly workspaceAvailable = signal(false);
   protected readonly draftWorkspace = linkedSignal<boolean>(() => this.initialWorkspace());
+  private readonly initialReasoning = signal<HelplyReasoningEffort>('High');
+  protected readonly draftReasoning = linkedSignal<HelplyReasoningEffort>(() => this.initialReasoning());
+  protected readonly reasoningOptions: { value: HelplyReasoningEffort; key: string }[] = [
+    { value: 'Low', key: 'helply.settingsSheet.reasoningLow' },
+    { value: 'Medium', key: 'helply.settingsSheet.reasoningMedium' },
+    { value: 'High', key: 'helply.settingsSheet.reasoningHigh' },
+  ];
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
@@ -100,7 +127,7 @@ export class HelplySettingsSheet {
   protected readonly loaded = computed(() => this.initial() !== null);
   protected readonly changed = computed(() => {
     const initial = this.initial();
-    return !!initial && (!samePermissions(initial, this.draft()) || this.draftWorkspace() !== this.initialWorkspace());
+    return !!initial && (!samePermissions(initial, this.draft()) || this.draftWorkspace() !== this.initialWorkspace() || this.draftReasoning() !== this.initialReasoning());
   });
 
   constructor() {
@@ -117,12 +144,18 @@ export class HelplySettingsSheet {
       const settings = await this.api.settings();
       this.initialWorkspace.set(settings.workspace === true);
       this.workspaceAvailable.set(settings.workspaceAvailable === true);
+      this.initialReasoning.set(settings.reasoningEffort ?? 'High');
       this.initial.set(settings.permissions);
     } catch (error) {
       this.error.set(mcpErrorMessage(error, t('helply.settingsSheet.loadFailed')));
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected setReasoning(value: HelplyReasoningEffort | HelplyReasoningEffort[] | null | undefined): void {
+    const next = Array.isArray(value) ? value[0] : value;
+    if (next === 'Low' || next === 'Medium' || next === 'High') this.draftReasoning.set(next);
   }
 
   protected async save(): Promise<void> {
@@ -137,8 +170,11 @@ export class HelplySettingsSheet {
       if (this.draftWorkspace() !== this.initialWorkspace()) {
         this.initialWorkspace.set((await this.api.updateWorkspace(this.draftWorkspace())).workspace === true);
       }
+      if (this.draftReasoning() !== this.initialReasoning()) {
+        this.initialReasoning.set((await this.api.updateReasoning(this.draftReasoning())).reasoningEffort ?? 'High');
+      }
       this.saved.set(true);
-      this.saved$.emit({ permissions: this.initial() ?? this.draft(), workspace: this.initialWorkspace(), workspaceAvailable: this.workspaceAvailable() });
+      this.saved$.emit({ permissions: this.initial() ?? this.draft(), workspace: this.initialWorkspace(), workspaceAvailable: this.workspaceAvailable(), reasoningEffort: this.initialReasoning() });
     } catch (error) {
       this.error.set(mcpErrorMessage(error, t('helply.settingsSheet.saveFailed')));
     } finally {

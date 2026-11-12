@@ -49,6 +49,9 @@ namespace Schuly.Tests.Helply
         /// <summary>Answer 400 to any chat request that carries an image or file part, like a text-only gateway.</summary>
         public bool RejectFiles { get; set; }
 
+        /// <summary>Answer 400 to any chat request that carries a reasoning effort, like a model that has no such parameter.</summary>
+        public bool RejectReasoning { get; set; }
+
         /// <summary>Fail every <c>/models</c> call, to see that discovery is retried.</summary>
         public bool ModelsFail { get; set; }
 
@@ -79,6 +82,8 @@ namespace Schuly.Tests.Helply
 
             if (path.EndsWith("/chat/completions", StringComparison.Ordinal))
             {
+                if (RejectReasoning && body.Contains("\"reasoning_effort\"", StringComparison.Ordinal))
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":{\"message\":\"Unsupported parameter: 'reasoning_effort' is not supported with this model.\"}}", Encoding.UTF8, "application/json") };
                 if (RejectFiles && (body.Contains("\"image_url\"", StringComparison.Ordinal) || body.Contains("\"file_data\"", StringComparison.Ordinal)))
                     return new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{\"error\":{\"message\":\"image input is not supported\"}}", Encoding.UTF8, "application/json") };
                 return Reply(parsed);

@@ -250,7 +250,7 @@ These keys live under `Helply:Limits`.
 | `MaxToolIterationsWithWorkspace` | `16` | Tool round trips in a turn with the workspace. |
 | `MaxHistoryMessages` | `40` | Earlier messages sent to the model. |
 | `MaxHistoryChars` | `60000` | Earlier text sent to the model. |
-| `MaxOutputTokens` | `2048` | Longest answer. |
+| `MaxOutputTokens` | `8192` | Longest answer. |
 | `MaxToolResultChars` | `16000` | Longest tool result in the prompt. Longer results are cut with a note. |
 | `MaxToolArgumentChars` | `20000` | Longest serialized tool arguments. Larger calls are refused. |
 | `MaxAttachmentTextChars` | `30000` | Most text from one attachment in the prompt. |

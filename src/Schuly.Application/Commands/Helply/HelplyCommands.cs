@@ -2,6 +2,7 @@ using Mediator;
 using Schuly.Application.Authorization;
 using Schuly.Application.Dtos;
 using Schuly.Application.Models;
+using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure.Helply;
 using Schuly.Infrastructure.Services;
@@ -106,7 +107,7 @@ namespace Schuly.Application.Commands.Helply
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var permissions = await store.SetPermissionsAsync(userId, command.Permissions, cancellationToken);
-            return Result.Success(HelplyDtoMapper.ToDto(permissions, await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured));
+            return Result.Success(HelplyDtoMapper.ToDto(permissions, await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured, await store.GetReasoningEffortAsync(userId, cancellationToken)));
         }
     }
 
@@ -120,7 +121,23 @@ namespace Schuly.Application.Commands.Helply
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var enabled = await store.SetWorkspaceEnabledAsync(userId, command.Enabled, cancellationToken);
-            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), enabled, sandbox.IsConfigured));
+            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), enabled, sandbox.IsConfigured, await store.GetReasoningEffortAsync(userId, cancellationToken)));
+        }
+    }
+
+    /// <summary>Sets how hard Helply thinks before it answers (Low, Medium or High, High by default). Applies to the next message.</summary>
+    [AllowAuthenticated]
+    public record UpdateHelplyReasoningCommand(HelplyReasoningEffort Effort) : ICommand<Result<HelplySettingsDto>>;
+
+    public class UpdateHelplyReasoningCommandHandler(HelplyConversationStore store, IHelplySandboxClient sandbox, IUserService userService) : ICommandHandler<UpdateHelplyReasoningCommand, Result<HelplySettingsDto>>
+    {
+        public async ValueTask<Result<HelplySettingsDto>> Handle(UpdateHelplyReasoningCommand command, CancellationToken cancellationToken)
+        {
+            if (!Enum.IsDefined(command.Effort))
+                return Result.Failure<HelplySettingsDto>("Reasoning must be Low, Medium or High.");
+            var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var effort = await store.SetReasoningEffortAsync(userId, command.Effort, cancellationToken);
+            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured, effort));
         }
     }
 

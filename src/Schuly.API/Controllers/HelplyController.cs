@@ -8,6 +8,7 @@ using Schuly.Application.Commands.Helply;
 using Schuly.Application.Dtos;
 using Schuly.Application.Models;
 using Schuly.Application.Queries.Helply;
+using Schuly.Domain.Helply;
 using Schuly.Domain.Mcp;
 using Schuly.Infrastructure.Helply;
 using Schuly.Infrastructure.Services;
@@ -23,6 +24,8 @@ namespace Schuly.API.Controllers
     public record SendHelplyMessageRequest(string? Text, List<Guid>? AttachmentIds);
 
     public record UpdateHelplyWorkspaceRequest(bool Enabled);
+
+    public record UpdateHelplyReasoningRequest(HelplyReasoningEffort Effort);
 
     public record HelplyDecisionRequest(string? ApprovalId, bool Approved);
 
@@ -58,6 +61,10 @@ namespace Schuly.API.Controllers
         [HttpPut("settings/workspace")]
         [ProducesResponseType(typeof(HelplySettingsDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateWorkspace([FromBody] UpdateHelplyWorkspaceRequest request, CancellationToken cancellationToken) => Respond(await mediator.Send(new UpdateHelplyWorkspaceCommand(request.Enabled), cancellationToken));
+
+        [HttpPut("settings/reasoning")]
+        [ProducesResponseType(typeof(HelplySettingsDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> UpdateReasoning([FromBody] UpdateHelplyReasoningRequest request, CancellationToken cancellationToken) => Respond(await mediator.Send(new UpdateHelplyReasoningCommand(request.Effort), cancellationToken));
 
         /// <summary>
         /// Attaches a file to one of the caller's conversations (multipart field <c>file</c>). Images, PDF, text, CSV, Markdown, Word, Excel and PowerPoint up to 20 MB; the type is

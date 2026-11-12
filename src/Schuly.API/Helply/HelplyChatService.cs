@@ -243,7 +243,7 @@ namespace Schuly.API.Helply
                 IReadOnlyCollection<string>? ownDomains = null;
                 var leaksSeeded = false;
                 var instructions = HelplyPrompt.System(Now()) + (workspaceOn ? HelplyWorkspaceTools.Prompt : string.Empty) + HelplyPrompt.Files(files.Where(f => !f.FromAssistant).Select(f => f.FileName));
-                var agent = HelplyAgentFactory.Create(connection.Chat, Limits, instructions, toolSet.Tools, attachments, workspaceOn ? Limits.MaxToolIterationsWithWorkspace : Limits.MaxToolIterations);
+                var agent = HelplyAgentFactory.Create(connection.Chat, Limits, instructions, toolSet.Tools, attachments, workspaceOn ? Limits.MaxToolIterationsWithWorkspace : Limits.MaxToolIterations, await store.GetReasoningEffortAsync(turn.UserId, requestAborted));
 
                 var text = redactor.CreateStream();
                 var needsSeparator = turn.Kind == HelplyTurnKind.Approvals && assistant.Text.Length > 0;

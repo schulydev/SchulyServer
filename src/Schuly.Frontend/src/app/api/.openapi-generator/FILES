@@ -172,3 +172,5 @@ param.ts
 provide-api.ts
 query.params.ts
 variables.ts
+model/helplyReasoningEffort.ts
+model/updateHelplyReasoningRequest.ts

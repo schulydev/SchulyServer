@@ -12,5 +12,8 @@ namespace Schuly.Domain.Helply
 
         /// <summary>Whether Helply may run code in its sandboxed workspace. Off until the user turns it on.</summary>
         public bool WorkspaceEnabled { get; set; }
+
+        /// <summary>How hard Helply thinks before it answers. High unless the user lowers it.</summary>
+        public HelplyReasoningEffort ReasoningEffort { get; set; } = HelplyReasoningEffort.High;
     }
 }

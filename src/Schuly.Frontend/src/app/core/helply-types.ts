@@ -1,11 +1,16 @@
 import { McpPermissionSet } from './mcp-permissions';
 
+/** How hard Helply thinks before it answers. */
+export type HelplyReasoningEffort = 'Low' | 'Medium' | 'High';
+
 export interface HelplySettings {
   permissions: McpPermissionSet;
   /** Whether Helply may run code in the sandbox workspace. */
   workspace: boolean;
   /** False when the server has no sandbox configured. */
   workspaceAvailable: boolean;
+  /** Higher is more thorough but slower. High unless the user lowers it. */
+  reasoningEffort: HelplyReasoningEffort;
 }
 
 export interface HelplyAttachment {

@@ -106,6 +106,7 @@ namespace Schuly.Tests
             foreach (var secret in new[] { "secret-stamp", "secret-hash", "secret-token-hash", "secret-key-hash", "device-of-another" })
                 await Assert.That(json).DoesNotContain(secret);
             await Assert.That(result.Value!.Helply!.WorkspaceEnabled).IsTrue();
+            await Assert.That(result.Value!.Helply!.ReasoningEffort).IsEqualTo(HelplyReasoningEffort.High);
             await Assert.That(result.Value!.Notifications!.Preferences!.IncludeDetails).IsTrue();
             await Assert.That(result.Value!.PrivacyNotice!.SwissSchoolConfirmedAt).IsNotNull();
         }

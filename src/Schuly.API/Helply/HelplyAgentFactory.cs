@@ -2,6 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI.Chat;
+using Schuly.Domain.Helply;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace Schuly.API.Helply
@@ -47,13 +48,13 @@ namespace Schuly.API.Helply
     /// <summary>Builds the agent for one run: the gateway's chat client, the system prompt, the tools exactly as MCP listed them, and a bounded history. Nothing here logs or traces.</summary>
     public static class HelplyAgentFactory
     {
-        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools) => Create(chat, limits, instructions, tools, null, limits.MaxToolIterations);
+        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools) => Create(chat, limits, instructions, tools, null, limits.MaxToolIterations, HelplyReasoningEffort.High);
 
         /// <summary>
         /// The agent with Helply's tool loop: every call goes through <see cref="HelplyToolInvoker"/> (argument cap, repeat guard, result cap), the loop stops after
-        /// <paramref name="maxIterations"/> round trips, and with <paramref name="attachments"/> every request has its attachment markers expanded underneath the loop.
+        /// <paramref name="maxIterations"/> round trips, every model request carries the user's reasoning <paramref name="effort"/> (see <see cref="HelplyReasoningClient"/>), and with <paramref name="attachments"/> every request has its attachment markers expanded underneath the loop.
         /// </summary>
-        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools, HelplyAttachmentContext? attachments, int maxIterations)
+        public static AIAgent Create(ChatClient chat, HelplyLimits limits, string instructions, IList<AITool> tools, HelplyAttachmentContext? attachments, int maxIterations, HelplyReasoningEffort effort)
         {
             var invoker = new HelplyToolInvoker(limits.MaxToolArgumentChars, limits.MaxToolResultChars);
             var options = new ChatClientAgentOptions
@@ -67,7 +68,7 @@ namespace Schuly.API.Helply
             };
             return chat.AsAIAgent(options, client =>
             {
-                var builder = client.AsBuilder().UseFunctionInvocation(NullLoggerFactory.Instance, f =>
+                var builder = client.AsBuilder().Use(inner => new HelplyReasoningClient(inner, client.GetService<ChatClientMetadata>()?.DefaultModelId ?? string.Empty, effort)).UseFunctionInvocation(NullLoggerFactory.Instance, f =>
                 {
                     f.MaximumIterationsPerRequest = Math.Max(1, maxIterations);
                     f.MaximumConsecutiveErrorsPerRequest = 3;

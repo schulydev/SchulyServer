@@ -538,6 +538,7 @@ namespace Schuly.Infrastructure
             {
                 entity.HasKey(s => s.Id);
                 entity.Property(s => s.Permissions).HasConversion(McpPermissionJson.Converter, McpPermissionJson.Comparer).IsRequired();
+                entity.Property(s => s.ReasoningEffort).HasDefaultValue(HelplyReasoningEffort.High);
                 entity.HasIndex(s => s.ApplicationUserId).IsUnique();
 
                 entity.HasOne(s => s.ApplicationUser)

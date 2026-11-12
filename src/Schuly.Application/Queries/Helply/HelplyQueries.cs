@@ -15,7 +15,7 @@ namespace Schuly.Application.Queries.Helply
         public async ValueTask<Result<HelplySettingsDto>> Handle(GetHelplySettingsQuery query, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured));
+            return Result.Success(HelplyDtoMapper.ToDto(await store.GetPermissionsAsync(userId, cancellationToken), await store.GetWorkspaceEnabledAsync(userId, cancellationToken), sandbox.IsConfigured, await store.GetReasoningEffortAsync(userId, cancellationToken)));
         }
     }
 
