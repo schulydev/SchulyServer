@@ -307,8 +307,7 @@ namespace Schuly.API.Mcp.Tools
         public async Task<string> SearchPages([Description("Text to find in page titles, 1-100 characters.")] string query, [Description("Only search this notebook (notebookId from list_notebooks, exactly as returned).")] string? notebookId = null, Guid? accountId = null, [Description("Hits to return, 1-50.")] int limit = 25, CancellationToken ct = default)
         {
             var account = await AccountAsync(accountId, ct);
-            var url = $"{Base}/accounts/{account}/onenote/search?q={Uri.EscapeDataString(query)}&top={Math.Clamp(limit, 1, 50)}" + (string.IsNullOrWhiteSpace(notebookId) ? "" : $"&notebook={Uri.EscapeDataString(notebookId)}");
-            var data = await ReadAsync(url, ct) ?? default;
+            var data = await SearchPagesRawAsync(account, query, notebookId, limit, ct) ?? default;
             var hits = Items(Prop(data, "items")).Select(h => new
             {
                 pageId = Str(h, "id"),
@@ -364,6 +363,9 @@ namespace Schuly.API.Mcp.Tools
                 .Select(e => new { title = Str(e, "title"), start = Str(e, "start"), end = Str(e, "end"), isAllDay = Bool(e, "isAllDay"), location = Str(e, "location"), organizer = Str(e, "organizer"), preview = Str(e, "preview") is { } p ? Cap(p, 300) : null, joinUrl = Str(e, "joinUrl"), isCancelled = Bool(e, "isCancelled"), accountId = Str(e, "accountId") });
             return Serialize(new { from = start, to = end, events });
         }
+
+        private Task<JsonElement?> SearchPagesRawAsync(Guid account, string query, string? notebookId, int limit, CancellationToken ct) =>
+            ReadAsync($"{Base}/accounts/{account}/onenote/search?q={Uri.EscapeDataString(query)}&top={Math.Clamp(limit, 1, 50)}" + (string.IsNullOrWhiteSpace(notebookId) ? "" : $"&notebook={Uri.EscapeDataString(notebookId)}"), ct);
 
         private static object MailSummary(JsonElement m) => new
         {

@@ -102,23 +102,6 @@ namespace Schuly.API.Mcp.Tools
             return Serialize(SearchOutput(account, query, data));
         }
 
-        [McpServerTool(Name = "search", Title = "Search everything", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
-        [Description("Searches across files (OneDrive, Teams, SharePoint), and, when this connection also has the permission, mail (needs Mail read) and Teams chats and channel posts (needs Teams read). The result lists which sources were searched. Use it for 'find the Masterplan of class X'; then read_file for files or read_mail / list_channel_messages for the rest.")]
-        [McpAccess(McpArea.Drive, McpAccessLevel.Read)]
-        public async Task<string> Search([Description("Search text, 1-200 characters.")] string query, [Description("Limit files and channel posts to this team (teamId from list_teams).")] string? teamId = null, Guid? accountId = null, [Description("Hits to skip, for paging.")] int offset = 0, [Description("Hits per call, 1-50.")] int limit = 25, CancellationToken ct = default)
-        {
-            var account = await AccountAsync(accountId, ct);
-            var permissions = Caller(accessor).Permissions;
-            var types = new List<string> { "files" };
-            if (permissions.Allows(McpArea.Mail, McpAccessLevel.Read))
-                types.Add("mail");
-            if (permissions.Allows(McpArea.Teams, McpAccessLevel.Read))
-                types.AddRange(["chats", "channels"]);
-            var (from, size) = (Math.Max(0, offset), Math.Clamp(limit, 1, 50));
-            var data = await WriteAsync(HttpMethods.Post, $"{Base}/accounts/{account}/search", new { q = query.Trim(), types, from, size, teamId = string.IsNullOrWhiteSpace(teamId) ? null : teamId }, ct) ?? default;
-            return Serialize(SearchOutput(account, query, data, types));
-        }
-
         [McpServerTool(Name = "read_file", Title = "Read file contents", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
         [Description("Reads a file as text: Word, Excel (one sheet at a time, paged by rows), PowerPoint, PDF and plain text files. Give itemId and, for Teams / SharePoint / shared files, the driveId from the listing or search; without driveId the file is in the user's own OneDrive. The answer says how to get the next page or other sheets.")]
         [McpAccess(McpArea.Drive, McpAccessLevel.Read)]
