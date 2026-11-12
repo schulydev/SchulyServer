@@ -195,7 +195,7 @@ namespace Schuly.API.Helply
                             responses.Add(Response(pending, decision.Approved));
                             if (decision.Approved)
                             {
-                                started.Add(AddTool(assistant, pending.ToolCallId, pending.RunningLabel));
+                                started.Add(AddTool(assistant, pending.ToolCallId, pending.RunningLabel, null, HelplyToolLabels.Key(pending.ToolName), HelplyToolLabels.Args(pending.ToolName, pending.ToolLabel, null)));
                                 finishLabels[pending.ToolCallId] = (pending.DoneLabel, pending.ToolLabel);
                             }
                             else
@@ -210,7 +210,7 @@ namespace Schuly.API.Helply
                 foreach (var tool in turn.Kind == HelplyTurnKind.Approvals ? turn.Decisions.Where(d => !d.Approved) : [])
                 {
                     var denied = original.Pending.First(p => p.ApprovalId == tool.ApprovalId);
-                    await Emit(new HelplyEvent("tool_finished", new { id = denied.ToolCallId, label = denied.ToolLabel, status = HelplyToolStatus.Denied, at = assistant.Text.Length }));
+                    await Emit(new HelplyEvent("tool_finished", new { id = denied.ToolCallId, label = denied.ToolLabel, status = HelplyToolStatus.Denied, at = assistant.Text.Length, key = HelplyToolLabels.Key(denied.ToolName), args = HelplyToolLabels.Args(denied.ToolName, denied.ToolLabel, null) }));
                 }
                 foreach (var tool in started)
                     await Emit(new HelplyEvent("tool_started", ToolEvent(tool)));
@@ -281,7 +281,7 @@ namespace Schuly.API.Helply
                                         // The text before a call is a finished stretch: send all of it, so the step's place ("at") is where the user's text ends.
                                         await EmitText(text.Flush());
                                         var labels = HelplyToolLabels.For(info.Name, info.Title);
-                                        var tool = AddTool(assistant, call.CallId, labels.Running, HelplyToolLabels.Detail(call.Name, call.Arguments));
+                                        var tool = AddTool(assistant, call.CallId, labels.Running, HelplyToolLabels.Detail(call.Name, call.Arguments), HelplyToolLabels.Key(call.Name), HelplyToolLabels.Args(call.Name, info.Title, call.Arguments));
                                         if (call.Name == "bash" && toolSet.IsLocal(call.Name))
                                             tool.Code = new HelplyStoredCodeRun { Command = Shown(redactor, HelplyToolLabels.Text(call.Arguments, "command") ?? string.Empty, MaxShownCommandChars) };
                                         finishLabels[call.CallId] = (labels.Done, info.Title);
@@ -435,7 +435,7 @@ namespace Schuly.API.Helply
         private static string Shown(HelplyRedactor redactor, string text, int max) => redactor.Redact(text.Length <= max ? text : text[..max] + "\n...");
 
         /// <summary>A tool step as the user sees it. <c>at</c> is how much of the reply's text came before the step, so the chat can place the step between the stretches of text it came between.</summary>
-        private static object ToolEvent(HelplyStoredTool tool) => new { id = tool.Id, label = tool.Label, status = tool.Status, at = tool.At, detail = tool.Detail, code = tool.Code is null ? null : new { command = tool.Code.Command, output = tool.Code.Output, exitCode = tool.Code.ExitCode } };
+        private static object ToolEvent(HelplyStoredTool tool) => new { id = tool.Id, label = tool.Label, status = tool.Status, at = tool.At, detail = tool.Detail, key = tool.Key, args = tool.Args, code = tool.Code is null ? null : new { command = tool.Code.Command, output = tool.Code.Output, exitCode = tool.Code.ExitCode } };
 
         private static object HelplyDtoShape(HelplyStoredApproval a) => new { approvalId = a.ApprovalId, toolLabel = a.ToolLabel, summary = a.Summary, details = a.Details.Select(d => new { label = d.Label, value = d.Value }).ToList(), destructive = a.Destructive, arguments = a.Arguments.Select(d => new { label = d.Label, value = d.Value }).ToList(), risk = a.Risk, riskReasons = a.RiskReasons };
 
@@ -478,9 +478,9 @@ namespace Schuly.API.Helply
             return await agent.CreateSessionAsync(ct);
         }
 
-        private static HelplyStoredTool AddTool(HelplyStoredMessage message, string callId, string label, string? detail = null)
+        private static HelplyStoredTool AddTool(HelplyStoredMessage message, string callId, string label, string? detail = null, string? key = null, Dictionary<string, string>? args = null)
         {
-            var tool = new HelplyStoredTool { Id = callId, Label = label, Status = HelplyToolStatus.Running, At = message.Text.Length, Detail = detail };
+            var tool = new HelplyStoredTool { Id = callId, Label = label, Status = HelplyToolStatus.Running, At = message.Text.Length, Detail = detail, Key = key, Args = args };
             message.Tools.Add(tool);
             return tool;
         }
@@ -488,7 +488,7 @@ namespace Schuly.API.Helply
         private static void AddFinishedTool(HelplyTranscript transcript, HelplyStoredApproval pending, string status)
         {
             var message = transcript.Messages.FirstOrDefault(m => m.Id == pending.MessageId);
-            message?.Tools.Add(new HelplyStoredTool { Id = pending.ToolCallId, Label = pending.ToolLabel, Status = status, At = message.Text.Length });
+            message?.Tools.Add(new HelplyStoredTool { Id = pending.ToolCallId, Label = pending.ToolLabel, Status = status, At = message.Text.Length, Key = HelplyToolLabels.Key(pending.ToolName), Args = HelplyToolLabels.Args(pending.ToolName, pending.ToolLabel, null) });
         }
 
         /// <summary>The mail domains of the user's linked Microsoft accounts: addresses on them count as inside the school.</summary>

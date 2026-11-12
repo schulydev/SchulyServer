@@ -1139,7 +1139,242 @@
       "empty": "{{name}} è vuoto.",
       "max": "Puoi allegare fino a {{max}} file per messaggio."
     },
-    "exitCode": "codice di uscita {{code}}"
+    "exitCode": "codice di uscita {{code}}",
+    "tool": {
+      "bash": {
+        "running": "Esecuzione del codice",
+        "done": "Codice eseguito"
+      },
+      "read_file": {
+        "running": "Lettura di un file",
+        "done": "File letto"
+      },
+      "write_file": {
+        "running": "Scrittura di un file dell'area di lavoro",
+        "done": "File dell'area di lavoro scritto"
+      },
+      "share_file": {
+        "running": "Condivisione di un file",
+        "done": "File condiviso"
+      },
+      "get_profile": {
+        "running": "Lettura del tuo profilo",
+        "done": "Profilo letto"
+      },
+      "list_school_accounts": {
+        "running": "Controllo dei tuoi account scolastici",
+        "done": "Account scolastici controllati"
+      },
+      "list_grades": {
+        "running": "Consultazione delle tue note",
+        "done": "Note consultate"
+      },
+      "list_semester_reports": {
+        "running": "Consultazione delle tue pagelle semestrali",
+        "done": "Pagelle semestrali consultate"
+      },
+      "list_exams": {
+        "running": "Controllo dei tuoi esami",
+        "done": "Esami controllati"
+      },
+      "list_subjects": {
+        "running": "Consultazione delle tue materie",
+        "done": "Materie consultate"
+      },
+      "list_agenda": {
+        "running": "Controllo della tua agenda",
+        "done": "Agenda controllata"
+      },
+      "list_assessments": {
+        "running": "Consultazione dei tuoi test e scadenze",
+        "done": "Test e scadenze consultati"
+      },
+      "list_absences": {
+        "running": "Controllo delle tue assenze",
+        "done": "Assenze controllate"
+      },
+      "list_documents": {
+        "running": "Ricerca tra i tuoi documenti",
+        "done": "Documenti esaminati"
+      },
+      "read_document": {
+        "running": "Lettura di un documento",
+        "done": "Documento letto"
+      },
+      "list_mail_folders": {
+        "running": "Controllo delle tue cartelle di posta",
+        "done": "Cartelle di posta controllate"
+      },
+      "list_mail": {
+        "running": "Lettura del tuo elenco e-mail",
+        "done": "Elenco e-mail letto"
+      },
+      "read_mail": {
+        "running": "Lettura di un'e-mail",
+        "done": "E-mail letta"
+      },
+      "send_mail": {
+        "running": "Invio di un'e-mail",
+        "done": "E-mail inviata"
+      },
+      "reply_mail": {
+        "running": "Risposta a un'e-mail",
+        "done": "Risposta a un'e-mail inviata"
+      },
+      "forward_mail": {
+        "running": "Inoltro di un'e-mail",
+        "done": "E-mail inoltrata"
+      },
+      "move_mail": {
+        "running": "Spostamento di un'e-mail",
+        "done": "E-mail spostata"
+      },
+      "flag_mail": {
+        "running": "Contrassegno di un'e-mail",
+        "done": "E-mail contrassegnata"
+      },
+      "mark_mail_read": {
+        "running": "Aggiornamento dello stato di lettura di un'e-mail",
+        "done": "Stato di lettura di un'e-mail aggiornato"
+      },
+      "delete_mail": {
+        "running": "Eliminazione di un'e-mail",
+        "done": "E-mail eliminata"
+      },
+      "list_chats": {
+        "running": "Controllo delle tue chat di Teams",
+        "done": "Chat di Teams controllate"
+      },
+      "read_chat_messages": {
+        "running": "Lettura di una chat di Teams",
+        "done": "Chat di Teams letta"
+      },
+      "send_chat_message": {
+        "running": "Invio di un messaggio di Teams",
+        "done": "Messaggio di Teams inviato"
+      },
+      "list_drive_items": {
+        "running": "Esplorazione del tuo OneDrive",
+        "done": "OneDrive esplorato"
+      },
+      "read_drive_file": {
+        "running": "Lettura di un file di OneDrive",
+        "done": "File di OneDrive letto"
+      },
+      "list_teams": {
+        "running": "Consultazione dei tuoi team",
+        "done": "Team consultati"
+      },
+      "list_team_files": {
+        "running": "Esplorazione dei file di un team",
+        "done": "File di un team esplorati"
+      },
+      "list_folder": {
+        "running": "Esplorazione di una cartella",
+        "done": "Cartella esplorata"
+      },
+      "list_shared_with_me": {
+        "running": "Controllo dei file condivisi con te",
+        "done": "File condivisi con te controllati"
+      },
+      "list_recent_files": {
+        "running": "Controllo dei tuoi file recenti",
+        "done": "File recenti controllati"
+      },
+      "search_files": {
+        "running": "Ricerca nei tuoi file",
+        "done": "Ricerca nei tuoi file completata"
+      },
+      "search": {
+        "running": "Ricerca in file, note, e-mail e chat",
+        "done": "Ricerca in file, note, e-mail e chat completata"
+      },
+      "list_channel_messages": {
+        "running": "Lettura di un canale di Teams",
+        "done": "Canale di Teams letto"
+      },
+      "search_channel_messages": {
+        "running": "Ricerca nei canali di Teams",
+        "done": "Ricerca nei canali di Teams completata"
+      },
+      "list_notebooks": {
+        "running": "Controllo dei tuoi blocchi appunti OneNote",
+        "done": "Blocchi appunti OneNote controllati"
+      },
+      "list_sections": {
+        "running": "Controllo delle tue sezioni OneNote",
+        "done": "Sezioni OneNote controllate"
+      },
+      "list_pages": {
+        "running": "Controllo delle tue pagine OneNote",
+        "done": "Pagine OneNote controllate"
+      },
+      "read_page": {
+        "running": "Lettura di una pagina OneNote",
+        "done": "Pagina OneNote letta"
+      },
+      "search_pages": {
+        "running": "Ricerca nelle tue pagine OneNote",
+        "done": "Ricerca nelle tue pagine OneNote completata"
+      },
+      "create_page": {
+        "running": "Creazione di una pagina OneNote",
+        "done": "Pagina OneNote creata"
+      },
+      "update_page": {
+        "running": "Aggiornamento di una pagina OneNote",
+        "done": "Pagina OneNote aggiornata"
+      },
+      "list_calendar_events": {
+        "running": "Controllo del tuo calendario",
+        "done": "Calendario controllato"
+      },
+      "list_reported_absences": {
+        "running": "Controllo delle tue assenze segnalate",
+        "done": "Assenze segnalate controllate"
+      },
+      "list_absence_reasons": {
+        "running": "Controllo dei motivi di assenza",
+        "done": "Motivi di assenza controllati"
+      },
+      "report_absence": {
+        "running": "Segnalazione di un'assenza",
+        "done": "Assenza segnalata"
+      },
+      "withdraw_absence_report": {
+        "running": "Ritiro di una segnalazione di assenza",
+        "done": "Segnalazione di assenza ritirata"
+      },
+      "generic": {
+        "running": "Uso di uno strumento",
+        "done": "Strumento usato",
+        "runningNamed": "Uso di {{name}}",
+        "doneNamed": "{{name}} usato"
+      }
+    },
+    "note": {
+      "page": "pagina {{count}}",
+      "continued": "continuazione",
+      "more": "altri risultati",
+      "unreadOnly": "solo non lette",
+      "withSearch": "con una ricerca",
+      "terms": "{count, plural, one {# termine} other {# termini}}",
+      "sources": "in {{list}}",
+      "folder": {
+        "sentitems": "posta inviata",
+        "drafts": "bozze",
+        "deleteditems": "posta eliminata",
+        "archive": "archivio",
+        "junkemail": "posta indesiderata"
+      },
+      "source": {
+        "files": "file",
+        "channels": "canali",
+        "mail": "e-mail",
+        "chats": "chat",
+        "pages": "pagine OneNote"
+      }
+    }
   },
   "mcp": {
     "optIn": "Voglio condividere questi dati con questa app di IA. Riceve ciò che consento, secondo le sue condizioni e forse fuori dalla Svizzera. I motivi delle assenze possono rivelare dati sulla salute.",

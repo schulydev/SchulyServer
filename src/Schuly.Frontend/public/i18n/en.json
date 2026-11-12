@@ -1139,7 +1139,242 @@
       "empty": "{{name}} is empty.",
       "max": "You can attach up to {{max}} files per message."
     },
-    "exitCode": "exit code {{code}}"
+    "exitCode": "exit code {{code}}",
+    "tool": {
+      "bash": {
+        "running": "Running code",
+        "done": "Ran code"
+      },
+      "read_file": {
+        "running": "Reading a file",
+        "done": "Read a file"
+      },
+      "write_file": {
+        "running": "Writing a workspace file",
+        "done": "Wrote a workspace file"
+      },
+      "share_file": {
+        "running": "Sharing a file",
+        "done": "Shared a file"
+      },
+      "get_profile": {
+        "running": "Reading your profile",
+        "done": "Read your profile"
+      },
+      "list_school_accounts": {
+        "running": "Checking your school accounts",
+        "done": "Checked your school accounts"
+      },
+      "list_grades": {
+        "running": "Looking up your grades",
+        "done": "Looked up your grades"
+      },
+      "list_semester_reports": {
+        "running": "Looking up your semester reports",
+        "done": "Looked up your semester reports"
+      },
+      "list_exams": {
+        "running": "Checking your exams",
+        "done": "Checked your exams"
+      },
+      "list_subjects": {
+        "running": "Looking up your subjects",
+        "done": "Looked up your subjects"
+      },
+      "list_agenda": {
+        "running": "Checking your agenda",
+        "done": "Checked your agenda"
+      },
+      "list_assessments": {
+        "running": "Looking up your tests and deadlines",
+        "done": "Looked up your tests and deadlines"
+      },
+      "list_absences": {
+        "running": "Checking your absences",
+        "done": "Checked your absences"
+      },
+      "list_documents": {
+        "running": "Looking through your documents",
+        "done": "Looked through your documents"
+      },
+      "read_document": {
+        "running": "Reading a document",
+        "done": "Read a document"
+      },
+      "list_mail_folders": {
+        "running": "Checking your mail folders",
+        "done": "Checked your mail folders"
+      },
+      "list_mail": {
+        "running": "Reading your mail list",
+        "done": "Read your mail list"
+      },
+      "read_mail": {
+        "running": "Reading an email",
+        "done": "Read an email"
+      },
+      "send_mail": {
+        "running": "Sending an email",
+        "done": "Sent an email"
+      },
+      "reply_mail": {
+        "running": "Replying to an email",
+        "done": "Replied to an email"
+      },
+      "forward_mail": {
+        "running": "Forwarding an email",
+        "done": "Forwarded an email"
+      },
+      "move_mail": {
+        "running": "Moving an email",
+        "done": "Moved an email"
+      },
+      "flag_mail": {
+        "running": "Flagging an email",
+        "done": "Flagged an email"
+      },
+      "mark_mail_read": {
+        "running": "Updating the read status of an email",
+        "done": "Updated the read status of an email"
+      },
+      "delete_mail": {
+        "running": "Deleting an email",
+        "done": "Deleted an email"
+      },
+      "list_chats": {
+        "running": "Checking your Teams chats",
+        "done": "Checked your Teams chats"
+      },
+      "read_chat_messages": {
+        "running": "Reading a Teams chat",
+        "done": "Read a Teams chat"
+      },
+      "send_chat_message": {
+        "running": "Sending a Teams message",
+        "done": "Sent a Teams message"
+      },
+      "list_drive_items": {
+        "running": "Browsing your OneDrive",
+        "done": "Browsed your OneDrive"
+      },
+      "read_drive_file": {
+        "running": "Reading a OneDrive file",
+        "done": "Read a OneDrive file"
+      },
+      "list_teams": {
+        "running": "Looking up your Teams",
+        "done": "Looked up your Teams"
+      },
+      "list_team_files": {
+        "running": "Browsing a team's files",
+        "done": "Browsed a team's files"
+      },
+      "list_folder": {
+        "running": "Browsing a folder",
+        "done": "Browsed a folder"
+      },
+      "list_shared_with_me": {
+        "running": "Checking files shared with you",
+        "done": "Checked files shared with you"
+      },
+      "list_recent_files": {
+        "running": "Checking your recent files",
+        "done": "Checked your recent files"
+      },
+      "search_files": {
+        "running": "Searching your files",
+        "done": "Searched your files"
+      },
+      "search": {
+        "running": "Searching your files, notes, mail and chats",
+        "done": "Searched your files, notes, mail and chats"
+      },
+      "list_channel_messages": {
+        "running": "Reading a Teams channel",
+        "done": "Read a Teams channel"
+      },
+      "search_channel_messages": {
+        "running": "Searching Teams channels",
+        "done": "Searched Teams channels"
+      },
+      "list_notebooks": {
+        "running": "Checking your OneNote notebooks",
+        "done": "Checked your OneNote notebooks"
+      },
+      "list_sections": {
+        "running": "Checking your OneNote sections",
+        "done": "Checked your OneNote sections"
+      },
+      "list_pages": {
+        "running": "Checking your OneNote pages",
+        "done": "Checked your OneNote pages"
+      },
+      "read_page": {
+        "running": "Reading a OneNote page",
+        "done": "Read a OneNote page"
+      },
+      "search_pages": {
+        "running": "Searching your OneNote pages",
+        "done": "Searched your OneNote pages"
+      },
+      "create_page": {
+        "running": "Creating a OneNote page",
+        "done": "Created a OneNote page"
+      },
+      "update_page": {
+        "running": "Updating a OneNote page",
+        "done": "Updated a OneNote page"
+      },
+      "list_calendar_events": {
+        "running": "Checking your calendar",
+        "done": "Checked your calendar"
+      },
+      "list_reported_absences": {
+        "running": "Checking your reported absences",
+        "done": "Checked your reported absences"
+      },
+      "list_absence_reasons": {
+        "running": "Checking the absence reasons",
+        "done": "Checked the absence reasons"
+      },
+      "report_absence": {
+        "running": "Reporting an absence",
+        "done": "Reported an absence"
+      },
+      "withdraw_absence_report": {
+        "running": "Withdrawing an absence report",
+        "done": "Withdrew an absence report"
+      },
+      "generic": {
+        "running": "Using a tool",
+        "done": "Used a tool",
+        "runningNamed": "Using {{name}}",
+        "doneNamed": "Used {{name}}"
+      }
+    },
+    "note": {
+      "page": "page {{count}}",
+      "continued": "continued",
+      "more": "more results",
+      "unreadOnly": "unread only",
+      "withSearch": "with a search",
+      "terms": "{count, plural, one {# term} other {# terms}}",
+      "sources": "in {{list}}",
+      "folder": {
+        "sentitems": "sent mail",
+        "drafts": "drafts",
+        "deleteditems": "deleted mail",
+        "archive": "archive",
+        "junkemail": "junk mail"
+      },
+      "source": {
+        "files": "files",
+        "channels": "channels",
+        "mail": "mail",
+        "chats": "chats",
+        "pages": "OneNote pages"
+      }
+    }
   },
   "mcp": {
     "optIn": "I want to share this data with this AI app. It gets what I allow, under its own terms and possibly outside Switzerland. Absence reasons can reveal health information.",

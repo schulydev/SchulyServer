@@ -41,7 +41,7 @@ const updateLastAssistant = (state: ChatState, change: (message: ChatMessage) =>
 /** Adds a step or updates it in place; a finished step keeps the place and detail it started with when its event leaves them out. */
 const withTool = (tools: ToolActivity[], tool: ToolActivity): ToolActivity[] =>
   tools.some((t) => t.id === tool.id)
-    ? tools.map((t) => (t.id === tool.id ? { ...tool, at: tool.at ?? t.at, detail: tool.detail ?? t.detail } : t))
+    ? tools.map((t) => (t.id === tool.id ? { ...tool, at: tool.at ?? t.at, detail: tool.detail ?? t.detail, key: tool.key ?? t.key, args: tool.args ?? t.args } : t))
     : [...tools, tool];
 
 const stopRunning = (tools: ToolActivity[]): ToolActivity[] =>
@@ -82,12 +82,12 @@ export function applyStreamEvent(state: ChatState, event: StreamEvent, now = '')
     case 'tool_started':
       return updateLastAssistant(state, (m) => ({
         ...m,
-        tools: withTool(m.tools, { id: event.id, label: event.label, status: 'running', code: event.code, at: event.at, detail: event.detail }),
+        tools: withTool(m.tools, { id: event.id, label: event.label, status: 'running', code: event.code, at: event.at, detail: event.detail, key: event.key, args: event.args }),
       }));
     case 'tool_finished':
       return updateLastAssistant(state, (m) => ({
         ...m,
-        tools: withTool(m.tools, { id: event.id, label: event.label, status: event.status, code: event.code, at: event.at, detail: event.detail }),
+        tools: withTool(m.tools, { id: event.id, label: event.label, status: event.status, code: event.code, at: event.at, detail: event.detail, key: event.key, args: event.args }),
       }));
     case 'approval_required': {
       if (state.approvals.some((a) => a.approvalId === event.approvalId)) return state;
@@ -134,6 +134,11 @@ export function stopStreaming(state: ChatState): ChatState {
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 const position = (value: unknown): number | null => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null);
 const note = (value: unknown): string | null => (typeof value === 'string' && value ? value : null);
+const args = (value: unknown): Record<string, string> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entries = Object.entries(value).filter((e): e is [string, string] => typeof e[1] === 'string');
+  return entries.length ? Object.fromEntries(entries) : null;
+};
 const CODES: StreamErrorCode[] = ['unavailable', 'timeout', 'rate_limited', 'too_long', 'disabled'];
 
 function parseCode(value: unknown): ToolCode | null {
@@ -162,10 +167,10 @@ export function parseStreamEvent(name: string, data: string): StreamEvent | null
     case 'delta':
       return { type: 'delta', text: text(o['text']) };
     case 'tool_started':
-      return { type: 'tool_started', id: text(o['id']), label: text(o['label']), code: parseCode(o['code']), at: position(o['at']), detail: note(o['detail']) };
+      return { type: 'tool_started', id: text(o['id']), label: text(o['label']), code: parseCode(o['code']), at: position(o['at']), detail: note(o['detail']), key: note(o['key']), args: args(o['args']) };
     case 'tool_finished': {
       const status = o['status'] === 'failed' || o['status'] === 'denied' ? o['status'] : 'done';
-      return { type: 'tool_finished', id: text(o['id']), label: text(o['label']), status, code: parseCode(o['code']), at: position(o['at']), detail: note(o['detail']) };
+      return { type: 'tool_finished', id: text(o['id']), label: text(o['label']), status, code: parseCode(o['code']), at: position(o['at']), detail: note(o['detail']), key: note(o['key']), args: args(o['args']) };
     }
     case 'approval_required':
       return {

@@ -1139,7 +1139,242 @@
       "empty": "{{name}} è vid.",
       "max": "Ti pos agiuntar fin a {{max}} datotecas per messadi."
     },
-    "exitCode": "code da sortida {{code}}"
+    "exitCode": "code da sortida {{code}}",
+    "tool": {
+      "bash": {
+        "running": "Il code vegn exequì",
+        "done": "Code exequì"
+      },
+      "read_file": {
+        "running": "Ina datoteca vegn legida",
+        "done": "Datoteca legida"
+      },
+      "write_file": {
+        "running": "Ina datoteca da l'agen da lavur vegn scritta",
+        "done": "Datoteca da l'agen da lavur scritta"
+      },
+      "share_file": {
+        "running": "Ina datoteca vegn cundivisa",
+        "done": "Datoteca cundivisa"
+      },
+      "get_profile": {
+        "running": "Tes profil vegn legì",
+        "done": "Profil legì"
+      },
+      "list_school_accounts": {
+        "running": "Tes contos da scola vegnan controllads",
+        "done": "Contos da scola controllads"
+      },
+      "list_grades": {
+        "running": "Tias notas vegnan tschertgadas",
+        "done": "Notas tschertgadas"
+      },
+      "list_semester_reports": {
+        "running": "Tes attestats da semester vegnan tschertgads",
+        "done": "Attestats da semester tschertgads"
+      },
+      "list_exams": {
+        "running": "Tias examens vegnan controllads",
+        "done": "Examens controllads"
+      },
+      "list_subjects": {
+        "running": "Tes materias vegnan tschertgadas",
+        "done": "Materias tschertgadas"
+      },
+      "list_agenda": {
+        "running": "Tia agenda vegn controllada",
+        "done": "Agenda controllada"
+      },
+      "list_assessments": {
+        "running": "Tes tests e termins vegnan tschertgads",
+        "done": "Tests e termins tschertgads"
+      },
+      "list_absences": {
+        "running": "Tias absenzas vegnan controlladas",
+        "done": "Absenzas controlladas"
+      },
+      "list_documents": {
+        "running": "Tes documents vegnan sfegliads",
+        "done": "Documents sfegliads"
+      },
+      "read_document": {
+        "running": "In document vegn legì",
+        "done": "Document legì"
+      },
+      "list_mail_folders": {
+        "running": "Tes ordinaturs d'e-mail vegnan controllads",
+        "done": "Ordinaturs d'e-mail controllads"
+      },
+      "list_mail": {
+        "running": "Tia glista d'e-mails vegn legida",
+        "done": "Glista d'e-mails legida"
+      },
+      "read_mail": {
+        "running": "In e-mail vegn legì",
+        "done": "E-mail legì"
+      },
+      "send_mail": {
+        "running": "In e-mail vegn tramess",
+        "done": "E-mail tramess"
+      },
+      "reply_mail": {
+        "running": "In e-mail vegn respundì",
+        "done": "E-mail respundì"
+      },
+      "forward_mail": {
+        "running": "In e-mail vegn transmess",
+        "done": "E-mail transmess"
+      },
+      "move_mail": {
+        "running": "In e-mail vegn spustà",
+        "done": "E-mail spustà"
+      },
+      "flag_mail": {
+        "running": "In e-mail vegn marcà",
+        "done": "E-mail marcà"
+      },
+      "mark_mail_read": {
+        "running": "Il status legì d'in e-mail vegn actualisà",
+        "done": "Status legì d'in e-mail actualisà"
+      },
+      "delete_mail": {
+        "running": "In e-mail vegn stizzà",
+        "done": "E-mail stizzà"
+      },
+      "list_chats": {
+        "running": "Tes chats da Teams vegnan controllads",
+        "done": "Chats da Teams controllads"
+      },
+      "read_chat_messages": {
+        "running": "In chat da Teams vegn legì",
+        "done": "Chat da Teams legì"
+      },
+      "send_chat_message": {
+        "running": "In messadi da Teams vegn tramess",
+        "done": "Messadi da Teams tramess"
+      },
+      "list_drive_items": {
+        "running": "Tes OneDrive vegn sfeglià",
+        "done": "OneDrive sfeglià"
+      },
+      "read_drive_file": {
+        "running": "Ina datoteca da OneDrive vegn legida",
+        "done": "Datoteca da OneDrive legida"
+      },
+      "list_teams": {
+        "running": "Tes Teams vegnan tschertgads",
+        "done": "Teams tschertgads"
+      },
+      "list_team_files": {
+        "running": "Las datotecas d'in team vegnan sfegliadas",
+        "done": "Datotecas d'in team sfegliadas"
+      },
+      "list_folder": {
+        "running": "In ordinatur vegn sfeglià",
+        "done": "Ordinatur sfeglià"
+      },
+      "list_shared_with_me": {
+        "running": "Las datotecas cundivisas cun tei vegnan controlladas",
+        "done": "Datotecas cundivisas cun tei controlladas"
+      },
+      "list_recent_files": {
+        "running": "Tias datotecas da la finala vegnan controlladas",
+        "done": "Datotecas da la finala controlladas"
+      },
+      "search_files": {
+        "running": "Tias datotecas vegnan tschertgadas",
+        "done": "Datotecas tschertgadas"
+      },
+      "search": {
+        "running": "Datotecas, notizias, e-mails e chats vegnan tschertgads",
+        "done": "Datotecas, notizias, e-mails e chats tschertgads"
+      },
+      "list_channel_messages": {
+        "running": "In chanal da Teams vegn legì",
+        "done": "Chanal da Teams legì"
+      },
+      "search_channel_messages": {
+        "running": "Ils chanals da Teams vegnan tschertgads",
+        "done": "Chanals da Teams tschertgads"
+      },
+      "list_notebooks": {
+        "running": "Tes cudeschs da notizias OneNote vegnan controllads",
+        "done": "Cudeschs da notizias OneNote controllads"
+      },
+      "list_sections": {
+        "running": "Tias secziuns OneNote vegnan controlladas",
+        "done": "Secziuns OneNote controlladas"
+      },
+      "list_pages": {
+        "running": "Tias paginas OneNote vegnan controlladas",
+        "done": "Paginas OneNote controlladas"
+      },
+      "read_page": {
+        "running": "Ina pagina OneNote vegn legida",
+        "done": "Pagina OneNote legida"
+      },
+      "search_pages": {
+        "running": "Tias paginas OneNote vegnan tschertgadas",
+        "done": "Paginas OneNote tschertgadas"
+      },
+      "create_page": {
+        "running": "Ina pagina OneNote vegn creada",
+        "done": "Pagina OneNote creada"
+      },
+      "update_page": {
+        "running": "Ina pagina OneNote vegn actualisada",
+        "done": "Pagina OneNote actualisada"
+      },
+      "list_calendar_events": {
+        "running": "Tes chalender vegn controllà",
+        "done": "Chalender controllà"
+      },
+      "list_reported_absences": {
+        "running": "Tias absenzas annunziadas vegnan controlladas",
+        "done": "Absenzas annunziadas controlladas"
+      },
+      "list_absence_reasons": {
+        "running": "Ils motivs d'absenza vegnan controllads",
+        "done": "Motivs d'absenza controllads"
+      },
+      "report_absence": {
+        "running": "Ina absenza vegn annunziada",
+        "done": "Absenza annunziada"
+      },
+      "withdraw_absence_report": {
+        "running": "Ina annunzia d'absenza vegn retratga",
+        "done": "Annunzia d'absenza retratga"
+      },
+      "generic": {
+        "running": "In meds vegn duvrà",
+        "done": "Meds duvrà",
+        "runningNamed": "{{name}} vegn duvrà",
+        "doneNamed": "{{name}} duvrà"
+      }
+    },
+    "note": {
+      "page": "pagina {{count}}",
+      "continued": "cuntinuà",
+      "more": "dapli resultats",
+      "unreadOnly": "mo betg legids",
+      "withSearch": "cun ina tschertga",
+      "terms": "{count, plural, one {# term} other {# termins}}",
+      "sources": "en {{list}}",
+      "folder": {
+        "sentitems": "e-mails tramess",
+        "drafts": "concepts",
+        "deleteditems": "e-mails stizzads",
+        "archive": "archiv",
+        "junkemail": "e-mails nungivestgads"
+      },
+      "source": {
+        "files": "datotecas",
+        "channels": "chanals",
+        "mail": "e-mails",
+        "chats": "chats",
+        "pages": "paginas OneNote"
+      }
+    }
   },
   "mcp": {
     "optIn": "Jau vuless partir questas datas cun questa app d'IA. Ella survegn quai che jau permet, tenor sias atgnas cundiziuns e forsa ordaifer la Svizra. Motivs d'absenza pon revelar datas da sanadad.",
