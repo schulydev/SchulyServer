@@ -161,7 +161,7 @@ namespace Schuly.Infrastructure.Helply
             var exists = await db.HelplyAttachments.AnyAsync(a => a.Id == id && a.ConversationId == conversationId && a.ApplicationUserId == applicationUserId && a.MessageId == null, ct);
             if (!exists)
                 return false;
-            RemoveByIds([id]);
+            RemoveByIds([(id, conversationId)]);
             await db.SaveChangesAsync(ct);
             return true;
         }
@@ -171,27 +171,30 @@ namespace Schuly.Infrastructure.Helply
         {
             if (conversationIds.Count == 0)
                 return;
-            RemoveByIds(await db.HelplyAttachments.Where(a => conversationIds.Contains(a.ConversationId)).Select(a => a.Id).ToListAsync(ct));
+            RemoveByIds(await db.HelplyAttachments.Where(a => conversationIds.Contains(a.ConversationId)).Select(a => new ValueTuple<Guid, Guid>(a.Id, a.ConversationId)).ToListAsync(ct));
         }
 
         /// <summary>Removes uploads that were never sent and are older than a day. Returns how many.</summary>
         public async Task<int> SweepOrphansAsync(CancellationToken ct = default)
         {
             var cutoff = Now - OrphanAge;
-            var ids = await db.HelplyAttachments.Where(a => a.MessageId == null && a.CreatedAt < cutoff).Select(a => a.Id).ToListAsync(ct);
+            var ids = await db.HelplyAttachments.Where(a => a.MessageId == null && a.CreatedAt < cutoff).Select(a => new ValueTuple<Guid, Guid>(a.Id, a.ConversationId)).ToListAsync(ct);
             RemoveByIds(ids);
             await db.SaveChangesAsync(ct);
             return ids.Count;
         }
 
-        /// <summary>Deletes by key without loading any blob: tracked rows are removed as they are, the rest as key-only stubs.</summary>
-        private void RemoveByIds(IReadOnlyCollection<Guid> ids)
+        /// <summary>
+        /// Deletes by key without loading any blob: tracked rows are removed as they are, the rest as stubs. A stub carries its real conversation id so EF orders its delete before
+        /// the conversation's; without it the database's cascade can remove the row first and the stub's DELETE then affects 0 rows.
+        /// </summary>
+        private void RemoveByIds(IReadOnlyCollection<(Guid Id, Guid ConversationId)> ids)
         {
-            foreach (var id in ids)
+            foreach (var (id, conversationId) in ids)
             {
                 var content = db.HelplyAttachmentContents.Local.FirstOrDefault(c => c.AttachmentId == id) ?? db.HelplyAttachmentContents.Attach(new HelplyAttachmentContent { AttachmentId = id }).Entity;
                 db.HelplyAttachmentContents.Remove(content);
-                var attachment = db.HelplyAttachments.Local.FirstOrDefault(a => a.Id == id) ?? db.HelplyAttachments.Attach(new HelplyAttachment { Id = id }).Entity;
+                var attachment = db.HelplyAttachments.Local.FirstOrDefault(a => a.Id == id) ?? db.HelplyAttachments.Attach(new HelplyAttachment { Id = id, ConversationId = conversationId }).Entity;
                 db.HelplyAttachments.Remove(attachment);
             }
         }
